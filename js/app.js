@@ -12,7 +12,11 @@
   async function init() {
     try {
       const res = await fetch("data/cards.json", { cache: "no-cache" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
       db = await res.json();
+      if (!db || !Array.isArray(db.cards) || !db.cards.length) {
+        throw new Error("empty catalog");
+      }
     } catch {
       $("#fatal").hidden = false;
       $("#fatal").textContent = "Could not load card database.";
@@ -21,6 +25,9 @@
 
     $("#asof-label").textContent = db.meta.asOf;
     $("#disclaimer").textContent = db.meta.disclaimer;
+    if (db.meta.ratesNote && $("#rates-note")) {
+      $("#rates-note").textContent = db.meta.ratesNote;
+    }
     renderExistingOptions();
     bind();
     run();
@@ -35,7 +42,7 @@
       .map(
         (c) => `
       <label class="check">
-        <input type="checkbox" name="existing" value="${c.id}" />
+        <input type="checkbox" name="existing" value="${escapeAttr(c.id)}" />
         <span>${escapeHtml(c.name)}</span>
       </label>`
       )
@@ -52,6 +59,16 @@
     });
     $("#oneOff").addEventListener("input", debounce(run, 200));
     $("#monthly").addEventListener("input", debounce(run, 200));
+
+    // Fuss-free vs optimizer are opposing biases — keep UI honest
+    const fuss = $("#fussFree");
+    const opt = $("#optimizer");
+    fuss.addEventListener("change", () => {
+      if (fuss.checked && opt.checked) opt.checked = false;
+    });
+    opt.addEventListener("change", () => {
+      if (opt.checked && fuss.checked) fuss.checked = false;
+    });
   }
 
   function scenarioFromForm() {
@@ -60,6 +77,10 @@
       ...new Set(existing.map((id) => db.cards.find((c) => c.id === id)?.issuer).filter(Boolean)),
     ];
     const goal = $("#goal").value;
+    const asOf =
+      (typeof CardFitEngine !== "undefined" && CardFitEngine.todayYmd
+        ? CardFitEngine.todayYmd()
+        : null) || db.meta.asOf;
     return {
       oneOff: Number($("#oneOff").value) || 0,
       monthly: Number($("#monthly").value) || 0,
@@ -71,7 +92,7 @@
       amexOk: $("#amexOk").checked,
       intent: goal === "long_term" ? "long_term" : goal === "keep" ? "keep" : "acquire",
       weightLongTerm: goal === "long_term",
-      asOf: "2026-07-19",
+      asOf,
     };
   }
 
@@ -87,14 +108,32 @@
     const primary = $("#primary");
     if (!p) {
       primary.innerHTML = "<p>No recommendation.</p>";
+      $("#plan").innerHTML = "";
+      $("#ranked").innerHTML = "";
       return;
     }
 
-    const c = p.card;
-    primary.innerHTML = `
+    if (result.zeroSpend) {
+      primary.innerHTML = `
+        <p class="eyebrow">Enter a spend scenario</p>
+        <h2 class="card-title">Add a one-off or monthly amount</h2>
+        <p class="issuer">Estimates need at least some card spend to rank cash value.</p>
+        <p class="muted">Tip: try a large booking (e.g. S$3,500) plus typical monthly burn. Fuss-free mode still ranks simple flat cards when spend is blank, but numbers will be S$0.</p>
+      `;
+      // Still show ranking for curiosity
+    } else {
+      const c = p.card;
+      const banners = [];
+      if (result.noNewCard) {
+        banners.push(
+          `<div class="warn"><p>You marked every catalog card as already held — showing the best <em>keep / use</em> fit instead of a new acquisition.</p></div>`
+        );
+      }
+      primary.innerHTML = `
       <p class="eyebrow">Top fit for your inputs</p>
       <h2 class="card-title">${escapeHtml(c.name)}</h2>
       <p class="issuer">${escapeHtml(c.issuer)} · ${escapeHtml(c.network)} · ${styleLabel(c.style)}</p>
+      ${banners.join("")}
       <div class="metrics">
         <div class="metric"><b>S$${fmt(p.net)}</b><span>Est. net value (${result.scenario.months} mo)</span></div>
         <div class="metric"><b>${(p.effectiveRate * 100).toFixed(2)}%</b><span>Effective rate on spend</span></div>
@@ -107,21 +146,24 @@
       </ul>
       ${p.warnings.length ? `<div class="warn">${p.warnings.map((w) => `<p>${escapeHtml(w)}</p>`).join("")}</div>` : ""}
       ${p.notes.length ? `<div class="notes">${p.notes.map((n) => `<p>${escapeHtml(n)}</p>`).join("")}</div>` : ""}
-      <p class="muted tiny">Estimate only — excludes overseas FX markups, non-qualifying MCC codes, and promo clawbacks. Data as of ${escapeHtml(db.meta.asOf)}.</p>
+      <p class="muted tiny">Estimate only — excludes overseas FX markups, non-qualifying MCC codes, and promo clawbacks. Rates as of ${escapeHtml(db.meta.asOf)}; promo windows checked against ${escapeHtml(result.scenario.asOf)}.</p>
     `;
+    }
 
     const list = $("#ranked");
     list.innerHTML = result.ranked
       .map((r, i) => {
         const card = r.card;
+        const basePct = ((card.flatRate || 0) * 100).toFixed(1);
         return `
         <article class="rank-card ${r === p ? "is-top" : ""} ${r.alreadyHold ? "is-held" : ""}">
           <div class="rank-num">${i + 1}</div>
           <div class="rank-body">
             <header>
               <h3>${escapeHtml(card.name)}</h3>
-              <span class="pill">${(card.flatRate ? card.flatRate * 100 : 0).toFixed(1)}% base</span>
+              <span class="pill">${basePct}% base</span>
               ${r.alreadyHold ? '<span class="pill pill-held">In wallet</span>' : ""}
+              ${r === p ? '<span class="pill pill-top">Top fit</span>' : ""}
             </header>
             <p class="rank-meta">${escapeHtml(card.issuer)} · fuss ${card.fussFreeScore} · accept ${card.acceptanceScore}</p>
             <p class="rank-value"><strong>S$${fmt(r.net)}</strong> est. net · signup S$${fmt(r.signupCash)} · rate cash S$${fmt(r.cashFromRate)}</p>
@@ -131,13 +173,17 @@
       })
       .join("");
 
-    // Plan steps for top pick
-    $("#plan").innerHTML = buildPlan(p, result.scenario);
+    $("#plan").innerHTML = result.zeroSpend
+      ? `<p class="muted">Enter one-off and/or monthly spend, then recalculate for a concrete action plan.</p>`
+      : buildPlan(p, result.scenario, result);
   }
 
-  function buildPlan(p, scenario) {
+  function buildPlan(p, scenario, result) {
     const c = p.card;
     const steps = [];
+    if (result?.noNewCard) {
+      steps.push("No unheld cards left in this catalog — use the ranking to decide which existing card to prioritise for this spend.");
+    }
     if (p.alreadyHold) {
       steps.push(`Keep using <strong>${escapeHtml(c.name)}</strong> for this spend profile.`);
       steps.push("Before a large booking, confirm MCC / airline exclusions do not zero your cashback.");
@@ -149,7 +195,9 @@
       steps.push(`Apply for <strong>${escapeHtml(c.name)}</strong> only after reading the live T&amp;Cs on the issuer site.`);
       steps.push("Screenshot the promo page on application day (offers expire).");
       if (c.signup?.minSpend) {
-        steps.push(`Plan qualifying spend ≥ <strong>S$${c.signup.minSpend}</strong> inside the promo window (${c.signup.windowDays || "see T&Cs"} days if stated).`);
+        steps.push(
+          `Plan qualifying spend ≥ <strong>S$${c.signup.minSpend}</strong> inside the promo window (${c.signup.windowDays || "see T&Cs"} days if stated).`
+        );
       }
       if (scenario.oneOff > 0) {
         steps.push(`Charge the ~S$${fmt(scenario.oneOff)} one-off after approval — not before.`);
@@ -175,7 +223,10 @@
   }
 
   function fmt(n) {
-    return Number(n || 0).toLocaleString("en-SG", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    return Number(n || 0).toLocaleString("en-SG", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    });
   }
 
   function escapeHtml(s) {
@@ -184,6 +235,10 @@
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
+  }
+
+  function escapeAttr(s) {
+    return escapeHtml(s).replace(/'/g, "&#39;");
   }
 
   function debounce(fn, ms) {

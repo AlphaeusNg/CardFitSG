@@ -72,6 +72,22 @@ assert(db.cards.length >= 5, "has card catalog");
   assert(r.primary.card.id === "uob-absolute", "long-term primary is UOB Absolute");
 }
 
+// Long-term during active Infinity promo: still prefer Absolute (no promo chasing)
+{
+  const r = E.recommend(db, {
+    oneOff: 4000,
+    monthly: 800,
+    months: 12,
+    preferFussFree: true,
+    intent: "long_term",
+    weightLongTerm: true,
+    amexOk: false,
+    asOf: "2026-06-20",
+  });
+  assert(r.primary.card.id === "uob-absolute", "long-term ignores Infinity signup chase");
+  assert(r.ranked[0].card.id === "uob-absolute", "long-term rank#1 is Absolute");
+}
+
 // Category cards penalised in fuss-free mode
 {
   const r = E.recommend(db, {
@@ -87,6 +103,12 @@ assert(db.cards.length >= 5, "has card catalog");
   const absolute = r.ranked.find((x) => x.card.id === "uob-absolute");
   assert(uobOne && absolute, "both cards scored");
   assert(absolute.score > uobOne.score, "Absolute beats UOB One in fuss-free mode");
+  // Category cards must not sit in top 2 under fuss-free defaults
+  const top2 = r.ranked.slice(0, 2).map((x) => x.card.style);
+  assert(
+    top2.every((s) => s === "flat" || s === "intro_then_flat"),
+    "fuss-free top2 are flat-ish, not category"
+  );
 }
 
 // Already holding: signup cash zeroed
@@ -131,8 +153,71 @@ assert(db.cards.length >= 5, "has card catalog");
 // Math: 1.7% of 10000 = 170
 {
   const card = db.cards.find((c) => c.id === "uob-absolute");
-  const s = E.scoreCard(card, { oneOff: 10000, monthly: 0, months: 12, existingCardIds: ["uob-absolute"], asOf: "2026-07-19" });
+  const s = E.scoreCard(card, {
+    oneOff: 10000,
+    monthly: 0,
+    months: 12,
+    existingCardIds: ["uob-absolute"],
+    asOf: "2026-07-19",
+  });
   assert(Math.abs(s.cashFromRate - 170) < 0.01, "1.7% of 10k = 170");
+}
+
+// Zero spend flagged
+{
+  const r = E.recommend(db, {
+    oneOff: 0,
+    monthly: 0,
+    months: 12,
+    preferFussFree: true,
+    intent: "acquire",
+    asOf: "2026-07-19",
+  });
+  assert(r.zeroSpend === true, "zeroSpend flag");
+  assert(r.primary && r.primary.net === 0, "zero spend net is 0");
+}
+
+// Hold all cards under acquire
+{
+  const all = db.cards.map((c) => c.id);
+  const r = E.recommend(db, {
+    oneOff: 3500,
+    monthly: 1200,
+    months: 12,
+    existingCardIds: all,
+    preferFussFree: true,
+    amexOk: false,
+    intent: "acquire",
+    asOf: "2026-07-19",
+  });
+  assert(r.noNewCard === true, "noNewCard when all held");
+  assert(r.primary.alreadyHold === true, "primary is a held card");
+}
+
+// Clamp absurd spend
+{
+  const s = E.scoreCard(db.cards.find((c) => c.id === "uob-absolute"), {
+    oneOff: 1e20,
+    monthly: -50,
+    months: 12,
+    existingCardIds: ["uob-absolute"],
+    asOf: "2026-07-19",
+  });
+  assert(Number.isFinite(s.net) && s.net > 0, "clamped huge spend stays finite");
+  assert(s.totalSpend <= 1e8 + 1, "spend clamped to MAX");
+}
+
+// Expired promo: no signup cash
+{
+  const s = E.scoreCard(db.cards.find((c) => c.id === "ocbc-infinity"), {
+    oneOff: 4000,
+    monthly: 800,
+    months: 12,
+    existingCardIds: [],
+    asOf: "2026-07-19",
+  });
+  assert(s.signupCash === 0, "expired Infinity promo yields 0 signup");
+  assert(s.warnings.some((w) => /ended/i.test(w)), "warns about ended promo window");
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

@@ -345,6 +345,10 @@ select:focus {
   border-color: rgba(94, 207, 142, 0.4);
   color: var(--ok);
 }
+.pill-top {
+  border-color: var(--gold-line);
+  color: var(--gold);
+}
 .rank-meta {
   margin: 0.2rem 0;
   font-size: 0.8rem;
@@ -380,6 +384,17 @@ select:focus {
   flex-wrap: wrap;
   gap: 0.5rem 1.25rem;
   justify-content: space-between;
+}
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 1rem;
+}
+.footer-links a {
+  color: var(--muted);
+}
+.footer-links a:hover {
+  color: var(--gold);
 }
 
 #fatal {

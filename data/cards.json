@@ -3,6 +3,7 @@
     "currency": "SGD",
     "market": "Singapore",
     "asOf": "2026-06-15",
+    "ratesNote": "Base rates researched 2026-06-15. Promo windows are date-checked at runtime against today's date — expired signup cash is not counted.",
     "disclaimer": "Rates, promos, and fees change. Always verify on the issuer's official page before applying. This tool is educational, not financial advice.",
     "sources": [
       "https://www.ocbc.com/personal-banking/cards/infinity-unlimited-cashback-card.page",
