@@ -1,0 +1,203 @@
+{
+  "meta": {
+    "currency": "SGD",
+    "market": "Singapore",
+    "asOf": "2026-06-15",
+    "disclaimer": "Rates, promos, and fees change. Always verify on the issuer's official page before applying. This tool is educational, not financial advice.",
+    "sources": [
+      "https://www.ocbc.com/personal-banking/cards/infinity-unlimited-cashback-card.page",
+      "https://www.uob.com.sg/personal/cards/cashback/absolute-cashback-card.page",
+      "https://www.americanexpress.com/sg/credit-cards/true-cashback-card/",
+      "https://www.moneysmart.sg/credit-cards/cash-back",
+      "https://seedly.sg/reviews/credit-cards/"
+    ]
+  },
+  "cards": [
+    {
+      "id": "ocbc-infinity",
+      "name": "OCBC INFINITY Cashback",
+      "issuer": "OCBC",
+      "network": "Visa",
+      "style": "flat",
+      "flatRate": 0.016,
+      "annualFee": 196.2,
+      "firstYearFeeWaived": true,
+      "minMonthlySpend": 0,
+      "earnCap": null,
+      "fussFreeScore": 95,
+      "acceptanceScore": 92,
+      "signup": {
+        "activeThrough": "2026-06-30",
+        "minSpend": 600,
+        "windowDays": 30,
+        "cashReward": 180,
+        "notes": "Public promo window: spend ≥ S$600 within 30 days of approval for ~S$180 cashback (or miles alternative). Confirm live T&Cs."
+      },
+      "exclusionsNote": "Standard bank exclusions may apply; verify qualifying spend definitions.",
+      "pros": ["True flat cashback", "No monthly minimum", "No earn cap advertised", "Strong signup for large near-term spend"],
+      "cons": ["Long-term rate slightly below UOB Absolute", "Annual fee after year 1"],
+      "bestFor": ["one_off_large", "fuss_free", "signup_hunt"]
+    },
+    {
+      "id": "uob-absolute",
+      "name": "UOB Absolute Cashback",
+      "issuer": "UOB",
+      "network": "Visa",
+      "style": "flat",
+      "flatRate": 0.017,
+      "annualFee": 196.2,
+      "firstYearFeeWaived": true,
+      "minMonthlySpend": 0,
+      "earnCap": null,
+      "fussFreeScore": 98,
+      "acceptanceScore": 92,
+      "signup": {
+        "activeThrough": null,
+        "minSpend": 0,
+        "windowDays": null,
+        "cashReward": 0,
+        "giftValueEst": 250,
+        "notes": "Often advertises a travel luggage gift for new applicants. Cash value varies; treat as non-cash perk."
+      },
+      "exclusionsNote": "Marketed as no spend exclusions on main proposition; selected local categories may earn lower (e.g. 0.3%). Confirm current terms.",
+      "pros": ["Highest simple flat rate among major banks (~1.7%)", "No min spend", "Best long-term keeper for fuss-free users"],
+      "cons": ["Signup may be gift-heavy rather than pure cash", "Fee after year 1 if kept"],
+      "bestFor": ["long_term", "fuss_free", "daily_spend"]
+    },
+    {
+      "id": "amex-true",
+      "name": "AMEX True Cashback",
+      "issuer": "American Express",
+      "network": "Amex",
+      "style": "intro_then_flat",
+      "introRate": 0.03,
+      "introCapCash": 150,
+      "introCapSpend": 5000,
+      "introMonths": 6,
+      "flatRate": 0.015,
+      "annualFee": 174.4,
+      "firstYearFeeWaived": true,
+      "minMonthlySpend": 0,
+      "earnCap": null,
+      "fussFreeScore": 88,
+      "acceptanceScore": 72,
+      "signup": {
+        "activeThrough": null,
+        "minSpend": 0,
+        "windowDays": null,
+        "cashReward": 0,
+        "notes": "Intro 3% is the main acquisition value (capped at S$150 cashback on first S$5,000 eligible)."
+      },
+      "exclusionsNote": "Eligible purchases only; merchant acceptance lower than Visa/Mastercard.",
+      "pros": ["Strong intro boost if merchant takes Amex", "No min spend", "Simple after intro"],
+      "cons": ["Acceptance gaps", "Falls to 1.5% after intro", "Welcome upside capped"],
+      "bestFor": ["one_off_large", "amex_friendly"]
+    },
+    {
+      "id": "sc-simply",
+      "name": "SC Simply Cash",
+      "issuer": "Standard Chartered",
+      "network": "Visa",
+      "style": "flat",
+      "flatRate": 0.015,
+      "annualFee": 196.2,
+      "firstYearFeeWaived": true,
+      "minMonthlySpend": 0,
+      "earnCap": null,
+      "fussFreeScore": 94,
+      "acceptanceScore": 92,
+      "signup": {
+        "activeThrough": null,
+        "minSpend": 0,
+        "windowDays": null,
+        "cashReward": 0,
+        "notes": "Solid baseline flat cashback. Less compelling as a *new* card if you already hold SC products."
+      },
+      "exclusionsNote": "Standard exclusions may apply.",
+      "pros": ["Simple flat cashback", "No monthly minimum", "Widely accepted"],
+      "cons": ["Rate below Absolute / INFINITY", "Weak reason to open if you already have SC"],
+      "bestFor": ["existing_holder", "fuss_free", "fallback"]
+    },
+    {
+      "id": "uob-one",
+      "name": "UOB One",
+      "issuer": "UOB",
+      "network": "Visa",
+      "style": "category_tiered",
+      "flatRate": 0.003,
+      "tieredRates": [
+        { "minSpend": 500, "rate": 0.033, "categories": ["selected"], "note": "Up to ~3.33% on selected categories with min spend — structure changes; verify." },
+        { "minSpend": 1000, "rate": 0.04, "categories": ["selected"], "note": "Higher tier with higher min spend." }
+      ],
+      "annualFee": 196.2,
+      "firstYearFeeWaived": true,
+      "minMonthlySpend": 500,
+      "earnCap": 20,
+      "fussFreeScore": 45,
+      "acceptanceScore": 92,
+      "signup": {
+        "activeThrough": null,
+        "minSpend": 0,
+        "windowDays": null,
+        "cashReward": 0,
+        "notes": "Powerful if you hit thresholds monthly; poor fit for fuss-free or pure large one-off planning."
+      },
+      "exclusionsNote": "Category lists, caps, and tiers change frequently.",
+      "pros": ["High % when optimized", "Popular among active optimizers"],
+      "cons": ["Monthly thresholds", "Category tracking", "Caps", "Opposite of fuss-free"],
+      "bestFor": ["optimizer", "monthly_routine"]
+    },
+    {
+      "id": "ocbc-365",
+      "name": "OCBC 365",
+      "issuer": "OCBC",
+      "network": "Visa",
+      "style": "category",
+      "flatRate": 0.003,
+      "categoryRates": {
+        "dining": 0.06,
+        "petrol": 0.05,
+        "transit": 0.03,
+        "online": 0.03
+      },
+      "annualFee": 196.2,
+      "firstYearFeeWaived": true,
+      "minMonthlySpend": 800,
+      "earnCap": 80,
+      "fussFreeScore": 40,
+      "acceptanceScore": 92,
+      "signup": {
+        "activeThrough": null,
+        "minSpend": 0,
+        "windowDays": null,
+        "cashReward": 0,
+        "notes": "Strong for dining/petrol if you hit min spend; not for pure fuss-free or airline-ticket plays."
+      },
+      "exclusionsNote": "Min spend and category definitions apply.",
+      "pros": ["High category rates for dining/petrol"],
+      "cons": ["Min monthly spend", "Category constraints", "Not ideal for large non-category tickets"],
+      "bestFor": ["optimizer", "dining_heavy"]
+    }
+  ],
+  "presets": {
+    "fuss_free": {
+      "label": "Fuss-free flat cashback",
+      "preferStyles": ["flat", "intro_then_flat"],
+      "maxFuss": 100,
+      "minFuss": 80,
+      "avoidMinSpend": true
+    },
+    "one_off_large": {
+      "label": "Large one-off purchase soon",
+      "preferStyles": ["flat", "intro_then_flat"],
+      "weightSignup": true,
+      "avoidMinSpend": true
+    },
+    "long_term": {
+      "label": "Best long-term simple card",
+      "preferStyles": ["flat"],
+      "weightOngoing": true,
+      "avoidMinSpend": true
+    }
+  }
+}

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CardFitSG — Singapore cashback card fit calculator</title>
+  <meta name="description" content="Fuss-free Singapore credit card cashback calculator. Rank flat cashback cards for large one-off spends and simple monthly use. By Alphaeus Ng." />
+  <meta name="author" content="Alphaeus Ng" />
+  <meta name="theme-color" content="#071019" />
+  <meta name="color-scheme" content="dark" />
+  <link rel="canonical" href="https://alphaeusng.github.io/CardFitSG/" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta property="og:title" content="CardFitSG" />
+  <meta property="og:description" content="Which SG cashback card fits your spend — without category hell." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://alphaeusng.github.io/CardFitSG/" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23071019'/%3E%3Ctext x='32' y='42' text-anchor='middle' font-size='20' fill='%23C9A227'%3ESG%3C/text%3E%3C/svg%3E" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <a class="skip" href="#main">Skip to calculator</a>
+
+  <header class="topbar">
+    <a class="brand" href="./">
+      <span class="brand-mark" aria-hidden="true">CF</span>
+      <span>
+        <strong>CardFitSG</strong>
+        <small>cashback · fuss-free · SGD</small>
+      </span>
+    </a>
+    <nav class="top-nav" aria-label="Related">
+      <a href="https://alphaeusng.github.io/">Portfolio</a>
+      <a href="#method">Method</a>
+      <a href="#disclaimer-block">Disclaimer</a>
+    </nav>
+  </header>
+
+  <p id="fatal" hidden role="alert"></p>
+
+  <main id="main" class="wrap">
+    <section class="hero">
+      <p class="eyebrow">Singapore · cashback only</p>
+      <h1>Find the card that fits your spend</h1>
+      <p class="lede">
+        Most SG card blogs optimise for miles or category gymnastics. CardFitSG ranks
+        <strong>fuss-free cashback</strong> for real scenarios: honeymoon tickets, flat monthly spend,
+        and “I already have bank X.” Rates researched as of <strong id="asof-label">—</strong>.
+      </p>
+    </section>
+
+    <div class="layout">
+      <form id="form" class="panel" aria-label="Spend scenario">
+        <p class="eyebrow">Your scenario</p>
+        <h2 style="font-size:1.15rem;margin-bottom:0.85rem">Inputs</h2>
+
+        <label class="field">
+          <span>Large one-off soon (SGD)</span>
+          <input type="number" id="oneOff" name="oneOff" min="0" step="50" value="3500" inputmode="decimal" />
+        </label>
+
+        <label class="field">
+          <span>Typical monthly card spend (SGD)</span>
+          <input type="number" id="monthly" name="monthly" min="0" step="50" value="1200" inputmode="decimal" />
+        </label>
+
+        <label class="field">
+          <span>Horizon</span>
+          <select id="months" name="months">
+            <option value="6">6 months</option>
+            <option value="12" selected>12 months</option>
+            <option value="24">24 months</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Primary goal</span>
+          <select id="goal" name="goal">
+            <option value="acquire" selected>Best new card for this spend</option>
+            <option value="long_term">Best long-term simple card</option>
+            <option value="keep">Compare / keep existing</option>
+          </select>
+        </label>
+
+        <p class="eyebrow" style="margin-top:0.5rem">Cards you already hold</p>
+        <div class="checks" id="existing-cards"></div>
+
+        <div class="toggles">
+          <label class="check">
+            <input type="checkbox" id="fussFree" checked />
+            <span>Prefer fuss-free (no min spend / categories)</span>
+          </label>
+          <label class="check">
+            <input type="checkbox" id="amexOk" />
+            <span>Merchant reliably accepts Amex</span>
+          </label>
+          <label class="check">
+            <input type="checkbox" id="optimizer" />
+            <span>Optimizer mode (score category cards aggressively)</span>
+          </label>
+        </div>
+
+        <button type="submit" class="btn">Recalculate fit</button>
+      </form>
+
+      <div>
+        <section id="primary" class="panel" aria-live="polite"></section>
+
+        <section class="panel" style="margin-top:1rem">
+          <p class="eyebrow">Action plan</p>
+          <h2 style="font-size:1.15rem;margin:0.15rem 0 0.5rem;font-family:var(--serif)">What to do next</h2>
+          <div id="plan"></div>
+        </section>
+
+        <section style="margin-top:1rem" aria-label="Full ranking">
+          <p class="eyebrow">Full ranking</p>
+          <div id="ranked" class="rank-list"></div>
+        </section>
+      </div>
+    </div>
+
+    <section id="method" class="panel" style="margin-top:1.5rem">
+      <p class="eyebrow">Method</p>
+      <h2 style="font-family:var(--serif);font-size:1.2rem;margin:0.15rem 0 0.5rem">How scoring works</h2>
+      <ul class="reasons">
+        <li>Estimates cash from published flat / intro rates on your one-off + monthly spend.</li>
+        <li>Adds signup cash only if promo window looks active and spend clears the hurdle.</li>
+        <li>Boosts high fuss-free scores; penalises min-spend category cards unless optimizer mode is on.</li>
+        <li>Soft-penalises opening another card at an issuer you already hold (weaker acquisition odds).</li>
+        <li>Does <em>not</em> model FX fees, 0% instalments, or insurance perks — keep those separate.</li>
+      </ul>
+      <p class="muted tiny">
+        Built for the Singapore market by Alphaeus Ng after writing a personal honeymoon cashback brief.
+        Default bias: simple flat cashback over category maxxing.
+      </p>
+    </section>
+
+    <section id="disclaimer-block" class="panel" style="margin-top:1rem">
+      <p class="eyebrow">Disclaimer</p>
+      <p id="disclaimer" class="muted" style="margin:0.25rem 0 0"></p>
+      <p class="muted tiny" style="margin:0.75rem 0 0">
+        Not affiliated with any bank. Always read issuer T&amp;Cs. Educational tool only — not financial advice.
+      </p>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>© 2026 Alphaeus Ng · MIT</span>
+    <span>Version <span id="site-version">—</span></span>
+    <span><a href="https://alphaeusng.github.io/">Portfolio</a></span>
+  </footer>
+
+  <script src="js/version.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
