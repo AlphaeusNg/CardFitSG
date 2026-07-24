@@ -1,5 +1,5 @@
 /** Bump on every deploy: YYYY.MM.DD.N */
 const SITE_VERSION = {
-  id: "2026.07.24.3",
+  id: "2026.07.24.4",
   label: "CardFitSG",
 };
