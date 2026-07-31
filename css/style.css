@@ -74,6 +74,24 @@ a:hover {
   position: sticky;
   top: 0;
   z-index: 20;
+  transition: transform 0.22s ease, opacity 0.22s ease;
+  will-change: transform;
+}
+
+.topbar.is-scroll-hidden {
+  transform: translateY(calc(-100% - 1px));
+  opacity: 0;
+  pointer-events: none;
+}
+
+.topbar:focus-within {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .topbar { transition: none; }
 }
 
 .brand {
