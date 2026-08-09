@@ -99,12 +99,21 @@
 
       requireRate(card.flatRate, `${path}.flatRate`);
       requireNumber(card.annualFee, `${path}.annualFee`);
+      requireNumber(card.feeWaiverYears, `${path}.feeWaiverYears`, {
+        min: 0,
+        max: 10,
+        integer: true,
+      });
       requireNumber(card.minMonthlySpend, `${path}.minMonthlySpend`);
       requireNumber(card.earnCap, `${path}.earnCap`, { nullable: true });
       requireNumber(card.fussFreeScore, `${path}.fussFreeScore`, { max: 100 });
       requireNumber(card.acceptanceScore, `${path}.acceptanceScore`, { max: 100 });
       if (typeof card.firstYearFeeWaived !== "boolean") {
         errors.push(`${path}.firstYearFeeWaived must be a boolean`);
+      } else if (Number.isInteger(card.feeWaiverYears)) {
+        if (card.firstYearFeeWaived !== (card.feeWaiverYears > 0)) {
+          errors.push(`${path}.firstYearFeeWaived must agree with feeWaiverYears`);
+        }
       }
       if (!Array.isArray(card.pros) || !card.pros.every((item) => typeof item === "string")) {
         errors.push(`${path}.pros must be an array of strings`);
@@ -123,6 +132,21 @@
           Object.entries(card.categoryRates).forEach(([category, rate]) =>
             requireRate(rate, `${path}.categoryRates.${category}`)
           );
+        }
+      }
+      if (card.earnCapTiers != null) {
+        if (!Array.isArray(card.earnCapTiers) || card.earnCapTiers.length === 0) {
+          errors.push(`${path}.earnCapTiers must be a non-empty array`);
+        } else {
+          card.earnCapTiers.forEach((tier, tierIndex) => {
+            const tierPath = `${path}.earnCapTiers[${tierIndex}]`;
+            if (!isRecord(tier)) {
+              errors.push(`${tierPath} must be an object`);
+              return;
+            }
+            requireNumber(tier.minSpend, `${tierPath}.minSpend`);
+            requireNumber(tier.cap, `${tierPath}.cap`);
+          });
         }
       }
       if (card.style === "category_tiered") {
@@ -215,19 +239,20 @@
       if (scenario.optimizerMode) {
         const top = card.categoryRates
           ? Math.max(...Object.values(card.categoryRates))
-          : bestTierRate(card, monthly) || card.flatRate || 0.003;
-        // Cap monthly earn if earnCap is monthly-ish (SGD)
+          : bestTierRate(card, monthly) ?? card.flatRate ?? 0.003;
+        // Apply the eligible spend-tier cap, or the card-wide monthly cap.
         let monthlyEarn = monthly * top;
-        if (card.earnCap) monthlyEarn = Math.min(monthlyEarn, card.earnCap);
+        const monthlyCap = earnCapFor(card, monthly);
+        if (monthlyCap != null) monthlyEarn = Math.min(monthlyEarn, monthlyCap);
         // one-off at base rate only (tickets rarely in dining)
-        cashFromRate = monthlyEarn * months + oneOff * (card.flatRate || 0.003);
+        cashFromRate = monthlyEarn * months + oneOff * (card.flatRate ?? 0.003);
         notes.push("Optimizer mode: optimistic category rates on monthly spend only; one-off at base rate.");
         if (card.minMonthlySpend && monthly < card.minMonthlySpend) {
           warnings.push(`Needs ~S$${card.minMonthlySpend}/mo minimum spend — you entered S$${monthly}.`);
-          cashFromRate = totalSpend * (card.flatRate || 0.003);
+          cashFromRate = totalSpend * (card.flatRate ?? 0.003);
         }
       } else {
-        cashFromRate = totalSpend * (card.flatRate || 0.003);
+        cashFromRate = totalSpend * (card.flatRate ?? 0.003);
         notes.push("Category cards scored at base rate in fuss-free mode (not optimised).");
         warnings.push("Category optimisation requires monthly tracking — poor fuss-free fit.");
       }
@@ -246,15 +271,18 @@
         if (oneOff + monthly >= need) {
           signupCash = su.cashReward;
           notes.push(`Signup cash ~S$${su.cashReward} (if promo still valid).`);
+          if (su.giftValueEst) {
+            notes.push(`Possible non-cash gift (est. ~S$${su.giftValueEst} retail; actual value varies).`);
+          }
         } else {
           warnings.push(`Signup needs ≥ S$${need} qualifying spend; raise one-off or monthly.`);
         }
-      } else if (invalidPromoWindow && su.cashReward > 0) {
-        warnings.push("Listed signup window could not be validated — verify live offers.");
-      } else if (!promoOk && su.cashReward > 0) {
-        warnings.push(`Listed signup window ended ${su.activeThrough} — verify live offers.`);
-      } else if (su.giftValueEst) {
+      } else if (promoOk && su.giftValueEst) {
         notes.push(`Possible non-cash gift (est. ~S$${su.giftValueEst} retail; actual value varies).`);
+      } else if (invalidPromoWindow && (su.cashReward > 0 || su.giftValueEst)) {
+        warnings.push("Listed signup window could not be validated — verify live offers.");
+      } else if (!promoOk && (su.cashReward > 0 || su.giftValueEst)) {
+        warnings.push(`Listed signup window ended ${su.activeThrough} — verify live offers.`);
       }
     }
 
@@ -263,10 +291,15 @@
       signupCash = 0;
     }
 
-    // Each started card year after the first incurs a renewal fee. The optional
-    // first-year fee is counted separately when the card does not waive it.
-    const renewalFeePeriods = Math.max(0, Math.ceil(months / 12) - 1);
-    const firstYearFeePeriods = scenario.includeFeeYear1 && !card.firstYearFeeWaived ? 1 : 0;
+    // Each started card year beyond the waiver incurs a fee. For cards without
+    // a waiver, the optional first-year fee is counted separately.
+    const feeWaiverYears = Number.isInteger(card.feeWaiverYears)
+      ? card.feeWaiverYears
+      : card.firstYearFeeWaived
+        ? 1
+        : 0;
+    const renewalFeePeriods = Math.max(0, Math.ceil(months / 12) - Math.max(1, feeWaiverYears));
+    const firstYearFeePeriods = scenario.includeFeeYear1 && feeWaiverYears === 0 ? 1 : 0;
     const feeDrag = (card.annualFee || 0) * (renewalFeePeriods + firstYearFeePeriods);
 
     // Acceptance / Amex filter — default conservative (Amex not assumed accepted)
@@ -344,6 +377,19 @@
     return card.tieredRates[0].rate || null;
   }
 
+  function earnCapFor(card, monthly) {
+    if (!Array.isArray(card.earnCapTiers) || card.earnCapTiers.length === 0) {
+      return card.earnCap;
+    }
+    let selected = null;
+    for (const tier of card.earnCapTiers) {
+      if (monthly >= tier.minSpend && (!selected || tier.minSpend > selected.minSpend)) {
+        selected = tier;
+      }
+    }
+    return selected ? selected.cap : card.earnCap;
+  }
+
   function buildReasons(card, ctx) {
     const r = [];
     if (!ctx.longTerm && ctx.signupCash > 0) r.push(`~S$${ctx.signupCash} signup value if promo qualifies`);
@@ -373,7 +419,12 @@
     }
     if (normalizedScenario.intent === "long_term") {
       const flat = results
-        .filter((r) => r.card.style === "flat" && r.card.fussFreeScore >= 90)
+        .filter(
+          (r) =>
+            r.card.style === "flat" &&
+            r.card.fussFreeScore >= 90 &&
+            (r.card.network !== "Amex" || normalizedScenario.amexOk === true)
+        )
         .sort((a, b) => b.card.flatRate - a.card.flatRate || b.net - a.net);
       if (flat.length) primary = flat[0];
     }

@@ -42,7 +42,7 @@ node --check js/*.js
 
 ## Updating rates
 
-Edit `data/cards.json`, bump `meta.asOf`, bump `js/version.js`, re-run tests.
+Verify each changed fact against the issuer's official product page, then edit `data/cards.json`, update `meta.sources` and `meta.asOf`, bump `js/version.js`, and re-run the full engine suite. Do not use comparison or affiliate sites as catalog sources.
 
 ## License
 

@@ -31,6 +31,42 @@ function assert(cond, msg) {
 
 console.log("CardFitSG engine tests\n");
 
+// Official issuer audit snapshot (2026-08-09)
+{
+  const byId = Object.fromEntries(db.cards.map((card) => [card.id, card]));
+  assert(db.meta.asOf === "2026-08-09", "catalog audit date is current");
+  assert(
+    db.meta.sources.length === 6 && db.meta.sources.every((source) => /ocbc\.com|uob\.com\.sg|americanexpress\.com|sc\.com/.test(source)),
+    "catalog cites one official issuer page per card"
+  );
+  assert(byId["ocbc-infinity"].network === "Mastercard", "Infinity uses the official Mastercard network");
+  assert(byId["ocbc-infinity"].signup.activeThrough === "2026-08-31", "Infinity signup window is current");
+  assert(byId["uob-absolute"].network === "Amex", "Absolute uses the official Amex network");
+  assert(byId["uob-absolute"].signup.giftValueEst === 100, "Absolute non-cash signup value is current");
+  assert(byId["sc-simply"].signup.cashReward === 100, "Simply Cash active cash reward is represented");
+  assert(byId["uob-one"].minMonthlySpend === 600, "UOB One current minimum tier starts at S$600");
+  assert(
+    byId["uob-one"].tieredRates.map((tier) => tier.minSpend).join(",") === "600,1000,2000",
+    "UOB One current quarterly tiers are represented"
+  );
+  assert(byId["ocbc-365"].flatRate === 0.0025, "OCBC 365 below-threshold rate is 0.25%");
+  assert(byId["ocbc-365"].feeWaiverYears === 2, "OCBC 365 has a two-year fee waiver");
+  assert(byId["ocbc-365"].signup.cashReward === 180, "OCBC 365 active cash reward is represented");
+}
+
+// Cash rewards can disclose a bundled gift without adding it to ranking value
+{
+  const simply = db.cards.find((card) => card.id === "sc-simply");
+  const score = E.scoreCard(simply, {
+    oneOff: 800,
+    monthly: 0,
+    months: 12,
+    asOf: "2026-08-09",
+  });
+  assert(score.signupCash === 100, "Simply Cash ranks only its verified cash reward");
+  assert(score.notes.some((note) => /non-cash gift/i.test(note)), "bundled Simply Cash gift is disclosed separately");
+}
+
 assert(db.cards.length >= 5, "has card catalog");
 
 // Catalog validation rejects snapshots that could corrupt or crash ranking
@@ -62,6 +98,22 @@ assert(db.cards.length >= 5, "has card catalog");
     assert(
       !dateResult.valid && dateResult.errors.some((error) => /activeThrough/.test(error)),
       "malformed signup dates are rejected"
+    );
+
+    const badWaiver = JSON.parse(JSON.stringify(db));
+    badWaiver.cards[0].feeWaiverYears = 0;
+    const waiverResult = E.validateCatalog(badWaiver);
+    assert(
+      !waiverResult.valid && waiverResult.errors.some((error) => /agree with feeWaiverYears/.test(error)),
+      "fee-waiver fields must agree"
+    );
+
+    const badCapTier = JSON.parse(JSON.stringify(db));
+    badCapTier.cards.find((card) => card.id === "ocbc-365").earnCapTiers[1].cap = -1;
+    const capTierResult = E.validateCatalog(badCapTier);
+    assert(
+      !capTierResult.valid && capTierResult.errors.some((error) => /earnCapTiers\[1\]\.cap/.test(error)),
+      "tiered earn caps must be non-negative"
     );
   }
 }
@@ -105,7 +157,7 @@ assert(db.cards.length >= 5, "has card catalog");
   assert(r.primary.card.id === "uob-absolute", "long-term primary is UOB Absolute");
 }
 
-// Long-term during active Infinity promo: still prefer Absolute (no promo chasing)
+// Long-term mode respects the user's Amex acceptance constraint
 {
   const r = E.recommend(db, {
     oneOff: 4000,
@@ -117,8 +169,8 @@ assert(db.cards.length >= 5, "has card catalog");
     amexOk: false,
     asOf: "2026-06-20",
   });
-  assert(r.primary.card.id === "uob-absolute", "long-term ignores Infinity signup chase");
-  assert(r.ranked[0].card.id === "uob-absolute", "long-term rank#1 is Absolute");
+  assert(r.primary.card.id === "ocbc-infinity", "long-term excludes Amex when merchant acceptance is uncertain");
+  assert(r.ranked[0].card.id === "ocbc-infinity", "long-term rank#1 respects the Amex constraint");
 }
 
 // Category cards penalised in fuss-free mode
@@ -215,7 +267,7 @@ assert(db.cards.length >= 5, "has card catalog");
     "36-month horizon includes two renewal fees"
   );
 
-  const notWaived = { ...waived, firstYearFeeWaived: false };
+  const notWaived = { ...waived, firstYearFeeWaived: false, feeWaiverYears: 0 };
   assert(
     E.scoreCard(notWaived, { ...base, months: 12, includeFeeYear1: true }).feeDrag === waived.annualFee,
     "non-waived first-year fee is included when requested"
@@ -224,6 +276,50 @@ assert(db.cards.length >= 5, "has card catalog");
     E.scoreCard(notWaived, { ...base, months: 24, includeFeeYear1: true }).feeDrag === waived.annualFee * 2,
     "first-year fee and renewal fee accumulate"
   );
+
+  const twoYearsWaived = { ...waived, feeWaiverYears: 2 };
+  assert(
+    E.scoreCard(twoYearsWaived, { ...base, months: 24 }).feeDrag === 0,
+    "two-year waiver covers a 24-month horizon"
+  );
+  assert(
+    E.scoreCard(twoYearsWaived, { ...base, months: 36 }).feeDrag === waived.annualFee,
+    "two-year waiver defers the first renewal fee to year three"
+  );
+}
+
+// Category fallbacks and tiered caps preserve current issuer terms
+{
+  const uobOne = db.cards.find((card) => card.id === "uob-one");
+  const belowMinimum = E.scoreCard(uobOne, {
+    oneOff: 0,
+    monthly: 500,
+    months: 12,
+    optimizerMode: true,
+    existingCardIds: [uobOne.id],
+    asOf: "2026-08-09",
+  });
+  assert(belowMinimum.cashFromRate === 0, "UOB One awards no fallback cashback below its minimum");
+
+  const ocbc365 = db.cards.find((card) => card.id === "ocbc-365");
+  const tierOne = E.scoreCard(ocbc365, {
+    oneOff: 0,
+    monthly: 1500,
+    months: 12,
+    optimizerMode: true,
+    existingCardIds: [ocbc365.id],
+    asOf: "2026-08-09",
+  });
+  const tierTwo = E.scoreCard(ocbc365, {
+    oneOff: 0,
+    monthly: 1600,
+    months: 12,
+    optimizerMode: true,
+    existingCardIds: [ocbc365.id],
+    asOf: "2026-08-09",
+  });
+  assert(tierOne.cashFromRate === 960, "OCBC 365 S$80 tier-one monthly cap is enforced");
+  assert(tierTwo.cashFromRate === 1152, "OCBC 365 S$160 tier-two monthly cap is available");
 }
 
 // Zero spend flagged
@@ -307,10 +403,30 @@ assert(db.cards.length >= 5, "has card catalog");
     monthly: 800,
     months: 12,
     existingCardIds: [],
-    asOf: "2026-07-19",
+    asOf: "2026-09-01",
   });
   assert(s.signupCash === 0, "expired Infinity promo yields 0 signup");
   assert(s.warnings.some((w) => /ended/i.test(w)), "warns about ended promo window");
+}
+
+// Dated non-cash offers expire just like cash offers
+{
+  const absolute = db.cards.find((c) => c.id === "uob-absolute");
+  const active = E.scoreCard(absolute, {
+    oneOff: 1000,
+    monthly: 0,
+    months: 12,
+    asOf: "2026-09-30",
+  });
+  const expired = E.scoreCard(absolute, {
+    oneOff: 1000,
+    monthly: 0,
+    months: 12,
+    asOf: "2026-10-01",
+  });
+  assert(active.notes.some((note) => /non-cash gift/i.test(note)), "active non-cash offer is disclosed");
+  assert(!expired.notes.some((note) => /non-cash gift/i.test(note)), "expired non-cash offer is removed");
+  assert(expired.warnings.some((warning) => /ended/i.test(warning)), "expired non-cash offer is explained");
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

@@ -2,15 +2,16 @@
   "meta": {
     "currency": "SGD",
     "market": "Singapore",
-    "asOf": "2026-06-15",
-    "ratesNote": "Base rates researched 2026-06-15. Promo windows are date-checked at runtime against today's date — expired signup cash is not counted.",
+    "asOf": "2026-08-09",
+    "ratesNote": "Rates, fees, card networks and public offers verified against official issuer pages on 2026-08-09. Promo windows are date-checked at runtime — expired signup value is not counted.",
     "disclaimer": "Rates, promos, and fees change. Always verify on the issuer's official page before applying. This tool is educational, not financial advice.",
     "sources": [
       "https://www.ocbc.com/personal-banking/cards/infinity-unlimited-cashback-card.page",
       "https://www.uob.com.sg/personal/cards/cashback/absolute-cashback-card.page",
       "https://www.americanexpress.com/sg/credit-cards/true-cashback-card/",
-      "https://www.moneysmart.sg/credit-cards/cash-back",
-      "https://seedly.sg/reviews/credit-cards/"
+      "https://www.sc.com/sg/credit-cards/simply-cash-credit-card/",
+      "https://www.uob.com.sg/personal/cards/cashback/one-card.page",
+      "https://www.ocbc.com/personal-banking/cards/365-cashback-credit-card"
     ]
   },
   "cards": [
@@ -18,21 +19,22 @@
       "id": "ocbc-infinity",
       "name": "OCBC INFINITY Cashback",
       "issuer": "OCBC",
-      "network": "Visa",
+      "network": "Mastercard",
       "style": "flat",
       "flatRate": 0.016,
       "annualFee": 196.2,
       "firstYearFeeWaived": true,
+      "feeWaiverYears": 1,
       "minMonthlySpend": 0,
       "earnCap": null,
       "fussFreeScore": 95,
       "acceptanceScore": 92,
       "signup": {
-        "activeThrough": "2026-06-30",
+        "activeThrough": "2026-08-31",
         "minSpend": 600,
         "windowDays": 30,
         "cashReward": 180,
-        "notes": "Public promo window: spend ≥ S$600 within 30 days of approval for ~S$180 cashback (or miles alternative). Confirm live T&Cs."
+        "notes": "New OCBC cardmembers: spend S$300 within 30 days for the welcome gift, then another S$300 in the same period for S$180 cashback. Confirm live T&Cs."
       },
       "exclusionsNote": "Standard bank exclusions may apply; verify qualifying spend definitions.",
       "pros": ["True flat cashback", "No monthly minimum", "No earn cap advertised", "Strong signup for large near-term spend"],
@@ -43,26 +45,27 @@
       "id": "uob-absolute",
       "name": "UOB Absolute Cashback",
       "issuer": "UOB",
-      "network": "Visa",
+      "network": "Amex",
       "style": "flat",
       "flatRate": 0.017,
       "annualFee": 196.2,
       "firstYearFeeWaived": true,
+      "feeWaiverYears": 1,
       "minMonthlySpend": 0,
       "earnCap": null,
       "fussFreeScore": 98,
-      "acceptanceScore": 92,
+      "acceptanceScore": 72,
       "signup": {
-        "activeThrough": null,
-        "minSpend": 0,
+        "activeThrough": "2026-09-30",
+        "minSpend": 1000,
         "windowDays": null,
         "cashReward": 0,
-        "giftValueEst": 250,
-        "notes": "Often advertises a travel luggage gift for new applicants. Cash value varies; treat as non-cash perk."
+        "giftValueEst": 100,
+        "notes": "New-to-UOB cardmembers can receive a S$100 Samsung e-voucher after S$1,000 spend in the first month. Non-cash and not used for ranking."
       },
-      "exclusionsNote": "Marketed as no spend exclusions on main proposition; selected local categories may earn lower (e.g. 0.3%). Confirm current terms.",
+      "exclusionsNote": "Base model excludes the temporary 0.3% contactless bonus through 31 January 2027. Selected local categories earn 0.3%; from 4 September 2026, selected overseas categories and Grab wallet top-ups also earn 0.3%. Confirm current terms.",
       "pros": ["Highest simple flat rate among major banks (~1.7%)", "No min spend", "Best long-term keeper for fuss-free users"],
-      "cons": ["Signup may be gift-heavy rather than pure cash", "Fee after year 1 if kept"],
+      "cons": ["American Express acceptance gaps", "Signup is non-cash", "Fee after year 1 if kept"],
       "bestFor": ["long_term", "fuss_free", "daily_spend"]
     },
     {
@@ -78,6 +81,7 @@
       "flatRate": 0.015,
       "annualFee": 174.4,
       "firstYearFeeWaived": true,
+      "feeWaiverYears": 1,
       "minMonthlySpend": 0,
       "earnCap": null,
       "fussFreeScore": 88,
@@ -103,16 +107,18 @@
       "flatRate": 0.015,
       "annualFee": 196.2,
       "firstYearFeeWaived": true,
+      "feeWaiverYears": 1,
       "minMonthlySpend": 0,
       "earnCap": null,
       "fussFreeScore": 94,
       "acceptanceScore": 92,
       "signup": {
-        "activeThrough": null,
-        "minSpend": 0,
-        "windowDays": null,
-        "cashReward": 0,
-        "notes": "Solid baseline flat cashback. Less compelling as a *new* card if you already hold SC products."
+        "activeThrough": "2026-08-31",
+        "minSpend": 800,
+        "windowDays": 60,
+        "cashReward": 100,
+        "giftValueEst": 610,
+        "notes": "New-to-SC cardmembers: spend S$800 within 60 days for S$100 cashback and a Samsonite MODUS Spinner listed at S$610."
       },
       "exclusionsNote": "Standard exclusions may apply.",
       "pros": ["Simple flat cashback", "No monthly minimum", "Widely accepted"],
@@ -125,23 +131,26 @@
       "issuer": "UOB",
       "network": "Visa",
       "style": "category_tiered",
-      "flatRate": 0.003,
+      "flatRate": 0,
       "tieredRates": [
-        { "minSpend": 500, "rate": 0.033, "categories": ["selected"], "note": "Up to ~3.33% on selected categories with min spend — structure changes; verify." },
-        { "minSpend": 1000, "rate": 0.04, "categories": ["selected"], "note": "Higher tier with higher min spend." }
+        { "minSpend": 600, "rate": 0.0333333333, "categories": ["eligible"], "note": "S$60 quarterly cashback after S$600 monthly spend and 10 purchases for three months." },
+        { "minSpend": 1000, "rate": 0.0333333333, "categories": ["eligible"], "note": "S$100 quarterly cashback after S$1,000 monthly spend and 10 purchases for three months." },
+        { "minSpend": 2000, "rate": 0.0333333333, "categories": ["eligible"], "note": "S$200 quarterly cashback after S$2,000 monthly spend and 10 purchases for three months." }
       ],
       "annualFee": 196.2,
       "firstYearFeeWaived": true,
-      "minMonthlySpend": 500,
-      "earnCap": 20,
+      "feeWaiverYears": 1,
+      "minMonthlySpend": 600,
+      "earnCap": 66.67,
       "fussFreeScore": 45,
       "acceptanceScore": 92,
       "signup": {
-        "activeThrough": null,
-        "minSpend": 0,
+        "activeThrough": "2026-09-30",
+        "minSpend": 1000,
         "windowDays": null,
         "cashReward": 0,
-        "notes": "Powerful if you hit thresholds monthly; poor fit for fuss-free or pure large one-off planning."
+        "giftValueEst": 100,
+        "notes": "New-to-UOB cardmembers can receive a S$100 Samsung e-voucher after S$1,000 spend in the first month. Enhanced first-quarter category cashback is not modeled."
       },
       "exclusionsNote": "Category lists, caps, and tiers change frequently.",
       "pros": ["High % when optimized", "Popular among active optimizers"],
@@ -154,29 +163,38 @@
       "issuer": "OCBC",
       "network": "Visa",
       "style": "category",
-      "flatRate": 0.003,
+      "flatRate": 0.0025,
       "categoryRates": {
-        "dining": 0.06,
-        "petrol": 0.05,
-        "transit": 0.03,
-        "online": 0.03
+        "petrol": 0.06,
+        "dining": 0.05,
+        "groceries": 0.03,
+        "transport": 0.03,
+        "watsons": 0.03,
+        "streaming": 0.03,
+        "ev_charging": 0.03,
+        "utilities": 0.03
       },
       "annualFee": 196.2,
       "firstYearFeeWaived": true,
+      "feeWaiverYears": 2,
       "minMonthlySpend": 800,
       "earnCap": 80,
+      "earnCapTiers": [
+        { "minSpend": 800, "cap": 80 },
+        { "minSpend": 1600, "cap": 160 }
+      ],
       "fussFreeScore": 40,
       "acceptanceScore": 92,
       "signup": {
-        "activeThrough": null,
-        "minSpend": 0,
-        "windowDays": null,
-        "cashReward": 0,
-        "notes": "Strong for dining/petrol if you hit min spend; not for pure fuss-free or airline-ticket plays."
+        "activeThrough": "2026-08-31",
+        "minSpend": 600,
+        "windowDays": 30,
+        "cashReward": 180,
+        "notes": "New OCBC cardmembers: spend S$300 within 30 days for the welcome gift, then another S$300 in the same period for S$180 cashback."
       },
       "exclusionsNote": "Min spend and category definitions apply.",
-      "pros": ["High category rates for dining/petrol"],
-      "cons": ["Min monthly spend", "Category constraints", "Not ideal for large non-category tickets"],
+      "pros": ["6% petrol", "5% dining", "3% on groceries, transport and selected recurring spend"],
+      "cons": ["S$800 monthly minimum", "Tiered S$80/S$160 caps", "Category constraints"],
       "bestFor": ["optimizer", "dining_heavy"]
     }
   ],
