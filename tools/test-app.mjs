@@ -150,6 +150,17 @@ async function boot(response) {
   assert.match(result.elements.plan.innerHTML, /plan-steps/, "action plan renders");
   assert.equal(result.elements["site-version"].textContent, "test-version", "version renders");
   assert.equal(typeof result.sandbox.window.CardFitApp.run, "function", "app API is exposed");
+
+  result.elements.oneOff.value = "0";
+  result.elements.monthly.value = "1000";
+  result.elements.fussFree.checked = false;
+  result.elements.optimizer.checked = true;
+  result.sandbox.window.CardFitApp.run();
+  assert.match(
+    result.elements.ranked.innerHTML,
+    /S\$100 quarterly cashback[^<]*10 eligible purchases[^<]*each statement month/i,
+    "optimizer ranking renders UOB One's selected-tier conditions"
+  );
 }
 
 {
@@ -173,4 +184,4 @@ async function boot(response) {
   assert(result.errors.some((error) => /HTTP 503/.test(error)), "HTTP status is logged for diagnosis");
 }
 
-console.log("test-app.mjs: 16 startup and render assertions passed");
+console.log("test-app.mjs: 17 startup and render assertions passed");

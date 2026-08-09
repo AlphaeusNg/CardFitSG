@@ -161,6 +161,7 @@
             }
             requireNumber(tier.minSpend, `${tierPath}.minSpend`);
             requireRate(tier.rate, `${tierPath}.rate`);
+            requireString(tier.note, `${tierPath}.note`);
           });
         }
       }
@@ -237,9 +238,10 @@
     } else if (card.style === "category" || card.style === "category_tiered") {
       // Conservative: assume only base rate unless user opts into optimizer mode
       if (scenario.optimizerMode) {
+        const selectedTier = card.categoryRates ? null : tierForSpend(card, monthly);
         const top = card.categoryRates
           ? Math.max(...Object.values(card.categoryRates))
-          : bestTierRate(card, monthly) ?? card.flatRate ?? 0.003;
+          : selectedTier?.rate ?? card.flatRate ?? 0.003;
         // Apply the eligible spend-tier cap, or the card-wide monthly cap.
         let monthlyEarn = monthly * top;
         const monthlyCap = earnCapFor(card, monthly);
@@ -250,6 +252,8 @@
         if (card.minMonthlySpend && monthly < card.minMonthlySpend) {
           warnings.push(`Needs ~S$${card.minMonthlySpend}/mo minimum spend — you entered S$${monthly}.`);
           cashFromRate = totalSpend * (card.flatRate ?? 0.003);
+        } else if (selectedTier?.note) {
+          warnings.push(selectedTier.note);
         }
       } else {
         cashFromRate = totalSpend * (card.flatRate ?? 0.003);
@@ -366,17 +370,16 @@
     };
   }
 
-  /** Best tier rate the user can hit given monthly spend; else lowest published tier. */
-  function bestTierRate(card, monthly) {
+  /** Highest threshold tier the monthly spend reaches; else lowest published tier. */
+  function tierForSpend(card, monthly) {
     if (!card.tieredRates || !card.tieredRates.length) return null;
-    let best = null;
+    let selected = null;
     for (const t of card.tieredRates) {
-      if (monthly >= (t.minSpend || 0) && (t.rate || 0) > 0) {
-        if (best == null || t.rate > best) best = t.rate;
+      if (monthly >= (t.minSpend || 0)) {
+        if (selected == null || t.minSpend > selected.minSpend) selected = t;
       }
     }
-    if (best != null) return best;
-    return card.tieredRates[0].rate || null;
+    return selected || card.tieredRates[0];
   }
 
   function earnCapFor(card, monthly) {

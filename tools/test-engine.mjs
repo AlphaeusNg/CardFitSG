@@ -156,6 +156,15 @@ assert(db.cards.length >= 5, "has card catalog");
       !capTierResult.valid && capTierResult.errors.some((error) => /earnCapTiers\[1\]\.cap/.test(error)),
       "tiered earn caps must be non-negative"
     );
+
+    const missingTierCondition = JSON.parse(JSON.stringify(db));
+    delete missingTierCondition.cards.find((card) => card.id === "uob-one").tieredRates[0].note;
+    const tierConditionResult = E.validateCatalog(missingTierCondition);
+    assert(
+      !tierConditionResult.valid &&
+        tierConditionResult.errors.some((error) => /tieredRates\[0\]\.note/.test(error)),
+      "tiered optimizer conditions are required"
+    );
   }
 }
 
@@ -341,6 +350,29 @@ assert(db.cards.length >= 5, "has card catalog");
     asOf: "2026-08-09",
   });
   assert(belowMinimum.cashFromRate === 0, "UOB One awards no fallback cashback below its minimum");
+  assert(
+    !belowMinimum.warnings.some((warning) => /10 eligible purchases/i.test(warning)),
+    "UOB One does not claim quarterly value or its conditions below the minimum"
+  );
+
+  const qualifyingTier = E.scoreCard(uobOne, {
+    oneOff: 0,
+    monthly: 1000,
+    months: 12,
+    optimizerMode: true,
+    existingCardIds: [uobOne.id],
+    asOf: "2026-08-10",
+  });
+  assert(
+    qualifyingTier.warnings.some(
+      (warning) =>
+        /S\$100 quarterly cashback/i.test(warning) &&
+        /10 eligible purchases/i.test(warning) &&
+        /each statement month/i.test(warning) &&
+        /all three months of the qualifying quarter/i.test(warning)
+    ),
+    "UOB One optimizer value discloses the selected tier's full quarterly conditions"
+  );
 
   const ocbc365 = db.cards.find((card) => card.id === "ocbc-365");
   const tierOne = E.scoreCard(ocbc365, {
