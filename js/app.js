@@ -41,10 +41,12 @@
       const res = await fetch("data/cards.json", { cache: "no-cache" });
       if (!res.ok) throw new Error("HTTP " + res.status);
       db = await res.json();
-      if (!db || !Array.isArray(db.cards) || !db.cards.length) {
-        throw new Error("empty catalog");
+      const validation = CardFitEngine.validateCatalog(db);
+      if (!validation.valid) {
+        throw new Error(`invalid catalog: ${validation.errors.join("; ")}`);
       }
-    } catch {
+    } catch (error) {
+      console.error("CardFitSG initialization failed", error);
       $("#fatal").hidden = false;
       $("#fatal").textContent = "Could not load card database.";
       return;

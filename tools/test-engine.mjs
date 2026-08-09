@@ -33,6 +33,39 @@ console.log("CardFitSG engine tests\n");
 
 assert(db.cards.length >= 5, "has card catalog");
 
+// Catalog validation rejects snapshots that could corrupt or crash ranking
+{
+  assert(typeof E.validateCatalog === "function", "exports catalog validator");
+  if (typeof E.validateCatalog === "function") {
+    const valid = E.validateCatalog(db);
+    assert(valid.valid && valid.errors.length === 0, "current catalog satisfies engine contract");
+
+    const duplicate = JSON.parse(JSON.stringify(db));
+    duplicate.cards[1].id = duplicate.cards[0].id;
+    const duplicateResult = E.validateCatalog(duplicate);
+    assert(
+      !duplicateResult.valid && duplicateResult.errors.some((error) => /duplicate card id/i.test(error)),
+      "duplicate card IDs are rejected"
+    );
+
+    const badRate = JSON.parse(JSON.stringify(db));
+    badRate.cards[0].flatRate = 1.5;
+    const rateResult = E.validateCatalog(badRate);
+    assert(
+      !rateResult.valid && rateResult.errors.some((error) => /flatRate/.test(error)),
+      "out-of-range rates are rejected"
+    );
+
+    const badDate = JSON.parse(JSON.stringify(db));
+    badDate.cards[0].signup.activeThrough = "2026-02-30";
+    const dateResult = E.validateCatalog(badDate);
+    assert(
+      !dateResult.valid && dateResult.errors.some((error) => /activeThrough/.test(error)),
+      "malformed signup dates are rejected"
+    );
+  }
+}
+
 // Large one-off fuss-free: should prefer flat with signup (OCBC INFINITY if promo window)
 {
   const r = E.recommend(db, {

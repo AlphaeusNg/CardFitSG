@@ -46,6 +46,127 @@
     return Math.round((b - a) / 86400000);
   }
 
+  function validateCatalog(db) {
+    const errors = [];
+    const isRecord = (value) => !!value && typeof value === "object" && !Array.isArray(value);
+    const requireString = (value, path) => {
+      if (typeof value !== "string" || !value.trim()) errors.push(`${path} must be a non-empty string`);
+    };
+    const requireNumber = (value, path, options = {}) => {
+      const { min = 0, max = MAX_SPEND, integer = false, nullable = false } = options;
+      if (value == null && nullable) return;
+      if (
+        typeof value !== "number" ||
+        !Number.isFinite(value) ||
+        value < min ||
+        value > max ||
+        (integer && !Number.isInteger(value))
+      ) {
+        errors.push(`${path} must be ${integer ? "an integer" : "a finite number"} from ${min} to ${max}`);
+      }
+    };
+    const requireRate = (value, path) => requireNumber(value, path, { min: 0, max: 1 });
+
+    if (!isRecord(db)) return { valid: false, errors: ["catalog must be an object"] };
+    if (!isRecord(db.meta)) {
+      errors.push("meta must be an object");
+    } else {
+      if (!parseYmd(db.meta.asOf)) errors.push("meta.asOf must be a valid YYYY-MM-DD date");
+      requireString(db.meta.disclaimer, "meta.disclaimer");
+    }
+    if (!Array.isArray(db.cards) || db.cards.length === 0) {
+      errors.push("cards must be a non-empty array");
+      return { valid: false, errors };
+    }
+
+    const ids = new Set();
+    const styles = new Set(["flat", "intro_then_flat", "category", "category_tiered"]);
+    db.cards.forEach((card, index) => {
+      const path = `cards[${index}]`;
+      if (!isRecord(card)) {
+        errors.push(`${path} must be an object`);
+        return;
+      }
+
+      ["id", "name", "issuer", "network", "style"].forEach((key) =>
+        requireString(card[key], `${path}.${key}`)
+      );
+      if (typeof card.id === "string" && card.id.trim()) {
+        if (ids.has(card.id)) errors.push(`${path}.id has duplicate card ID "${card.id}"`);
+        ids.add(card.id);
+      }
+      if (!styles.has(card.style)) errors.push(`${path}.style is not supported`);
+
+      requireRate(card.flatRate, `${path}.flatRate`);
+      requireNumber(card.annualFee, `${path}.annualFee`);
+      requireNumber(card.minMonthlySpend, `${path}.minMonthlySpend`);
+      requireNumber(card.earnCap, `${path}.earnCap`, { nullable: true });
+      requireNumber(card.fussFreeScore, `${path}.fussFreeScore`, { max: 100 });
+      requireNumber(card.acceptanceScore, `${path}.acceptanceScore`, { max: 100 });
+      if (typeof card.firstYearFeeWaived !== "boolean") {
+        errors.push(`${path}.firstYearFeeWaived must be a boolean`);
+      }
+      if (!Array.isArray(card.pros) || !card.pros.every((item) => typeof item === "string")) {
+        errors.push(`${path}.pros must be an array of strings`);
+      }
+
+      if (card.style === "intro_then_flat") {
+        requireRate(card.introRate, `${path}.introRate`);
+        requireNumber(card.introCapCash, `${path}.introCapCash`);
+        requireNumber(card.introCapSpend, `${path}.introCapSpend`);
+        requireNumber(card.introMonths, `${path}.introMonths`, { min: 1, max: 120, integer: true });
+      }
+      if (card.style === "category") {
+        if (!isRecord(card.categoryRates) || Object.keys(card.categoryRates).length === 0) {
+          errors.push(`${path}.categoryRates must be a non-empty object`);
+        } else {
+          Object.entries(card.categoryRates).forEach(([category, rate]) =>
+            requireRate(rate, `${path}.categoryRates.${category}`)
+          );
+        }
+      }
+      if (card.style === "category_tiered") {
+        if (!Array.isArray(card.tieredRates) || card.tieredRates.length === 0) {
+          errors.push(`${path}.tieredRates must be a non-empty array`);
+        } else {
+          card.tieredRates.forEach((tier, tierIndex) => {
+            const tierPath = `${path}.tieredRates[${tierIndex}]`;
+            if (!isRecord(tier)) {
+              errors.push(`${tierPath} must be an object`);
+              return;
+            }
+            requireNumber(tier.minSpend, `${tierPath}.minSpend`);
+            requireRate(tier.rate, `${tierPath}.rate`);
+          });
+        }
+      }
+
+      if (card.signup != null) {
+        if (!isRecord(card.signup)) {
+          errors.push(`${path}.signup must be an object or null`);
+        } else {
+          const signupPath = `${path}.signup`;
+          if (card.signup.activeThrough != null && !parseYmd(card.signup.activeThrough)) {
+            errors.push(`${signupPath}.activeThrough must be null or a valid YYYY-MM-DD date`);
+          }
+          requireNumber(card.signup.minSpend, `${signupPath}.minSpend`);
+          requireNumber(card.signup.windowDays, `${signupPath}.windowDays`, {
+            min: 1,
+            max: 3650,
+            integer: true,
+            nullable: true,
+          });
+          requireNumber(card.signup.cashReward, `${signupPath}.cashReward`);
+          if (card.signup.giftValueEst != null) {
+            requireNumber(card.signup.giftValueEst, `${signupPath}.giftValueEst`);
+          }
+        }
+      }
+    });
+
+    return { valid: errors.length === 0, errors };
+  }
+
   /**
    * Estimate first-year cash value for a scenario.
    * @param {object} card
@@ -292,6 +413,7 @@
   global.CardFitEngine = {
     scoreCard,
     recommend,
+    validateCatalog,
     daysUntil,
     clampSpend,
     normalizeMonths,
