@@ -266,22 +266,24 @@
       const promoDays = su.activeThrough ? daysUntil(su.activeThrough, asOf) : null;
       const invalidPromoWindow = !!su.activeThrough && promoDays === null;
       const promoOk = !su.activeThrough || (!invalidPromoWindow && promoDays >= 0);
-      if (promoOk && su.cashReward > 0) {
+      const hasSignupValue = su.cashReward > 0 || su.giftValueEst;
+      if (promoOk && hasSignupValue) {
         const need = su.minSpend || 0;
-        if (oneOff + monthly >= need) {
-          signupCash = su.cashReward;
-          notes.push(`Signup cash ~S$${su.cashReward} (if promo still valid).`);
+        const qualifyingSpend = signupQualifyingSpend(oneOff, monthly, months, su.windowDays);
+        if (qualifyingSpend >= need) {
+          if (su.cashReward > 0) {
+            signupCash = su.cashReward;
+            notes.push(`Signup cash ~S$${su.cashReward} (if promo still valid).`);
+          }
           if (su.giftValueEst) {
             notes.push(`Possible non-cash gift (est. ~S$${su.giftValueEst} retail; actual value varies).`);
           }
         } else {
-          warnings.push(`Signup needs ≥ S$${need} qualifying spend; raise one-off or monthly.`);
+          warnings.push(`Signup needs ≥ S$${need} qualifying spend within the offer window.`);
         }
-      } else if (promoOk && su.giftValueEst) {
-        notes.push(`Possible non-cash gift (est. ~S$${su.giftValueEst} retail; actual value varies).`);
-      } else if (invalidPromoWindow && (su.cashReward > 0 || su.giftValueEst)) {
+      } else if (invalidPromoWindow && hasSignupValue) {
         warnings.push("Listed signup window could not be validated — verify live offers.");
-      } else if (!promoOk && (su.cashReward > 0 || su.giftValueEst)) {
+      } else if (!promoOk && hasSignupValue) {
         warnings.push(`Listed signup window ended ${su.activeThrough} — verify live offers.`);
       }
     }
@@ -388,6 +390,12 @@
       }
     }
     return selected ? selected.cap : card.earnCap;
+  }
+
+  function signupQualifyingSpend(oneOff, monthly, months, windowDays) {
+    const offerMonths =
+      Number.isFinite(windowDays) && windowDays > 0 ? Math.max(1, windowDays / 30) : 1;
+    return oneOff + monthly * Math.min(months, offerMonths);
   }
 
   function buildReasons(card, ctx) {

@@ -67,6 +67,47 @@ console.log("CardFitSG engine tests\n");
   assert(score.notes.some((note) => /non-cash gift/i.test(note)), "bundled Simply Cash gift is disclosed separately");
 }
 
+// Signup spend is bounded by both the offer window and scenario horizon
+{
+  const simply = db.cards.find((card) => card.id === "sc-simply");
+  const twoMonths = E.scoreCard(simply, {
+    oneOff: 0,
+    monthly: 400,
+    months: 12,
+    asOf: "2026-08-09",
+  });
+  const shortHorizon = E.scoreCard(simply, {
+    oneOff: 0,
+    monthly: 400,
+    months: 1,
+    asOf: "2026-08-09",
+  });
+  assert(twoMonths.signupCash === 100, "60-day offer counts up to two months of recurring spend");
+  assert(shortHorizon.signupCash === 0, "signup spend cannot exceed the scenario horizon");
+
+  const infinity = db.cards.find((card) => card.id === "ocbc-infinity");
+  const thirtyDays = E.scoreCard(infinity, {
+    oneOff: 0,
+    monthly: 300,
+    months: 12,
+    asOf: "2026-08-09",
+  });
+  assert(thirtyDays.signupCash === 0, "30-day offer does not count a second month");
+
+  const absolute = db.cards.find((card) => card.id === "uob-absolute");
+  const belowGiftHurdle = E.scoreCard(absolute, {
+    oneOff: 0,
+    monthly: 500,
+    months: 12,
+    asOf: "2026-08-09",
+  });
+  assert(
+    !belowGiftHurdle.notes.some((note) => /non-cash gift/i.test(note)),
+    "non-cash gift is hidden below its spend hurdle"
+  );
+  assert(belowGiftHurdle.warnings.some((warning) => /needs/i.test(warning)), "gift spend shortfall is explained");
+}
+
 assert(db.cards.length >= 5, "has card catalog");
 
 // Catalog validation rejects snapshots that could corrupt or crash ranking
