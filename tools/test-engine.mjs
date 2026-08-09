@@ -207,6 +207,36 @@ assert(db.cards.length >= 5, "has card catalog");
   assert(s.totalSpend <= 1e8 + 1, "spend clamped to MAX");
 }
 
+// Invalid horizons fall back to the documented 12-month default
+{
+  const r = E.recommend(db, {
+    oneOff: 0,
+    monthly: 100,
+    months: -6,
+    existingCardIds: db.cards.map((card) => card.id),
+    asOf: "2026-07-19",
+  });
+  assert(r.scenario.months === 12, "negative horizon normalizes to 12 months");
+  assert(r.ranked.every((card) => card.totalSpend === 1200), "normalized horizon drives spend math");
+  assert(r.ranked.every((card) => card.cashFromRate >= 0), "invalid horizon cannot create negative rewards");
+}
+
+// Malformed calendar dates fail closed instead of qualifying a signup offer
+{
+  const card = JSON.parse(JSON.stringify(db.cards.find((c) => c.id === "ocbc-infinity")));
+  card.signup.activeThrough = "2026-02-30";
+  const s = E.scoreCard(card, {
+    oneOff: 4000,
+    monthly: 800,
+    months: 12,
+    existingCardIds: [],
+    asOf: "2026-02-20",
+  });
+  assert(E.daysUntil("2026-02-30", "2026-02-20") === null, "impossible calendar date is rejected");
+  assert(s.signupCash === 0, "invalid promo date yields no signup value");
+  assert(s.warnings.some((w) => /could not be validated/i.test(w)), "invalid promo date is explained");
+}
+
 // Expired promo: no signup cash
 {
   const s = E.scoreCard(db.cards.find((c) => c.id === "ocbc-infinity"), {

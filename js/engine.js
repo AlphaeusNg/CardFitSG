@@ -6,6 +6,7 @@
 
   /** Cap absurd inputs so metrics stay finite. */
   const MAX_SPEND = 1e8;
+  const MAX_HORIZON_MONTHS = 120;
 
   function clampSpend(n) {
     const v = Number(n);
@@ -13,10 +14,35 @@
     return Math.min(MAX_SPEND, v);
   }
 
+  function normalizeMonths(n) {
+    const v = Number(n);
+    if (!Number.isFinite(v) || v <= 0) return 12;
+    return Math.min(MAX_HORIZON_MONTHS, Math.floor(v));
+  }
+
+  function parseYmd(value) {
+    if (typeof value !== "string") return null;
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+    if (!match) return null;
+
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    const date = new Date(Date.UTC(year, month - 1, day));
+    if (
+      date.getUTCFullYear() !== year ||
+      date.getUTCMonth() !== month - 1 ||
+      date.getUTCDate() !== day
+    ) {
+      return null;
+    }
+    return date;
+  }
+
   function daysUntil(isoDate, asOfYmd) {
-    if (!isoDate) return null;
-    const a = new Date(asOfYmd + "T00:00:00Z");
-    const b = new Date(isoDate + "T00:00:00Z");
+    const a = parseYmd(asOfYmd);
+    const b = parseYmd(isoDate);
+    if (!a || !b) return null;
     return Math.round((b - a) / 86400000);
   }
 
@@ -32,8 +58,8 @@
    *   - amexOk: boolean
    *   - asOf: YYYY-MM-DD
    */
-  function scoreCard(card, scenario) {
-    const months = scenario.months || 12;
+  function scoreCard(card, scenario = {}) {
+    const months = normalizeMonths(scenario.months);
     const oneOff = clampSpend(scenario.oneOff);
     const monthly = clampSpend(scenario.monthly);
     const asOf = scenario.asOf || todayYmd();
@@ -91,7 +117,9 @@
     // Signup cash if not already holding
     if (!alreadyHold && card.signup) {
       const su = card.signup;
-      const promoOk = !su.activeThrough || daysUntil(su.activeThrough, asOf) >= 0;
+      const promoDays = su.activeThrough ? daysUntil(su.activeThrough, asOf) : null;
+      const invalidPromoWindow = !!su.activeThrough && promoDays === null;
+      const promoOk = !su.activeThrough || (!invalidPromoWindow && promoDays >= 0);
       if (promoOk && su.cashReward > 0) {
         const need = su.minSpend || 0;
         if (oneOff + monthly >= need) {
@@ -100,6 +128,8 @@
         } else {
           warnings.push(`Signup needs ≥ S$${need} qualifying spend; raise one-off or monthly.`);
         }
+      } else if (invalidPromoWindow && su.cashReward > 0) {
+        warnings.push("Listed signup window could not be validated — verify live offers.");
       } else if (!promoOk && su.cashReward > 0) {
         warnings.push(`Listed signup window ended ${su.activeThrough} — verify live offers.`);
       } else if (su.giftValueEst) {
@@ -205,14 +235,15 @@
     return r;
   }
 
-  function recommend(db, scenario) {
-    const results = db.cards.map((c) => scoreCard(c, scenario));
+  function recommend(db, scenario = {}) {
+    const normalizedScenario = { ...scenario, months: normalizeMonths(scenario.months) };
+    const results = db.cards.map((c) => scoreCard(c, normalizedScenario));
     results.sort((a, b) => b.score - a.score || b.net - a.net);
 
     // Primary pick: best not already held if acquisition intent
     let primary = results[0];
     let noNewCard = false;
-    if (scenario.intent === "acquire") {
+    if (normalizedScenario.intent === "acquire") {
       const fresh = results.find((r) => !r.alreadyHold);
       if (fresh) {
         primary = fresh;
@@ -221,7 +252,7 @@
         noNewCard = results.length > 0 && results.every((r) => r.alreadyHold);
       }
     }
-    if (scenario.intent === "long_term") {
+    if (normalizedScenario.intent === "long_term") {
       const flat = results
         .filter((r) => r.card.style === "flat" && r.card.fussFreeScore >= 90)
         .sort((a, b) => b.card.flatRate - a.card.flatRate || b.net - a.net);
@@ -230,13 +261,13 @@
 
     // Zero-spend: still rank by fuss-free quality, but flag empty inputs
     const zeroSpend =
-      clampSpend(scenario.oneOff) === 0 && clampSpend(scenario.monthly) === 0;
+      clampSpend(normalizedScenario.oneOff) === 0 && clampSpend(normalizedScenario.monthly) === 0;
 
     return {
       primary,
       ranked: results,
-      scenario,
-      asOf: scenario.asOf,
+      scenario: normalizedScenario,
+      asOf: normalizedScenario.asOf,
       disclaimer: db.meta.disclaimer,
       noNewCard,
       zeroSpend,
@@ -263,6 +294,7 @@
     recommend,
     daysUntil,
     clampSpend,
+    normalizeMonths,
     todayYmd,
   };
 })(typeof window !== "undefined" ? window : globalThis);
