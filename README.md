@@ -38,6 +38,8 @@ python3 -m http.server 8092
 # http://127.0.0.1:8092/
 
 node tools/test-engine.mjs
+node tools/test-catalog-freshness.mjs
+node tools/catalog-freshness.mjs
 node tools/test-site.mjs
 node tools/test-app.mjs
 node --check js/*.js
@@ -45,7 +47,7 @@ node --check js/*.js
 
 ## Updating rates
 
-Verify each changed fact against the issuer's official product page, then edit `data/cards.json`, update `meta.sources` and `meta.asOf`, bump `js/version.js`, and re-run the full engine suite. Do not use comparison or affiliate sites as catalog sources.
+Verify each changed fact against the issuer's official product page, then edit `data/cards.json`, update `meta.sources`, `meta.asOf`, and `meta.reviewBy`, bump `js/version.js`, and re-run the full suite. Set `reviewBy` before the earliest dated offer ends; daily CI fails on that date so a stale snapshot cannot age silently. Do not use comparison or affiliate sites as catalog sources.
 
 ## License
 

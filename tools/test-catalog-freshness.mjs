@@ -1,0 +1,50 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+import { evaluateCatalogFreshness } from "./catalog-freshness.mjs";
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const catalog = JSON.parse(fs.readFileSync(path.join(root, "data/cards.json"), "utf8"));
+const workflow = fs.readFileSync(path.join(root, ".github/workflows/ci.yml"), "utf8");
+let assertions = 0;
+
+function check(condition, message) {
+  assert.ok(condition, message);
+  assertions += 1;
+}
+
+const beforeDeadline = evaluateCatalogFreshness(catalog, "2026-08-23");
+check(beforeDeadline.ok, "catalog remains current before its review deadline");
+check(beforeDeadline.earliestOfferEnd === "2026-08-31", "earliest dated offer is reported");
+
+const onDeadline = evaluateCatalogFreshness(catalog, "2026-08-24");
+check(!onDeadline.ok, "catalog audit becomes due on the review date");
+check(onDeadline.errors.some((error) => /review is due/i.test(error)), "due-date failure is actionable");
+
+const invalidToday = evaluateCatalogFreshness(catalog, "2026-02-30");
+check(!invalidToday.ok, "impossible evaluation dates fail closed");
+
+const missingDeadline = structuredClone(catalog);
+delete missingDeadline.meta.reviewBy;
+check(!evaluateCatalogFreshness(missingDeadline, "2026-08-10").ok, "missing review deadline fails closed");
+
+const lateDeadline = structuredClone(catalog);
+lateDeadline.meta.reviewBy = "2026-08-31";
+check(!evaluateCatalogFreshness(lateDeadline, "2026-08-10").ok, "review must precede offer expiry");
+
+const predatesSnapshot = structuredClone(catalog);
+predatesSnapshot.meta.reviewBy = "2026-08-08";
+check(!evaluateCatalogFreshness(predatesSnapshot, "2026-08-10").ok, "review cannot predate the snapshot");
+
+check(/^\s*schedule:/m.test(workflow), "CI includes a scheduled freshness check");
+check(/cron:\s*["']17 0 \* \* \*["']/.test(workflow), "CI checks freshness daily");
+check(/^\s*workflow_dispatch:/m.test(workflow), "freshness workflow can be run manually");
+check(
+  /run:\s*node tools\/test-catalog-freshness\.mjs/.test(workflow),
+  "CI runs deterministic freshness policy tests"
+);
+check(/run:\s*node tools\/catalog-freshness\.mjs/.test(workflow), "CI enforces the live review deadline");
+
+console.log(`test-catalog-freshness.mjs: ${assertions} assertions passed`);

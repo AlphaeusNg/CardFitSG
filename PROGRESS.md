@@ -1,55 +1,57 @@
 # CardFitSG continuous improvement log
 
-Last updated: 2026-08-10 (Cycle 72 across the projects workspace; CardFitSG Cycle 35)
+Last updated: 2026-08-10 (Cycle 83 across the projects workspace; CardFitSG Cycle 36)
 
 ## Current state
 
-- Branch: `main`; improvements are committed locally and not yet pushed.
+- Branch: `main`; continuous-improvement commits are published to `origin/main` after verification.
 - Runtime: zero-build static HTML/CSS/JavaScript.
-- Verification: `node tools/test-engine.mjs` (71 assertions), `node tools/test-site.mjs` (14 references/fragments), `node tools/test-app.mjs` (17 assertions), JavaScript syntax checks, and repository CI configuration.
+- Verification: `node tools/test-engine.mjs` (71 assertions), `node tools/test-catalog-freshness.mjs` (13 assertions), the live catalog-deadline check, `node tools/test-site.mjs` (14 references/fragments), `node tools/test-app.mjs` (17 assertions), recursive JavaScript syntax checks, JSON parsing, and repository CI.
 - Catalog snapshot: all six cards were checked against official issuer pages on 2026-08-09; `data/cards.json` declares the same `asOf` date.
 - UOB One's optimizer condition was reverified against UOB's product page, full terms, and FAQ on 2026-08-10.
+- Catalog review policy: audit by 2026-08-24, seven days before the earliest dated offers end on 2026-08-31; daily CI enforces the boundary.
 
-## Latest cycle: surface UOB One optimizer conditions
+## Latest cycle: make the next catalog audit deadline enforceable
 
 ### Why this was selected
 
-Optimizer mode assigned UOB One its equivalent 3.33% tier value when monthly spend cleared S$600/S$1,000/S$2,000, but results showed only a generic optimizer note. Users were not warned that the selected quarterly tier also requires at least 10 eligible purchases in each statement month for all three months of their qualifying quarter.
+The backlog correctly required another official-source audit before offers expire on 2026-08-31, but that deadline existed only in prose. A missed manual follow-up could leave expired financial offers visible without any failing check or notification.
 
 ### Changes
 
-- Reverified the current S$60/S$100/S$200 quarterly tiers and 10-purchase statement-month requirement against first-party UOB sources.
-- Rewrote each tier note as a complete selected-tier condition: spend and 10 eligible purchases in each statement month for all three months of the qualifying quarter.
-- Replaced rate-only tier lookup with the highest qualifying spend tier, so S$1,000 results surface S$100—not the equal-rate S$60 tier's copy.
-- Promoted the selected tier note to a highlighted optimizer warning only when the minimum is met and tier value is actually estimated.
-- Made tier notes mandatory in catalog validation and added engine plus rendered-ranking regressions.
+- Added `meta.reviewBy: 2026-08-24`, one week before the earliest active offer expiry.
+- Added a dependency-free catalog freshness evaluator with strict calendar parsing, Singapore-local default dates, actionable output, and fail-closed snapshot/deadline/offer ordering.
+- Added deterministic boundary and malformed-policy tests plus workflow-wiring contracts.
+- Scheduled CI daily at 00:17 UTC and enabled manual dispatch; push and pull-request checks enforce the same deadline.
+- Documented the refresh procedure and bumped the deployed version to `2026.08.10.1`.
 
 ### Verification and scores
 
-- Source evidence: UOB's [current product page](https://www.uob.com.sg/personal/cards/cashback/one-card.page/), [full card terms](https://www.uob.com.sg/assets/pdfs/one_card_full_tnc.pdf), and [FAQ](https://www.uob.com.sg/assets/pdfs/uob-one-credit-card-faq.pdf) all state that qualifying spend and at least 10 purchases must be met in each statement month of the three-month qualifying quarter.
-- Test-first evidence: the engine finished with 69 passes and one failure because a qualifying S$1,000 optimizer score contained no quarterly-condition warning.
+- Test-first evidence: the new policy suite initially failed because the evaluator module did not yet exist.
 - `node tools/test-engine.mjs`: 71 passed, 0 failed.
-- `node tools/test-app.mjs`: 17 startup/render assertions passed; the real app renders the selected S$100 tier condition in the full ranking.
+- `node tools/test-catalog-freshness.mjs`: 13 boundary, malformed-data, and workflow-wiring assertions passed.
+- `node tools/catalog-freshness.mjs`: reports 14 days remaining before review and the 2026-08-31 earliest offer end; a controlled 2026-08-24 run fails as required.
+- `node tools/test-app.mjs`: 17 startup/render assertions passed.
 - `node tools/test-site.mjs`: 9 local references and 5 fragments verified.
-- `node --check js/*.js`: passed.
-- `node --check tools/*.mjs`: passed.
+- Recursive `node --check` across `js/` and `tools/`: passed.
+- Catalog and manifest JSON parsing: passed.
 - `git diff --check`: passed.
-- Correctness/reliability: 9/10 (the warning follows the actual selected spend tier).
-- Verifiability: 10/10 (official sources, engine output, catalog validation, and rendered HTML agree).
-- Maintainability: 9/10 (conditions live with tier data instead of card-ID-specific UI code).
-- User safety: 10/10 (estimated cashback no longer hides its transaction-count and quarter requirements).
-- Performance: 10/10 (one tier object replaces a rate lookup; runtime complexity is unchanged).
+- Correctness/reliability: 9/10 (stale catalog risk now has a hard, date-aware boundary).
+- Verifiability: 10/10 (deadline semantics and automation wiring are deterministic and regression-tested).
+- Maintainability: 9/10 (future audits update one explicit metadata field alongside `asOf`).
+- User safety: 10/10 (time-sensitive financial data can no longer age past the planned review silently).
+- Performance: 10/10 (the small checker runs only in CI/developer workflows, never in the browser).
 
 ### Lessons and process improvements
 
-- When rates are equal across spend tiers, selecting by highest eligible threshold is necessary to preserve the correct cap and condition copy.
-- Conditions that decide whether modeled value exists belong in highlighted warnings, not generic methodology notes.
-- Use issuer terminology precisely: “statement month” and “qualifying quarter” are not interchangeable with calendar months.
-- Keep financial-condition copy data-driven and validate its presence so future catalog refreshes cannot silently drop it.
+- A dated financial snapshot needs both “last reviewed” and “review again by”; `asOf` alone records history but cannot create a future alert.
+- Keep wall-clock logic injectable. Explicit boundary dates make expiry behavior testable without waiting or mocking global time.
+- Test scheduled-workflow wiring as policy text so later CI cleanup cannot silently remove the alert path.
+- Schedule Singapore-facing checks after midnight Singapore time to avoid a one-day UTC lag.
 
-## Previous cycle
+## Previous cycles
 
-- Cycle 35: surfaced official UOB One statement-month and qualifying-quarter conditions in optimizer results.
+- Cycle 35 (`28bc6bc`): surfaced official UOB One statement-month and qualifying-quarter conditions in optimizer results.
 - Cycle 34 (`05833f8`): executed real app startup/rendering and failure paths in a dependency-free VM harness.
 - Cycle 33 (`d64dcf9`): honored 30/60-day signup windows and applied spend hurdles to non-cash gifts; assertions increased from 63 to 68.
 - Cycle 32 (`c8d877b`): added zero-dependency static deployment checks and wired them into CI.
@@ -63,10 +65,10 @@ Optimizer mode assigned UOB One its equivalent 3.33% tier value when monthly spe
 
 | Priority | Opportunity | Category | Impact | Effort / risk | Evidence / dependency |
 |---|---|---|---|---|---|
-| 1 | Schedule the next official-source catalog audit before the earliest active offer expires | Process / data | High | Small / low | OCBC and SC offers in this snapshot end 2026-08-31 |
+| 1 | Execute the official-source catalog audit by 2026-08-24 | Process / data | High | Small / low | Daily CI now fails on the deadline; OCBC and SC offers end 2026-08-31 |
 | 2 | Add interaction tests for opposing optimizer/fuss-free toggles | UI tests | Low | Small / low | Startup rendering is covered; event callbacks are currently mocked but not invoked |
 | 3 | Model qualifying-quarter completeness for arbitrary horizons | Correctness / safety | Low-medium | Medium / medium | Current UI horizons are 6/12/24 months, but direct engine callers can request fewer than three months |
 
 ## Next cycle
 
-Local next: schedule and execute the next full official-source catalog audit before the 2026-08-31 OCBC/SC offer expiries. Workspace next: pivot to VerseKeep's high-impact browser startup/navigation coverage rather than continue into lower-leverage CardFitSG UI work.
+Local next: execute the full official-source audit by 2026-08-24 and advance both `asOf` and `reviewBy`. Workspace next: rotate to another project after this process-focused CardFitSG cycle; on return before the audit date, add event-level coverage for the opposing mode toggles.

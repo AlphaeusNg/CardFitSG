@@ -3,6 +3,7 @@
     "currency": "SGD",
     "market": "Singapore",
     "asOf": "2026-08-09",
+    "reviewBy": "2026-08-24",
     "ratesNote": "Rates, fees, card networks and public offers verified against official issuer pages on 2026-08-09. Promo windows are date-checked at runtime — expired signup value is not counted.",
     "disclaimer": "Rates, promos, and fees change. Always verify on the issuer's official page before applying. This tool is educational, not financial advice.",
     "sources": [
