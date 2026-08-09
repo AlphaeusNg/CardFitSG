@@ -38,6 +38,7 @@ python3 -m http.server 8092
 
 node tools/test-engine.mjs
 node tools/test-site.mjs
+node tools/test-app.mjs
 node --check js/*.js
 ```
 
