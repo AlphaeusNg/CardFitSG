@@ -1,56 +1,56 @@
 # CardFitSG continuous improvement log
 
-Last updated: 2026-08-10 (Cycle 83 across the projects workspace; CardFitSG Cycle 36)
+Last updated: 2026-08-10 (Cycle 84 across the projects workspace; CardFitSG Cycle 37)
 
 ## Current state
 
 - Branch: `main`; continuous-improvement commits are published to `origin/main` after verification.
 - Runtime: zero-build static HTML/CSS/JavaScript.
-- Verification: `node tools/test-engine.mjs` (71 assertions), `node tools/test-catalog-freshness.mjs` (13 assertions), the live catalog-deadline check, `node tools/test-site.mjs` (14 references/fragments), `node tools/test-app.mjs` (17 assertions), recursive JavaScript syntax checks, JSON parsing, and repository CI.
+- Verification: `node tools/test-engine.mjs` (71 assertions), `node tools/test-catalog-freshness.mjs` (17 assertions), the live catalog-deadline check, `node tools/test-site.mjs` (14 references/fragments), `node tools/test-app.mjs` (17 assertions), recursive JavaScript syntax checks, JSON parsing, and repository CI on Node 24 LTS.
 - Catalog snapshot: all six cards were checked against official issuer pages on 2026-08-09; `data/cards.json` declares the same `asOf` date.
 - UOB One's optimizer condition was reverified against UOB's product page, full terms, and FAQ on 2026-08-10.
 - Catalog review policy: audit by 2026-08-24, seven days before the earliest dated offers end on 2026-08-31; daily CI enforces the boundary.
 
-## Latest cycle: make the next catalog audit deadline enforceable
+## Latest cycle: remove deprecated CI action runtimes
 
 ### Why this was selected
 
-The backlog correctly required another official-source audit before offers expire on 2026-08-31, but that deadline existed only in prose. A missed manual follow-up could leave expired financial offers visible without any failing check or notification.
+Cycle 36's hosted verification passed but warned that `actions/checkout@v4` and `actions/setup-node@v4` target the deprecated Node 20 action runtime and were being forced onto Node 24. The workflow also still tested the project itself on Node 20, which is end-of-life. This new concrete evidence outranked the planned repository rotation.
 
 ### Changes
 
-- Added `meta.reviewBy: 2026-08-24`, one week before the earliest active offer expiry.
-- Added a dependency-free catalog freshness evaluator with strict calendar parsing, Singapore-local default dates, actionable output, and fail-closed snapshot/deadline/offer ordering.
-- Added deterministic boundary and malformed-policy tests plus workflow-wiring contracts.
-- Scheduled CI daily at 00:17 UTC and enabled manual dispatch; push and pull-request checks enforce the same deadline.
-- Documented the refresh procedure and bumped the deployed version to `2026.08.10.1`.
+- Upgraded `actions/checkout` and `actions/setup-node` from v4 to their current v7 majors.
+- Moved the project test runtime from end-of-life Node 20 to Node 24 LTS.
+- Added workflow policies requiring both current action majors and Node 24 while rejecting the deprecated v4 references.
+- Bumped the deployed version to `2026.08.10.2`.
 
 ### Verification and scores
 
-- Test-first evidence: the new policy suite initially failed because the evaluator module did not yet exist.
+- Official evidence: the action repositories document v7 usage, and Node's release table identifies v20 as end-of-life and v24 as LTS.
+- Test-first evidence: the workflow policy failed on the old checkout major before implementation.
 - `node tools/test-engine.mjs`: 71 passed, 0 failed.
-- `node tools/test-catalog-freshness.mjs`: 13 boundary, malformed-data, and workflow-wiring assertions passed.
+- `node tools/test-catalog-freshness.mjs`: 17 boundary, scheduling, and runtime-policy assertions passed.
 - `node tools/catalog-freshness.mjs`: reports 14 days remaining before review and the 2026-08-31 earliest offer end; a controlled 2026-08-24 run fails as required.
 - `node tools/test-app.mjs`: 17 startup/render assertions passed.
 - `node tools/test-site.mjs`: 9 local references and 5 fragments verified.
+- Local runtime: Node `v24.14.1`.
 - Recursive `node --check` across `js/` and `tools/`: passed.
-- Catalog and manifest JSON parsing: passed.
 - `git diff --check`: passed.
-- Correctness/reliability: 9/10 (stale catalog risk now has a hard, date-aware boundary).
-- Verifiability: 10/10 (deadline semantics and automation wiring are deterministic and regression-tested).
-- Maintainability: 9/10 (future audits update one explicit metadata field alongside `asOf`).
-- User safety: 10/10 (time-sensitive financial data can no longer age past the planned review silently).
-- Performance: 10/10 (the small checker runs only in CI/developer workflows, never in the browser).
+- Correctness/reliability: 9/10 (CI no longer depends on compatibility-forced action runtimes).
+- Verifiability: 10/10 (runtime majors and the project Node line are explicit policy assertions).
+- Maintainability: 10/10 (the workflow follows current official action examples and a supported LTS line).
+- Security/robustness: 9/10 (both action runtime and test runtime receive supported fixes).
+- Performance: 10/10 (the same small workflow uses newer runtimes without adding steps).
 
 ### Lessons and process improvements
 
-- A dated financial snapshot needs both “last reviewed” and “review again by”; `asOf` alone records history but cannot create a future alert.
-- Keep wall-clock logic injectable. Explicit boundary dates make expiry behavior testable without waiting or mocking global time.
-- Test scheduled-workflow wiring as policy text so later CI cleanup cannot silently remove the alert path.
-- Schedule Singapore-facing checks after midnight Singapore time to avoid a one-day UTC lag.
+- Treat hosted annotations as verification evidence even when the job is green; compatibility shims are an actionable early warning.
+- Test the action implementation runtime and the project's test runtime separately. Updating only the action major would have left the EOL Node 20 test target behind.
+- Encode infrastructure migrations as policy checks so later copy/paste edits cannot reintroduce deprecated majors.
 
 ## Previous cycles
 
+- Cycle 36 (`aa2e66f`): added a deterministic catalog review deadline and daily CI sentinel.
 - Cycle 35 (`28bc6bc`): surfaced official UOB One statement-month and qualifying-quarter conditions in optimizer results.
 - Cycle 34 (`05833f8`): executed real app startup/rendering and failure paths in a dependency-free VM harness.
 - Cycle 33 (`d64dcf9`): honored 30/60-day signup windows and applied spend hurdles to non-cash gifts; assertions increased from 63 to 68.

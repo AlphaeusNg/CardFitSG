@@ -46,5 +46,9 @@ check(
   "CI runs deterministic freshness policy tests"
 );
 check(/run:\s*node tools\/catalog-freshness\.mjs/.test(workflow), "CI enforces the live review deadline");
+check(/uses:\s*actions\/checkout@v7/.test(workflow), "CI uses the current checkout action runtime");
+check(/uses:\s*actions\/setup-node@v7/.test(workflow), "CI uses the current setup-node action runtime");
+check(/node-version:\s*["']24["']/.test(workflow), "CI tests on the supported Node 24 LTS line");
+check(!/uses:\s*actions\/(?:checkout|setup-node)@v4/.test(workflow), "deprecated Node 20 action runtimes stay removed");
 
 console.log(`test-catalog-freshness.mjs: ${assertions} assertions passed`);
