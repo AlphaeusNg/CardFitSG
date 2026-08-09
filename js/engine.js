@@ -263,13 +263,11 @@
       signupCash = 0;
     }
 
-    // Fee drag after year 1 (first year waived)
-    let feeDrag = 0;
-    if (months > 12) {
-      feeDrag = card.annualFee || 0;
-    } else if (scenario.includeFeeYear1 && !card.firstYearFeeWaived) {
-      feeDrag = card.annualFee || 0;
-    }
+    // Each started card year after the first incurs a renewal fee. The optional
+    // first-year fee is counted separately when the card does not waive it.
+    const renewalFeePeriods = Math.max(0, Math.ceil(months / 12) - 1);
+    const firstYearFeePeriods = scenario.includeFeeYear1 && !card.firstYearFeeWaived ? 1 : 0;
+    const feeDrag = (card.annualFee || 0) * (renewalFeePeriods + firstYearFeePeriods);
 
     // Acceptance / Amex filter — default conservative (Amex not assumed accepted)
     let acceptancePenalty = 0;

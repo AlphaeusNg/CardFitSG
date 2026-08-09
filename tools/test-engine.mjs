@@ -196,6 +196,36 @@ assert(db.cards.length >= 5, "has card catalog");
   assert(Math.abs(s.cashFromRate - 170) < 0.01, "1.7% of 10k = 170");
 }
 
+// Annual fees track each charged card year across arbitrary horizons
+{
+  const waived = db.cards.find((c) => c.id === "uob-absolute");
+  const base = {
+    oneOff: 0,
+    monthly: 100,
+    existingCardIds: [waived.id],
+    asOf: "2026-07-19",
+  };
+  assert(E.scoreCard(waived, { ...base, months: 12 }).feeDrag === 0, "waived first year has no fee drag");
+  assert(
+    E.scoreCard(waived, { ...base, months: 24 }).feeDrag === waived.annualFee,
+    "24-month horizon includes one renewal fee"
+  );
+  assert(
+    E.scoreCard(waived, { ...base, months: 36 }).feeDrag === waived.annualFee * 2,
+    "36-month horizon includes two renewal fees"
+  );
+
+  const notWaived = { ...waived, firstYearFeeWaived: false };
+  assert(
+    E.scoreCard(notWaived, { ...base, months: 12, includeFeeYear1: true }).feeDrag === waived.annualFee,
+    "non-waived first-year fee is included when requested"
+  );
+  assert(
+    E.scoreCard(notWaived, { ...base, months: 24, includeFeeYear1: true }).feeDrag === waived.annualFee * 2,
+    "first-year fee and renewal fee accumulate"
+  );
+}
+
 // Zero spend flagged
 {
   const r = E.recommend(db, {
