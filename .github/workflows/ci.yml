@@ -19,5 +19,7 @@ jobs:
           node-version: "20"
       - name: Recommendation engine tests
         run: node tools/test-engine.mjs
+      - name: Static site integrity
+        run: node tools/test-site.mjs
       - name: JavaScript syntax
         run: node --check js/*.js

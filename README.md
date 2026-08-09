@@ -37,6 +37,7 @@ python3 -m http.server 8092
 # http://127.0.0.1:8092/
 
 node tools/test-engine.mjs
+node tools/test-site.mjs
 node --check js/*.js
 ```
 
