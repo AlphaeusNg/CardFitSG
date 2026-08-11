@@ -58,10 +58,24 @@ console.log("CardFitSG engine tests\n");
   );
   assert(byId["ocbc-infinity"].network === "Mastercard", "Infinity uses the official Mastercard network");
   assert(byId["ocbc-infinity"].signup.activeThrough === "2026-08-31", "Infinity signup window is current");
+  assert(
+    byId["ocbc-infinity"].signup.newToIssuerMonths === 12 &&
+      byId["ocbc-365"].signup.newToIssuerMonths === 12,
+    "OCBC signup value requires twelve months without a principal OCBC card"
+  );
   assert(byId["uob-absolute"].network === "Amex", "Absolute uses the official Amex network");
   assert(byId["uob-absolute"].signup.giftValueEst === 100, "Absolute non-cash signup value is current");
+  assert(
+    byId["uob-absolute"].signup.newToIssuerMonths === 6 &&
+      byId["uob-one"].signup.newToIssuerMonths === 6,
+    "UOB signup value requires six months without a principal UOB card"
+  );
   assert(byId["amex-true"].introMonths === 6, "True Cashback's welcome rate lasts six months");
   assert(byId["sc-simply"].signup.cashReward === 100, "Simply Cash active cash reward is represented");
+  assert(
+    byId["sc-simply"].signup.newToIssuerMonths === 12,
+    "Simply Cash signup value requires twelve months without an SC card"
+  );
   assert(byId["uob-one"].minMonthlySpend === 600, "UOB One current minimum tier starts at S$600");
   assert(
     byId["uob-one"].tieredRates.map((tier) => tier.minSpend).join(",") === "600,1000,2000",
@@ -165,6 +179,15 @@ assert(db.cards.length >= 5, "has card catalog");
     assert(
       !dateResult.valid && dateResult.errors.some((error) => /activeThrough/.test(error)),
       "malformed signup dates are rejected"
+    );
+
+    const badIssuerLookback = JSON.parse(JSON.stringify(db));
+    badIssuerLookback.cards[0].signup.newToIssuerMonths = 0;
+    const issuerLookbackResult = E.validateCatalog(badIssuerLookback);
+    assert(
+      !issuerLookbackResult.valid &&
+        issuerLookbackResult.errors.some((error) => /signup\.newToIssuerMonths/.test(error)),
+      "new-to-issuer lookbacks must be positive whole months"
     );
 
     const badWaiver = JSON.parse(JSON.stringify(db));
@@ -311,6 +334,89 @@ assert(db.cards.length >= 5, "has card catalog");
   });
   assert(s.signupCash === 0, "no signup when already holding");
   assert(s.alreadyHold === true, "alreadyHold flag");
+}
+
+// Issuer-level welcome eligibility excludes value for known same-bank holders
+{
+  const infinity = db.cards.find((card) => card.id === "ocbc-infinity");
+  const ocbc365 = db.cards.find((card) => card.id === "ocbc-365");
+  const sameIssuer = E.scoreCard(ocbc365, {
+    oneOff: 600,
+    monthly: 0,
+    months: 12,
+    existingCardIds: [infinity.id],
+    existingIssuers: ["OCBC"],
+    asOf: "2026-08-11",
+  });
+  assert(sameIssuer.signupCash === 0, "an existing OCBC card excludes the other OCBC card's signup cash");
+  assert(
+    sameIssuer.warnings.some((warning) => /new-to-OCBC.*12 months.*excluded/i.test(warning)),
+    "same-issuer exclusion names the official OCBC lookback"
+  );
+  assert(
+    !sameIssuer.notes.some((note) => /signup may be weaker/i.test(note)),
+    "definitive issuer exclusion does not retain the old soft-eligibility note"
+  );
+
+  const otherwiseEligible = E.scoreCard(ocbc365, {
+    oneOff: 600,
+    monthly: 0,
+    months: 12,
+    existingCardIds: [],
+    existingIssuers: [],
+    asOf: "2026-08-11",
+  });
+  assert(otherwiseEligible.signupCash === 180, "eligible OCBC spend retains the live signup cash");
+  assert(
+    otherwiseEligible.notes.some((note) => /no OCBC.*previous 12 months.*not collected/i.test(note)),
+    "eligible scoring discloses the uncollected recent-card history condition"
+  );
+
+  const invalidLookback = E.scoreCard(
+    { ...ocbc365, signup: { ...ocbc365.signup, newToIssuerMonths: 0 } },
+    {
+      oneOff: 600,
+      monthly: 0,
+      months: 12,
+      existingCardIds: [],
+      existingIssuers: [],
+      asOf: "2026-08-11",
+    }
+  );
+  assert(invalidLookback.signupCash === 0, "invalid direct-call issuer eligibility fails closed");
+  assert(
+    invalidLookback.warnings.some((warning) => /issuer eligibility metadata is invalid/i.test(warning)),
+    "invalid direct-call issuer eligibility is disclosed"
+  );
+
+  const simply = db.cards.find((card) => card.id === "sc-simply");
+  const existingSc = E.scoreCard(simply, {
+    oneOff: 800,
+    monthly: 0,
+    months: 12,
+    existingCardIds: [],
+    existingIssuers: ["Standard Chartered"],
+    asOf: "2026-08-11",
+  });
+  assert(existingSc.signupCash === 0, "an existing SC card excludes Simply Cash signup value");
+
+  const absolute = db.cards.find((card) => card.id === "uob-absolute");
+  const existingUob = E.scoreCard(absolute, {
+    oneOff: 1000,
+    monthly: 0,
+    months: 12,
+    existingCardIds: [],
+    existingIssuers: ["UOB"],
+    asOf: "2026-08-11",
+  });
+  assert(
+    !existingUob.notes.some((note) => /non-cash gift/i.test(note)),
+    "an existing UOB card excludes the new-to-UOB non-cash gift"
+  );
+  assert(
+    existingUob.warnings.some((warning) => /new-to-UOB.*6 months.*excluded/i.test(warning)),
+    "same-issuer exclusion names the official UOB lookback"
+  );
 }
 
 // Amex deprioritised when not accepted

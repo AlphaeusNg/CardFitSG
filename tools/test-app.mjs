@@ -49,7 +49,7 @@ function makeElement(initial = {}) {
   };
 }
 
-function makeDocument() {
+function makeDocument(existingCardIds = []) {
   const elements = Object.fromEntries(
     [
       "fatal",
@@ -88,6 +88,7 @@ function makeDocument() {
     elements.optimizer,
     elements.amexOk,
   ];
+  const checkedExisting = existingCardIds.map((value) => ({ value }));
 
   return {
     elements,
@@ -101,17 +102,18 @@ function makeDocument() {
       },
       querySelectorAll(selector) {
         if (selector === "#form input, #form select") return formControls;
-        if (selector === 'input[name="existing"]:checked') return [];
+        if (selector === 'input[name="existing"]:checked') return checkedExisting;
         return [];
       },
     },
   };
 }
 
-async function boot(response) {
-  const { document, elements } = makeDocument();
+async function boot(response, { existingCardIds = [] } = {}) {
+  const { document, elements } = makeDocument(existingCardIds);
   const errors = [];
   const scenarios = [];
+  const recommendations = [];
   const sandbox = {
     window: {
       scrollY: 0,
@@ -140,11 +142,36 @@ async function boot(response) {
   const recommend = sandbox.CardFitEngine.recommend;
   sandbox.CardFitEngine.recommend = (database, scenario) => {
     scenarios.push({ ...scenario });
-    return recommend(database, scenario);
+    const recommendation = recommend(database, scenario);
+    recommendations.push(recommendation);
+    return recommendation;
   };
   vm.runInContext(appSource, sandbox, { filename: "js/app.js" });
   await new Promise((resolvePromise) => setImmediate(resolvePromise));
-  return { elements, errors, sandbox, scenarios };
+  return { elements, errors, sandbox, scenarios, recommendations };
+}
+
+{
+  const result = await boot(
+    {
+      ok: true,
+      status: 200,
+      async json() {
+        return JSON.parse(JSON.stringify(catalog));
+      },
+    },
+    { existingCardIds: ["ocbc-infinity"] }
+  );
+  assert.equal(
+    result.scenarios[0].existingIssuers.join(","),
+    "OCBC",
+    "wallet selections derive issuer-level eligibility input"
+  );
+  assert.equal(
+    result.recommendations[0].ranked.find((score) => score.card.id === "ocbc-365").signupCash,
+    0,
+    "composed app ranking excludes same-issuer OCBC signup cash"
+  );
 }
 
 {
@@ -218,4 +245,4 @@ async function boot(response) {
   assert(result.errors.some((error) => /HTTP 503/.test(error)), "HTTP status is logged for diagnosis");
 }
 
-console.log("test-app.mjs: 25 startup, event, and render assertions passed");
+console.log("test-app.mjs: 27 startup, event, eligibility, and render assertions passed");

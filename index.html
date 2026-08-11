@@ -126,9 +126,10 @@
       <h2 style="font-family:var(--serif);font-size:1.2rem;margin:0.15rem 0 0.5rem">How scoring works</h2>
       <ul class="reasons">
         <li>Estimates cash from published flat / intro rates on your one-off + monthly spend.</li>
-        <li>Adds signup cash only if promo window looks active and spend clears the hurdle.</li>
+        <li>Adds signup cash only if the promo is active, spend clears the hurdle, and known issuer eligibility permits it.</li>
         <li>Boosts high fuss-free scores; penalises min-spend category cards unless optimizer mode is on.</li>
-        <li>Soft-penalises opening another card at an issuer you already hold (weaker acquisition odds).</li>
+        <li>Excludes declared new-to-issuer value when your selected wallet already contains that issuer; other overlaps retain a soft penalty.</li>
+        <li>Recent closed-card history is not collected, so confirm the disclosed 6/12-month issuer lookback before applying.</li>
         <li>Does <em>not</em> model FX fees, 0% instalments, or insurance perks — keep those separate.</li>
       </ul>
       <p class="muted tiny">

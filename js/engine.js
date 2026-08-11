@@ -205,6 +205,13 @@
             integer: true,
             nullable: true,
           });
+          if (Object.prototype.hasOwnProperty.call(card.signup, "newToIssuerMonths")) {
+            requireNumber(
+              card.signup.newToIssuerMonths,
+              `${signupPath}.newToIssuerMonths`,
+              { min: 1, max: 120, integer: true }
+            );
+          }
           requireNumber(card.signup.cashReward, `${signupPath}.cashReward`);
           if (card.signup.giftValueEst != null) {
             requireNumber(card.signup.giftValueEst, `${signupPath}.giftValueEst`);
@@ -234,6 +241,10 @@
     const monthly = clampSpend(scenario.monthly);
     const asOf = scenario.asOf || todayYmd();
     const existing = new Set(scenario.existingCardIds || []);
+    const existingIssuers = new Set(
+      Array.isArray(scenario.existingIssuers) ? scenario.existingIssuers : []
+    );
+    const knownSameIssuerHolder = existingIssuers.has(card.issuer);
     const alreadyHold = existing.has(card.id);
     const longTerm = !!(scenario.weightLongTerm || scenario.intent === "long_term");
     // Optimizer is opt-in; when both toggles are on, optimizer scoring wins for cash math
@@ -357,7 +368,27 @@
       const invalidPromoWindow = !!su.activeThrough && promoDays === null;
       const promoOk = !su.activeThrough || (!invalidPromoWindow && promoDays >= 0);
       const hasSignupValue = su.cashReward > 0 || su.giftValueEst;
-      if (promoOk && hasSignupValue) {
+      const declaresIssuerLookback = Object.prototype.hasOwnProperty.call(
+        su,
+        "newToIssuerMonths"
+      );
+      const validIssuerLookback =
+        declaresIssuerLookback &&
+        Number.isInteger(su.newToIssuerMonths) &&
+        su.newToIssuerMonths >= 1 &&
+        su.newToIssuerMonths <= MAX_HORIZON_MONTHS;
+      const invalidIssuerLookback = declaresIssuerLookback && !validIssuerLookback;
+      const knownIssuerSignupExclusion =
+        validIssuerLookback && knownSameIssuerHolder;
+      if (invalidIssuerLookback && hasSignupValue) {
+        warnings.push("Issuer eligibility metadata is invalid — no signup value modeled.");
+      } else if (knownIssuerSignupExclusion && hasSignupValue) {
+        warnings.push(
+          `New-to-${card.issuer} signup requires no ${card.issuer} principal card now or ` +
+          `in the previous ${su.newToIssuerMonths} months — signup value excluded because ` +
+          `you marked a ${card.issuer} card as held.`
+        );
+      } else if (promoOk && hasSignupValue) {
         const need = su.minSpend || 0;
         const qualifyingSpend = signupQualifyingSpend(oneOff, monthly, months, su.windowDays);
         if (qualifyingSpend >= need) {
@@ -367,6 +398,12 @@
           }
           if (su.giftValueEst) {
             notes.push(`Possible non-cash gift (est. ~S$${su.giftValueEst} retail; actual value varies).`);
+          }
+          if (validIssuerLookback) {
+            notes.push(
+              `Requires no ${card.issuer} principal card now or in the previous ` +
+              `${su.newToIssuerMonths} months; recent closed-card history is not collected.`
+            );
           }
         } else {
           warnings.push(`Signup needs ≥ S$${need} qualifying spend within the offer window.`);
@@ -409,8 +446,14 @@
     }
 
     // Same-bank overlap soft penalty for acquisition
-    if (!alreadyHold && scenario.existingIssuers?.includes(card.issuer)) {
-      notes.push(`You already bank with ${card.issuer} — new-card signup may be weaker.`);
+    if (!alreadyHold && knownSameIssuerHolder) {
+      const hasDefinitiveIssuerRule =
+        Number.isInteger(card.signup?.newToIssuerMonths) &&
+        card.signup.newToIssuerMonths >= 1 &&
+        card.signup.newToIssuerMonths <= MAX_HORIZON_MONTHS;
+      if (!hasDefinitiveIssuerRule) {
+        notes.push(`You already bank with ${card.issuer} — new-card signup may be weaker.`);
+      }
       fussPenalty += 10;
     }
 

@@ -4,7 +4,7 @@
     "market": "Singapore",
     "asOf": "2026-08-09",
     "reviewBy": "2026-08-24",
-    "ratesNote": "Rates, fees, card networks and public offers verified against official issuer pages on 2026-08-09. Promo windows are date-checked at runtime — expired signup value is not counted.",
+    "ratesNote": "Rates, fees, card networks and public offers verified against official issuer pages on 2026-08-09. Issuer-level signup lookbacks were reverified against official promotion terms on 2026-08-11. Promo windows are date-checked at runtime — expired or known-ineligible signup value is not counted.",
     "disclaimer": "Rates, promos, and fees change. Always verify on the issuer's official page before applying. This tool is educational, not financial advice.",
     "sources": [
       "https://www.ocbc.com/personal-banking/cards/infinity-unlimited-cashback-card.page",
@@ -34,8 +34,9 @@
         "activeThrough": "2026-08-31",
         "minSpend": 600,
         "windowDays": 30,
+        "newToIssuerMonths": 12,
         "cashReward": 180,
-        "notes": "New OCBC cardmembers: spend S$300 within 30 days for the welcome gift, then another S$300 in the same period for S$180 cashback. Confirm live T&Cs."
+        "notes": "New OCBC principal cardmembers with no current OCBC credit card and none in the prior 12 months: spend S$300 within 30 days for the welcome gift, then another S$300 in the same period for S$180 cashback. Confirm live T&Cs."
       },
       "exclusionsNote": "Standard bank exclusions may apply; verify qualifying spend definitions.",
       "pros": ["True flat cashback", "No monthly minimum", "No earn cap advertised", "Strong signup for large near-term spend"],
@@ -60,9 +61,10 @@
         "activeThrough": "2026-09-30",
         "minSpend": 1000,
         "windowDays": null,
+        "newToIssuerMonths": 6,
         "cashReward": 0,
         "giftValueEst": 100,
-        "notes": "New-to-UOB cardmembers can receive a S$100 Samsung e-voucher after S$1,000 spend in the first month. Non-cash and not used for ranking."
+        "notes": "New-to-UOB principal cardmembers with no current UOB credit card and no UOB card cancellation in the prior six months can receive a S$100 Samsung e-voucher after S$1,000 spend in the first month. Non-cash and not used for ranking."
       },
       "exclusionsNote": "Base model excludes the temporary 0.3% contactless bonus through 31 January 2027. Selected local categories earn 0.3%; from 4 September 2026, selected overseas categories and Grab wallet top-ups also earn 0.3%. Confirm current terms.",
       "pros": ["Highest simple flat rate among major banks (~1.7%)", "No min spend", "Best long-term keeper for fuss-free users"],
@@ -117,9 +119,10 @@
         "activeThrough": "2026-08-31",
         "minSpend": 800,
         "windowDays": 60,
+        "newToIssuerMonths": 12,
         "cashReward": 100,
         "giftValueEst": 610,
-        "notes": "New-to-SC cardmembers: spend S$800 within 60 days for S$100 cashback and a Samsonite MODUS Spinner listed at S$610."
+        "notes": "New Standard Chartered principal cardmembers with no current or cancelled SC card in the prior 12 months: spend S$800 within 60 days for S$100 cashback and a Samsonite MODUS Spinner listed at S$610."
       },
       "exclusionsNote": "Standard exclusions may apply.",
       "pros": ["Simple flat cashback", "No monthly minimum", "Widely accepted"],
@@ -150,9 +153,10 @@
         "activeThrough": "2026-09-30",
         "minSpend": 1000,
         "windowDays": null,
+        "newToIssuerMonths": 6,
         "cashReward": 0,
         "giftValueEst": 100,
-        "notes": "New-to-UOB cardmembers can receive a S$100 Samsung e-voucher after S$1,000 spend in the first month. Enhanced first-quarter category cashback is not modeled."
+        "notes": "New-to-UOB principal cardmembers with no current UOB credit card and no UOB card cancellation in the prior six months can receive a S$100 Samsung e-voucher after S$1,000 spend in the first month. Enhanced first-quarter category cashback is not modeled."
       },
       "exclusionsNote": "Category lists, caps, and tiers change frequently.",
       "pros": ["High % when optimized", "Popular among active optimizers"],
@@ -191,8 +195,9 @@
         "activeThrough": "2026-08-31",
         "minSpend": 600,
         "windowDays": 30,
+        "newToIssuerMonths": 12,
         "cashReward": 180,
-        "notes": "New OCBC cardmembers: spend S$300 within 30 days for the welcome gift, then another S$300 in the same period for S$180 cashback."
+        "notes": "New OCBC principal cardmembers with no current OCBC credit card and none in the prior 12 months: spend S$300 within 30 days for the welcome gift, then another S$300 in the same period for S$180 cashback."
       },
       "exclusionsNote": "Min spend and category definitions apply.",
       "pros": ["6% petrol", "5% dining", "3% on groceries, transport and selected recurring spend"],

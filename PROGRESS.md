@@ -1,15 +1,15 @@
 # CardFitSG continuous improvement log
 
-Last updated: 2026-08-11 (Cycle 136 across the projects workspace; CardFitSG Cycle 42)
+Last updated: 2026-08-11 (Cycle 145 across the projects workspace; CardFitSG Cycle 43)
 
 ## Current state
 
 - Branch: `main`; continuous-improvement commits are published to `origin/main` after verification.
 - Runtime: zero-build static HTML/CSS/JavaScript.
-- Verification: `node tools/test-engine.mjs` (99 assertions), `node
+- Verification: `node tools/test-engine.mjs` (113 assertions), `node
   tools/test-catalog-freshness.mjs` (17 assertions), the live catalog-deadline
   check, `node tools/test-site.mjs` (14 references/fragments), `node
-  tools/test-app.mjs` (25 assertions), recursive JavaScript syntax checks, JSON
+  tools/test-app.mjs` (27 assertions), recursive JavaScript syntax checks, JSON
   catalog JSON parsing, and repository CI on Node 24 LTS.
 - Catalog snapshot: all six cards were checked against official issuer pages on 2026-08-09; `data/cards.json` declares the same `asOf` date.
 - UOB One's optimizer condition was reverified against UOB's product page, full
@@ -18,9 +18,85 @@ Last updated: 2026-08-11 (Cycle 136 across the projects workspace; CardFitSG Cyc
 - AMEX True Cashback's official page reconfirmed on 2026-08-11 that 3% applies
   to up to S$5,000 of eligible spend in the first six months for new members,
   followed by 1.5% on subsequent eligible purchases.
+- Current OCBC, UOB, and Standard Chartered promotion terms reconfirmed on
+  2026-08-11 that their modeled signup offers require respectively 12, 6, and
+  12 months without the issuer's principal credit cards.
 - Catalog review policy: audit by 2026-08-24, seven days before the earliest dated offers end on 2026-08-31; daily CI enforces the boundary.
 
-## Latest cycle: evaluate offers on Singapore's calendar date
+## Latest cycle: exclude known same-issuer signup ineligibility
+
+### Why this was selected
+
+The scheduled full catalog audit remains 13 days early. The application already
+derived issuers from cards marked in the wallet, but the engine used that fact
+only for a 10-point soft penalty. A user holding OCBC INFINITY could still be
+awarded OCBC 365's S$180 signup cash even though the live promotion is only for
+new OCBC cardmembers; the same gap affected Standard Chartered cash and UOB
+non-cash gifts.
+
+### Changes
+
+- Added declarative `signup.newToIssuerMonths` lookbacks: 12 months for OCBC,
+  six for UOB, and 12 for Standard Chartered, matching current official terms.
+- Validate optional lookbacks as positive whole months up to 120; malformed
+  direct calls fail closed with no signup value and a precise warning.
+- Exclude cash and gift value when the wallet identifies the same issuer, name
+  the relevant lookback, and remove the contradictory older “may be weaker”
+  note while retaining the issuer-overlap ranking penalty.
+- When no known same-issuer holding exists, retain eligible value but disclose
+  that recent closed-card history is not collected and must be confirmed.
+- Extended the app harness to carry selected wallet cards through issuer
+  derivation into a real recommendation; documented the rule and bumped the
+  deployed version to `2026.08.11.6`.
+
+### Verification and scores
+
+- Official OCBC welcome terms dated 30 June 2026 require no current principal
+  OCBC card and none in the prior 12 months; UOB's updated July terms require no
+  current principal UOB card and no cancellation in the prior six months;
+  Standard Chartered's current promotion requires neither current nor cancelled
+  principal SC cards in the prior 12 months.
+- Test-first evidence: 10 assertions failed on absent catalog lookbacks/schema,
+  retained S$180 OCBC and S$100 SC value, missing eligibility disclosure, and
+  unsafe malformed direct calls; the eligible-spend control remained green.
+- Self-review added three UOB gift and truthful-note contracts; the old soft
+  eligibility note failed before it was removed.
+- `node tools/test-engine.mjs`: 113 passed, 0 failed (up from 99).
+- `node tools/test-app.mjs`: 27 startup, event, eligibility, and render
+  assertions passed (up from 25), including composed wallet → issuer → ranking
+  behavior.
+- All 113 engine assertions pass under `TZ=UTC`, `America/Los_Angeles`, and
+  `Pacific/Kiritimati`; 17 freshness contracts, the live deadline check, 14
+  site references/fragments, catalog JSON parsing, recursive syntax, and diff
+  checks pass.
+- Correctness/reliability: 4/10 → 10/10 (known issuer ineligibility removes impossible signup value).
+- Verifiability: 6/10 → 10/10 (three issuers, cash/gift, schema, bypass, disclosure, and app composition are covered).
+- Maintainability: 7/10 → 9/10 (one declarative lookback and generic rule replace card-specific assumptions).
+- Performance: 10/10 → 10/10 (one six-item issuer set and constant-time lookup per score).
+- Security/robustness: 5/10 → 9/10 (malformed eligibility metadata fails toward zero promotional value).
+- User experience: 5/10 → 9/10 (rankings no longer promise known-ineligible value and name uncollected history).
+
+### Lessons and process improvements
+
+- An issuer-overlap penalty cannot stand in for a binary official eligibility
+  rule; separate ranking preference from reward qualification.
+- Model the lookback as catalog data because banks use different six- and
+  twelve-month definitions even for superficially similar “new customer” copy.
+- Carry financial facts through a composed app test. Pure engine correctness is
+  insufficient if the form never supplies the issuer signal.
+- When the UI lacks enough history to decide, preserve value only with an
+  explicit disclosure rather than silently assuming eligibility.
+- Verification commands are code too: a first timezone loop interpolated a
+  slash-containing zone into `sed` and stopped after two green runs. Replacing
+  the presentation step with `printf` completed all three zones safely.
+
+### Next opportunity
+
+Add issuer-level current/recent-card history independent of the six catalog
+cards so users can resolve the disclosed lookback instead of only confirming it
+outside the tool.
+
+## Previous cycle: evaluate offers on Singapore's calendar date
 
 ### Why this was selected
 
@@ -332,6 +408,8 @@ Fuss-free and optimizer checkboxes are intentionally mutually exclusive, but the
 | Priority | Opportunity | Category | Impact | Effort / risk | Evidence / dependency |
 |---|---|---|---|---|---|
 | 1 | Execute the official-source catalog audit by 2026-08-24 | Process / data | High | Small / low | Daily CI now fails on the deadline; OCBC and SC offers end 2026-08-31 |
+| 2 | Collect issuer-level current/recent card history | Correctness / UX | Medium-high | Medium / low | Current wallet inputs cover only six catalog cards; disclosure cannot determine unlisted or recently cancelled issuer cards |
+| — | Exclude known same-issuer signup ineligibility | Correctness / safety | High | Small-medium / low | 113 engine and 27 app assertions cover official 6/12-month rules, cash/gift suppression, schema, bypass, and composition | Completed in Cycle 43 |
 | — | Model fixed quarterly awards between UOB One thresholds | Correctness / safety | High | Small-medium / low | Nine contracts cover fixed bands, schema dependencies, and direct-call fallback | Completed in Cycle 41 |
 | — | Apply intro rates only inside their acquisition window | Correctness / safety | Medium-high | Small-medium / low | Eight contracts cover time, cap, tenure, disclosure, and direct-call fallback | Completed in Cycle 40 |
 | — | Model qualifying-quarter completeness for arbitrary horizons | Correctness / safety | Low-medium | Medium / medium | Declarative three-month periods now exclude incomplete quarters and preserve standard horizons | Completed in Cycle 39 |
@@ -340,6 +418,6 @@ Fuss-free and optimizer checkboxes are intentionally mutually exclusive, but the
 ## Next cycle
 
 Local next: execute the full official-source audit by 2026-08-24 and advance
-both `asOf` and `reviewBy`; avoid a low-information repeat before the deadline
-absent issuer changes. Workspace next: rotate to AlpArcade after this focused
-correctness cycle.
+both `asOf` and `reviewBy`; before then, collect issuer-level recent-card history
+so lookback eligibility can be decided for unlisted and cancelled cards.
+Workspace next: rotate to AlpArcade after this focused correctness cycle.
