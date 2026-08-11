@@ -31,6 +31,23 @@ function assert(cond, msg) {
 
 console.log("CardFitSG engine tests\n");
 
+// Runtime offer dates follow the catalog's Singapore market day, regardless of
+// the browser or test process timezone.
+{
+  assert(
+    E.todayYmd(new Date("2026-08-10T15:59:59.999Z")) === "2026-08-10",
+    "Singapore date remains on the prior day before UTC+8 midnight"
+  );
+  assert(
+    E.todayYmd(new Date("2026-08-10T16:00:00.000Z")) === "2026-08-11",
+    "Singapore date advances exactly at UTC+8 midnight"
+  );
+  assert(
+    E.todayYmd(new Date("2026-08-11T15:59:59.999Z")) === "2026-08-11",
+    "Singapore date remains stable through the market day"
+  );
+}
+
 // Official issuer audit snapshot (2026-08-09)
 {
   const byId = Object.fromEntries(db.cards.map((card) => [card.id, card]));

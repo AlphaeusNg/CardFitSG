@@ -1,12 +1,12 @@
 # CardFitSG continuous improvement log
 
-Last updated: 2026-08-11 (Cycle 127 across the projects workspace; CardFitSG Cycle 41)
+Last updated: 2026-08-11 (Cycle 136 across the projects workspace; CardFitSG Cycle 42)
 
 ## Current state
 
 - Branch: `main`; continuous-improvement commits are published to `origin/main` after verification.
 - Runtime: zero-build static HTML/CSS/JavaScript.
-- Verification: `node tools/test-engine.mjs` (96 assertions), `node
+- Verification: `node tools/test-engine.mjs` (99 assertions), `node
   tools/test-catalog-freshness.mjs` (17 assertions), the live catalog-deadline
   check, `node tools/test-site.mjs` (14 references/fragments), `node
   tools/test-app.mjs` (25 assertions), recursive JavaScript syntax checks, JSON
@@ -20,7 +20,63 @@ Last updated: 2026-08-11 (Cycle 127 across the projects workspace; CardFitSG Cyc
   followed by 1.5% on subsequent eligible purchases.
 - Catalog review policy: audit by 2026-08-24, seven days before the earliest dated offers end on 2026-08-31; daily CI enforces the boundary.
 
-## Latest cycle: model UOB One as fixed quarterly awards
+## Latest cycle: evaluate offers on Singapore's calendar date
+
+### Why this was selected
+
+The scheduled issuer review remains 13 days early, so another catalog audit
+would repeat recent work without new evidence. Runtime review instead found
+that expiring offers were compared with the browser device's local calendar
+date. A user outside Singapore could therefore gain or lose a day of modeled
+signup value even though the catalog and product market are Singapore-specific.
+
+### Changes
+
+- Changed the engine's public `todayYmd()` helper to project the current instant
+  into `Asia/Singapore` using `Intl.DateTimeFormat`, matching the existing
+  catalog-freshness policy.
+- Kept the optional instant injectable so timezone boundaries are deterministic
+  in tests while the application continues calling the helper with no argument.
+- Added three contracts around the exact UTC+8 midnight boundary and across the
+  Singapore market day; engine coverage increased from 96 to 99 assertions.
+- Documented the market-date behavior and bumped the deployed version to
+  `2026.08.11.5`.
+
+### Verification and scores
+
+- Test-first evidence: the pre-fix helper failed the boundary contract because
+  it ignored the injected instant and read local date fields from a new device-
+  timezone `Date`.
+- `node tools/test-engine.mjs`: 99 passed, 0 failed.
+- The same 99 assertions also pass under `TZ=UTC`, `TZ=America/Los_Angeles`, and
+  `TZ=Pacific/Kiritimati`, proving host timezone independence across UTC−7 to
+  UTC+14.
+- The full freshness, site, app, JSON, recursive syntax, diff, hosted CI, Pages,
+  and live-version results are recorded in the Cycle 136 completion summary.
+- Correctness/reliability: 7/10 → 10/10 (offer expiry follows the market day).
+- Verifiability: 6/10 → 10/10 (both sides of UTC+8 midnight and three hostile
+  host timezones are exercised directly).
+- Maintainability: 8/10 → 9/10 (runtime and CI now use the same named market
+  timezone convention).
+- Performance: 10/10 → 10/10 (one formatter call during initial rendering).
+- Security/robustness: 8/10 → 9/10 (device settings cannot shift promo state).
+- User experience: 7/10 → 10/10 (traveling users see Singapore offer dates).
+
+### Lessons and process improvements
+
+- A market-specific financial catalog needs an explicit market clock; local
+  date getters silently make user location part of the recommendation model.
+- Injecting the instant into date helpers makes midnight boundaries testable
+  without global fake timers.
+- Run date contracts under multiple hostile `TZ` values even when the unit
+  cases pass, because that proves independence from the surrounding process.
+
+### Next opportunity
+
+Rotate to AlpArcade and audit runtime persistence plus browser failure isolation
+for the next small, reproducible correctness or verification gap.
+
+## Previous cycle: model UOB One as fixed quarterly awards
 
 ### Why this was selected
 
