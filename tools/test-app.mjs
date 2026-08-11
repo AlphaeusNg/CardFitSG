@@ -11,6 +11,7 @@ const appSource = readFileSync(resolve(root, "js/app.js"), "utf8");
 
 function makeElement(initial = {}) {
   const classes = new Set();
+  const listeners = new Map();
   return {
     hidden: false,
     textContent: "",
@@ -18,7 +19,18 @@ function makeElement(initial = {}) {
     value: "",
     checked: false,
     offsetHeight: 64,
-    addEventListener() {},
+    addEventListener(type, listener) {
+      const registered = listeners.get(type) || [];
+      registered.push(listener);
+      listeners.set(type, registered);
+    },
+    dispatch(type, event = {}) {
+      const dispatched = {
+        preventDefault() {},
+        ...event,
+      };
+      for (const listener of listeners.get(type) || []) listener(dispatched);
+    },
     matches() {
       return false;
     },
@@ -99,6 +111,7 @@ function makeDocument() {
 async function boot(response) {
   const { document, elements } = makeDocument();
   const errors = [];
+  const scenarios = [];
   const sandbox = {
     window: {
       scrollY: 0,
@@ -124,9 +137,14 @@ async function boot(response) {
   vm.createContext(sandbox);
   vm.runInContext(engineSource, sandbox, { filename: "js/engine.js" });
   sandbox.CardFitEngine = sandbox.window.CardFitEngine;
+  const recommend = sandbox.CardFitEngine.recommend;
+  sandbox.CardFitEngine.recommend = (database, scenario) => {
+    scenarios.push({ ...scenario });
+    return recommend(database, scenario);
+  };
   vm.runInContext(appSource, sandbox, { filename: "js/app.js" });
   await new Promise((resolvePromise) => setImmediate(resolvePromise));
-  return { elements, errors, sandbox };
+  return { elements, errors, sandbox, scenarios };
 }
 
 {
@@ -150,6 +168,22 @@ async function boot(response) {
   assert.match(result.elements.plan.innerHTML, /plan-steps/, "action plan renders");
   assert.equal(result.elements["site-version"].textContent, "test-version", "version renders");
   assert.equal(typeof result.sandbox.window.CardFitApp.run, "function", "app API is exposed");
+
+  const startupRuns = result.scenarios.length;
+  result.elements.optimizer.checked = true;
+  result.elements.optimizer.dispatch("change");
+  assert.equal(result.elements.fussFree.checked, false, "optimizer mode disables fuss-free mode");
+  assert.equal(result.scenarios.length, startupRuns + 1, "optimizer change renders exactly once");
+  assert.equal(result.scenarios.at(-1).preferFussFree, false, "optimizer render uses corrected fuss-free state");
+  assert.equal(result.scenarios.at(-1).optimizerMode, true, "optimizer render enables optimizer scoring");
+
+  const optimizerRuns = result.scenarios.length;
+  result.elements.fussFree.checked = true;
+  result.elements.fussFree.dispatch("change");
+  assert.equal(result.elements.optimizer.checked, false, "fuss-free mode disables optimizer mode");
+  assert.equal(result.scenarios.length, optimizerRuns + 1, "fuss-free change renders exactly once");
+  assert.equal(result.scenarios.at(-1).preferFussFree, true, "fuss-free render enables simple scoring");
+  assert.equal(result.scenarios.at(-1).optimizerMode, false, "fuss-free render uses corrected optimizer state");
 
   result.elements.oneOff.value = "0";
   result.elements.monthly.value = "1000";
@@ -184,4 +218,4 @@ async function boot(response) {
   assert(result.errors.some((error) => /HTTP 503/.test(error)), "HTTP status is logged for diagnosis");
 }
 
-console.log("test-app.mjs: 17 startup and render assertions passed");
+console.log("test-app.mjs: 25 startup, event, and render assertions passed");

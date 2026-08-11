@@ -83,13 +83,9 @@
       e.preventDefault();
       run();
     });
-    $$("#form input, #form select").forEach((el) => {
-      el.addEventListener("change", run);
-    });
-    $("#oneOff").addEventListener("input", debounce(run, 200));
-    $("#monthly").addEventListener("input", debounce(run, 200));
 
-    // Fuss-free vs optimizer are opposing biases — keep UI honest
+    // Fuss-free vs optimizer are opposing biases. Register these before the
+    // generic change handler so ranking reads the corrected checkbox state.
     const fuss = $("#fussFree");
     const opt = $("#optimizer");
     fuss.addEventListener("change", () => {
@@ -98,6 +94,12 @@
     opt.addEventListener("change", () => {
       if (opt.checked && fuss.checked) fuss.checked = false;
     });
+
+    $$("#form input, #form select").forEach((el) => {
+      el.addEventListener("change", run);
+    });
+    $("#oneOff").addEventListener("input", debounce(run, 200));
+    $("#monthly").addEventListener("input", debounce(run, 200));
   }
 
   function scenarioFromForm() {
