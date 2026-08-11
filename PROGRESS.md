@@ -1,12 +1,12 @@
 # CardFitSG continuous improvement log
 
-Last updated: 2026-08-11 (Cycle 117 across the projects workspace; CardFitSG Cycle 40)
+Last updated: 2026-08-11 (Cycle 127 across the projects workspace; CardFitSG Cycle 41)
 
 ## Current state
 
 - Branch: `main`; continuous-improvement commits are published to `origin/main` after verification.
 - Runtime: zero-build static HTML/CSS/JavaScript.
-- Verification: `node tools/test-engine.mjs` (87 assertions), `node
+- Verification: `node tools/test-engine.mjs` (96 assertions), `node
   tools/test-catalog-freshness.mjs` (17 assertions), the live catalog-deadline
   check, `node tools/test-site.mjs` (14 references/fragments), `node
   tools/test-app.mjs` (25 assertions), recursive JavaScript syntax checks, JSON
@@ -14,13 +14,78 @@ Last updated: 2026-08-11 (Cycle 117 across the projects workspace; CardFitSG Cyc
 - Catalog snapshot: all six cards were checked against official issuer pages on 2026-08-09; `data/cards.json` declares the same `asOf` date.
 - UOB One's optimizer condition was reverified against UOB's product page, full
   terms, and FAQ on 2026-08-10; the official product page reconfirmed its
-  quarterly award structure on 2026-08-11.
+  fixed S$60/S$100/S$200 quarterly award structure on 2026-08-11.
 - AMEX True Cashback's official page reconfirmed on 2026-08-11 that 3% applies
   to up to S$5,000 of eligible spend in the first six months for new members,
   followed by 1.5% on subsequent eligible purchases.
 - Catalog review policy: audit by 2026-08-24, seven days before the earliest dated offers end on 2026-08-31; daily CI enforces the boundary.
 
-## Latest cycle: bound intro cashback by its acquisition window
+## Latest cycle: model UOB One as fixed quarterly awards
+
+### Why this was selected
+
+The scheduled full catalog audit remains 13 days early. Engine review exposed a
+current financial correctness bug instead: UOB One's S$60/S$100/S$200 fixed
+quarterly awards were represented only as 3.33% rate proxies. The engine applied
+that rate to every dollar above a tier threshold, substantially overstating
+cashback between thresholds even though exact-threshold tests stayed green.
+
+### Changes
+
+- Added declarative `periodCashback` values of S$60, S$100, and S$200 to the
+  three UOB One tiers while retaining the issuer's “up to 3.33%” display proxy.
+- Fixed-tier scoring now multiplies the selected award by complete qualifying
+  periods rather than multiplying a percentage by actual monthly spend.
+- Validates fixed awards as non-negative numbers and requires a valid
+  `qualifyingPeriodMonths`; malformed direct calls fail closed to zero category
+  value with an explicit warning.
+- Added nine catalog, schema, between-threshold, upper-tier, direct-call, and
+  disclosure assertions; engine coverage increased from 87 to 96.
+- Clarified the fixed-award feature and bumped version to `2026.08.11.4`.
+
+### Verification and scores
+
+- Official issuer evidence: UOB's current product page and promotion terms both
+  state that S$600/S$1,000/S$2,000 monthly tiers earn fixed S$60/S$100/S$200
+  cashback per qualifying quarter after three statement months with ten
+  purchases each month.
+- Test-first evidence: eight initial assertions failed on missing catalog data,
+  absent validation, all four between/above-threshold calculations, unsafe
+  direct-call fallback, and missing disclosure. Self-review added a ninth red
+  contract for fixed awards without a qualifying period.
+- At S$800/month, modeled annual UOB One cashback fell from S$320 to S$240; at
+  S$1,200 it fell from S$480 to S$400; at S$1,999 it fell from about S$800 to
+  S$400. S$2,500 remains correctly capped at S$800 across four quarters.
+- `node tools/test-engine.mjs`: 96 passed, 0 failed.
+- All 17 freshness contracts passed; the live deadline check still reports 13
+  days until review. Fourteen site references/fragments and 25 app startup,
+  event, and render assertions passed.
+- Catalog JSON parsing, recursive syntax, and diff checks passed; hosted CI,
+  Pages, and live-version evidence are recorded in the Cycle 127 completion
+  summary.
+- Correctness/reliability: 4/10 → 10/10 (cashback is now constant within each
+  award band instead of rising beyond the published fixed award).
+- Verifiability: 6/10 → 10/10 (thresholds, between-threshold points, the top
+  band, schema dependencies, and bypassed validation are directly covered).
+- Maintainability: 7/10 → 9/10 (fixed periodic economics are declarative and
+  reusable rather than encoded by card identity).
+- Performance: 10/10 → 10/10 (constant-time fixed-period arithmetic replaces
+  constant-time percentage arithmetic).
+- Security/robustness: 7/10 → 9/10 (malformed fixed-award metadata cannot
+  silently reactivate the overstating percentage proxy).
+- User experience: 5/10 → 10/10 (optimizer rankings no longer promise
+  impossible base cashback for ordinary between-tier spend).
+
+### Lessons and process improvements
+
+- Exact-threshold tests can validate a percentage proxy accidentally; every
+  tiered fixed award needs at least one between-threshold contract.
+- “Up to N%” marketing language is not always the calculation primitive. Model
+  the actual award mechanism and retain the percentage only as disclosure.
+- When new metadata changes arithmetic, validate both its value and the fields
+  needed to interpret its time unit before accepting the catalog at startup.
+
+## Previous cycle: bound intro cashback by its acquisition window
 
 ### Why this was selected
 
@@ -188,6 +253,8 @@ Fuss-free and optimizer checkboxes are intentionally mutually exclusive, but the
 
 ## Previous cycles
 
+- Cycle 41: modeled UOB One's fixed quarterly awards across threshold bands and
+  rejected incomplete fixed-period metadata.
 - Cycle 40: bounded AMEX welcome cashback by its six-month/new-member window.
 - Cycle 39: limited UOB One optimizer value to complete declarative qualifying
   quarters across arbitrary engine horizons.
@@ -209,6 +276,7 @@ Fuss-free and optimizer checkboxes are intentionally mutually exclusive, but the
 | Priority | Opportunity | Category | Impact | Effort / risk | Evidence / dependency |
 |---|---|---|---|---|---|
 | 1 | Execute the official-source catalog audit by 2026-08-24 | Process / data | High | Small / low | Daily CI now fails on the deadline; OCBC and SC offers end 2026-08-31 |
+| — | Model fixed quarterly awards between UOB One thresholds | Correctness / safety | High | Small-medium / low | Nine contracts cover fixed bands, schema dependencies, and direct-call fallback | Completed in Cycle 41 |
 | — | Apply intro rates only inside their acquisition window | Correctness / safety | Medium-high | Small-medium / low | Eight contracts cover time, cap, tenure, disclosure, and direct-call fallback | Completed in Cycle 40 |
 | — | Model qualifying-quarter completeness for arbitrary horizons | Correctness / safety | Low-medium | Medium / medium | Declarative three-month periods now exclude incomplete quarters and preserve standard horizons | Completed in Cycle 39 |
 | — | Align opposing optimizer/fuss-free toggle events | Correctness / UI tests | Medium | Small / low | Ordered event tests prove corrected controls reach the single ranking render | Completed in Cycle 38 |

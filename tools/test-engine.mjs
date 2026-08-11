@@ -54,6 +54,10 @@ console.log("CardFitSG engine tests\n");
     byId["uob-one"].qualifyingPeriodMonths === 3,
     "UOB One requires a complete three-month qualifying quarter"
   );
+  assert(
+    byId["uob-one"].tieredRates.map((tier) => tier.periodCashback).join(",") === "60,100,200",
+    "UOB One tiers declare their fixed quarterly cashback"
+  );
   assert(byId["ocbc-365"].flatRate === 0.0025, "OCBC 365 below-threshold rate is 0.25%");
   assert(byId["ocbc-365"].feeWaiverYears === 2, "OCBC 365 has a two-year fee waiver");
   assert(byId["ocbc-365"].signup.cashReward === 180, "OCBC 365 active cash reward is represented");
@@ -178,6 +182,24 @@ assert(db.cards.length >= 5, "has card catalog");
       !qualifyingPeriodResult.valid &&
         qualifyingPeriodResult.errors.some((error) => /qualifyingPeriodMonths/.test(error)),
       "qualifying periods must be positive whole months"
+    );
+
+    const badPeriodCashback = JSON.parse(JSON.stringify(db));
+    badPeriodCashback.cards.find((card) => card.id === "uob-one").tieredRates[1].periodCashback = -1;
+    const periodCashbackResult = E.validateCatalog(badPeriodCashback);
+    assert(
+      !periodCashbackResult.valid &&
+        periodCashbackResult.errors.some((error) => /tieredRates\[1\]\.periodCashback/.test(error)),
+      "fixed period cashback must be non-negative"
+    );
+
+    const missingFixedPeriod = JSON.parse(JSON.stringify(db));
+    delete missingFixedPeriod.cards.find((card) => card.id === "uob-one").qualifyingPeriodMonths;
+    const missingFixedPeriodResult = E.validateCatalog(missingFixedPeriod);
+    assert(
+      !missingFixedPeriodResult.valid &&
+        missingFixedPeriodResult.errors.some((error) => /periodCashback.*qualifyingPeriodMonths/.test(error)),
+      "fixed period cashback requires a qualifying period"
     );
   }
 }
@@ -449,6 +471,27 @@ assert(db.cards.length >= 5, "has card catalog");
     "UOB One retains four complete S$100 quarters over the 12-month UI horizon"
   );
 
+  const betweenTierCases = [
+    [800, 240],
+    [1200, 400],
+    [1999, 400],
+    [2500, 800],
+  ];
+  for (const [monthly, expectedCashback] of betweenTierCases) {
+    const score = E.scoreCard(uobOne, {
+      oneOff: 0,
+      monthly,
+      months: 12,
+      optimizerMode: true,
+      existingCardIds: [uobOne.id],
+      asOf: "2026-08-11",
+    });
+    assert(
+      score.cashFromRate === expectedCashback,
+      `S$${monthly} monthly spend earns the selected fixed quarterly award`
+    );
+  }
+
   const twoMonthPartial = E.scoreCard(uobOne, {
     oneOff: 0,
     monthly: 1000,
@@ -494,6 +537,31 @@ assert(db.cards.length >= 5, "has card catalog");
   assert(
     Number.isFinite(invalidPeriodDirectCall.cashFromRate),
     "an invalid direct-call qualifying period cannot poison reward math"
+  );
+
+  const invalidFixedCashbackDirectCall = E.scoreCard(
+    {
+      ...uobOne,
+      tieredRates: uobOne.tieredRates.map((tier, index) =>
+        index === 1 ? { ...tier, periodCashback: -1 } : tier
+      ),
+    },
+    {
+      oneOff: 0,
+      monthly: 1200,
+      months: 12,
+      optimizerMode: true,
+      existingCardIds: [uobOne.id],
+      asOf: "2026-08-11",
+    }
+  );
+  assert(
+    invalidFixedCashbackDirectCall.cashFromRate === 0,
+    "invalid direct-call fixed cashback fails closed instead of using a percentage proxy"
+  );
+  assert(
+    invalidFixedCashbackDirectCall.warnings.some((warning) => /fixed tier cashback.*invalid/i.test(warning)),
+    "invalid direct-call fixed cashback is disclosed"
   );
 
   const ocbc365 = db.cards.find((card) => card.id === "ocbc-365");

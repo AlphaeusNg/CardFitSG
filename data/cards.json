@@ -135,9 +135,9 @@
       "flatRate": 0,
       "qualifyingPeriodMonths": 3,
       "tieredRates": [
-        { "minSpend": 600, "rate": 0.0333333333, "categories": ["eligible"], "note": "S$60 quarterly cashback requires at least S$600 eligible spend and 10 eligible purchases in each statement month for all three months of the qualifying quarter." },
-        { "minSpend": 1000, "rate": 0.0333333333, "categories": ["eligible"], "note": "S$100 quarterly cashback requires at least S$1,000 eligible spend and 10 eligible purchases in each statement month for all three months of the qualifying quarter." },
-        { "minSpend": 2000, "rate": 0.0333333333, "categories": ["eligible"], "note": "S$200 quarterly cashback requires at least S$2,000 eligible spend and 10 eligible purchases in each statement month for all three months of the qualifying quarter." }
+        { "minSpend": 600, "rate": 0.0333333333, "periodCashback": 60, "categories": ["eligible"], "note": "S$60 quarterly cashback requires at least S$600 eligible spend and 10 eligible purchases in each statement month for all three months of the qualifying quarter." },
+        { "minSpend": 1000, "rate": 0.0333333333, "periodCashback": 100, "categories": ["eligible"], "note": "S$100 quarterly cashback requires at least S$1,000 eligible spend and 10 eligible purchases in each statement month for all three months of the qualifying quarter." },
+        { "minSpend": 2000, "rate": 0.0333333333, "periodCashback": 200, "categories": ["eligible"], "note": "S$200 quarterly cashback requires at least S$2,000 eligible spend and 10 eligible purchases in each statement month for all three months of the qualifying quarter." }
       ],
       "annualFee": 196.2,
       "firstYearFeeWaived": true,

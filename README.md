@@ -22,7 +22,7 @@ CardFitSG encodes that decision logic client-side with a dated card catalog (`da
 - Existing cards & issuer soft-penalties
 - Fuss-free preference vs optimizer mode
 - New-member intro rates bounded by their declared month/spend caps
-- Selected-tier spend, transaction-count, and complete-quarter reward modeling
+- Selected-tier fixed awards, spend/transaction conditions, and complete-quarter reward modeling
 - Amex acceptance toggle
 - Ranked estimates + concrete next-step plan
 - Full disclaimer: rates change; not financial advice

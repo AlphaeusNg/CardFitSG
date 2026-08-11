@@ -169,7 +169,24 @@
             requireNumber(tier.minSpend, `${tierPath}.minSpend`);
             requireRate(tier.rate, `${tierPath}.rate`);
             requireString(tier.note, `${tierPath}.note`);
+            if (Object.prototype.hasOwnProperty.call(tier, "periodCashback")) {
+              requireNumber(tier.periodCashback, `${tierPath}.periodCashback`);
+            }
           });
+          const hasFixedPeriodCashback = card.tieredRates.some(
+            (tier) =>
+              isRecord(tier) &&
+              Object.prototype.hasOwnProperty.call(tier, "periodCashback")
+          );
+          const hasValidQualifyingPeriod =
+            Number.isInteger(card.qualifyingPeriodMonths) &&
+            card.qualifyingPeriodMonths >= 1 &&
+            card.qualifyingPeriodMonths <= 12;
+          if (hasFixedPeriodCashback && !hasValidQualifyingPeriod) {
+            errors.push(
+              `${path}.tieredRates periodCashback requires a valid ${path}.qualifyingPeriodMonths`
+            );
+          }
         }
       }
 
@@ -267,19 +284,47 @@
         const top = card.categoryRates
           ? Math.max(...Object.values(card.categoryRates))
           : selectedTier?.rate ?? card.flatRate ?? 0.003;
-        // Apply the eligible spend-tier cap, or the card-wide monthly cap.
-        let monthlyEarn = monthly * top;
-        const monthlyCap = earnCapFor(card, monthly);
-        if (monthlyCap != null) monthlyEarn = Math.min(monthlyEarn, monthlyCap);
-        const qualifyingPeriodMonths =
-          Number.isInteger(card.qualifyingPeriodMonths) && card.qualifyingPeriodMonths > 0
+        const validQualifyingPeriod =
+          Number.isInteger(card.qualifyingPeriodMonths) &&
+          card.qualifyingPeriodMonths >= 1 &&
+          card.qualifyingPeriodMonths <= 12;
+        const qualifyingPeriodMonths = validQualifyingPeriod
           ? card.qualifyingPeriodMonths
           : 1;
         const qualifyingMonths =
           Math.floor(months / qualifyingPeriodMonths) * qualifyingPeriodMonths;
-        // one-off at base rate only (tickets rarely in dining)
-        cashFromRate = monthlyEarn * qualifyingMonths + oneOff * (card.flatRate ?? 0.003);
-        notes.push("Optimizer mode: optimistic category rates on monthly spend only; one-off at base rate.");
+        const completePeriods = qualifyingMonths / qualifyingPeriodMonths;
+        const declaresFixedPeriodCashback =
+          selectedTier &&
+          Object.prototype.hasOwnProperty.call(selectedTier, "periodCashback");
+        const validFixedPeriodCashback =
+          declaresFixedPeriodCashback &&
+          Number.isFinite(selectedTier.periodCashback) &&
+          selectedTier.periodCashback >= 0 &&
+          validQualifyingPeriod;
+        const invalidFixedPeriodCashback =
+          declaresFixedPeriodCashback && !validFixedPeriodCashback;
+        // One-off spend remains at the base rate because category qualification
+        // is modeled only from recurring monthly spend.
+        const oneOffCashback = oneOff * (card.flatRate ?? 0.003);
+        if (validFixedPeriodCashback) {
+          cashFromRate = selectedTier.periodCashback * completePeriods + oneOffCashback;
+          notes.push(
+            "Optimizer mode: fixed tier cashback on complete qualifying periods; one-off at base rate."
+          );
+        } else if (invalidFixedPeriodCashback) {
+          cashFromRate = oneOffCashback;
+          notes.push("Optimizer mode: invalid fixed tier metadata; one-off at base rate only.");
+        } else {
+          // Apply the eligible spend-tier cap, or the card-wide monthly cap.
+          let monthlyEarn = monthly * top;
+          const monthlyCap = earnCapFor(card, monthly);
+          if (monthlyCap != null) monthlyEarn = Math.min(monthlyEarn, monthlyCap);
+          cashFromRate = monthlyEarn * qualifyingMonths + oneOffCashback;
+          notes.push(
+            "Optimizer mode: optimistic category rates on monthly spend only; one-off at base rate."
+          );
+        }
         if (card.minMonthlySpend && monthly < card.minMonthlySpend) {
           warnings.push(`Needs ~S$${card.minMonthlySpend}/mo minimum spend — you entered S$${monthly}.`);
           cashFromRate = totalSpend * (card.flatRate ?? 0.003);
@@ -290,7 +335,11 @@
               `${qualifyingPeriodMonths}-month qualifying periods; incomplete months earn no modeled category cashback.`
             );
           }
-          if (selectedTier?.note) warnings.push(selectedTier.note);
+          if (invalidFixedPeriodCashback) {
+            warnings.push("Fixed tier cashback metadata is invalid — no category cashback modeled.");
+          } else if (selectedTier?.note) {
+            warnings.push(selectedTier.note);
+          }
         }
       } else {
         cashFromRate = totalSpend * (card.flatRate ?? 0.003);
