@@ -69,6 +69,10 @@ non-cash gifts.
   `Pacific/Kiritimati`; 17 freshness contracts, the live deadline check, 14
   site references/fragments, catalog JSON parsing, recursive syntax, and diff
   checks pass.
+- Hosted CI for `2ed0474` passed every engine, freshness, deadline, site, app,
+  and syntax step in 8s; GitHub Pages deployed successfully.
+- The live site responds HTTP 200 and serves `2026.08.11.6` plus the new known-
+  issuer eligibility and recent-history disclosure text.
 - Correctness/reliability: 4/10 → 10/10 (known issuer ineligibility removes impossible signup value).
 - Verifiability: 6/10 → 10/10 (three issuers, cash/gift, schema, bypass, disclosure, and app composition are covered).
 - Maintainability: 7/10 → 9/10 (one declarative lookback and generic rule replace card-specific assumptions).
