@@ -106,6 +106,13 @@
       });
       requireNumber(card.minMonthlySpend, `${path}.minMonthlySpend`);
       requireNumber(card.earnCap, `${path}.earnCap`, { nullable: true });
+      if (card.qualifyingPeriodMonths != null) {
+        requireNumber(card.qualifyingPeriodMonths, `${path}.qualifyingPeriodMonths`, {
+          min: 1,
+          max: 12,
+          integer: true,
+        });
+      }
       requireNumber(card.fussFreeScore, `${path}.fussFreeScore`, { max: 100 });
       requireNumber(card.acceptanceScore, `${path}.acceptanceScore`, { max: 100 });
       if (typeof card.firstYearFeeWaived !== "boolean") {
@@ -246,14 +253,26 @@
         let monthlyEarn = monthly * top;
         const monthlyCap = earnCapFor(card, monthly);
         if (monthlyCap != null) monthlyEarn = Math.min(monthlyEarn, monthlyCap);
+        const qualifyingPeriodMonths =
+          Number.isInteger(card.qualifyingPeriodMonths) && card.qualifyingPeriodMonths > 0
+          ? card.qualifyingPeriodMonths
+          : 1;
+        const qualifyingMonths =
+          Math.floor(months / qualifyingPeriodMonths) * qualifyingPeriodMonths;
         // one-off at base rate only (tickets rarely in dining)
-        cashFromRate = monthlyEarn * months + oneOff * (card.flatRate ?? 0.003);
+        cashFromRate = monthlyEarn * qualifyingMonths + oneOff * (card.flatRate ?? 0.003);
         notes.push("Optimizer mode: optimistic category rates on monthly spend only; one-off at base rate.");
         if (card.minMonthlySpend && monthly < card.minMonthlySpend) {
           warnings.push(`Needs ~S$${card.minMonthlySpend}/mo minimum spend — you entered S$${monthly}.`);
           cashFromRate = totalSpend * (card.flatRate ?? 0.003);
-        } else if (selectedTier?.note) {
-          warnings.push(selectedTier.note);
+        } else {
+          if (qualifyingMonths < months) {
+            warnings.push(
+              `Only ${qualifyingMonths} of ${months} horizon months form complete ` +
+              `${qualifyingPeriodMonths}-month qualifying periods; incomplete months earn no modeled category cashback.`
+            );
+          }
+          if (selectedTier?.note) warnings.push(selectedTier.note);
         }
       } else {
         cashFromRate = totalSpend * (card.flatRate ?? 0.003);

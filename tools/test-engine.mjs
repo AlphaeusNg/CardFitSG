@@ -49,6 +49,10 @@ console.log("CardFitSG engine tests\n");
     byId["uob-one"].tieredRates.map((tier) => tier.minSpend).join(",") === "600,1000,2000",
     "UOB One current quarterly tiers are represented"
   );
+  assert(
+    byId["uob-one"].qualifyingPeriodMonths === 3,
+    "UOB One requires a complete three-month qualifying quarter"
+  );
   assert(byId["ocbc-365"].flatRate === 0.0025, "OCBC 365 below-threshold rate is 0.25%");
   assert(byId["ocbc-365"].feeWaiverYears === 2, "OCBC 365 has a two-year fee waiver");
   assert(byId["ocbc-365"].signup.cashReward === 180, "OCBC 365 active cash reward is represented");
@@ -164,6 +168,15 @@ assert(db.cards.length >= 5, "has card catalog");
       !tierConditionResult.valid &&
         tierConditionResult.errors.some((error) => /tieredRates\[0\]\.note/.test(error)),
       "tiered optimizer conditions are required"
+    );
+
+    const badQualifyingPeriod = JSON.parse(JSON.stringify(db));
+    badQualifyingPeriod.cards.find((card) => card.id === "uob-one").qualifyingPeriodMonths = 0;
+    const qualifyingPeriodResult = E.validateCatalog(badQualifyingPeriod);
+    assert(
+      !qualifyingPeriodResult.valid &&
+        qualifyingPeriodResult.errors.some((error) => /qualifyingPeriodMonths/.test(error)),
+      "qualifying periods must be positive whole months"
     );
   }
 }
@@ -372,6 +385,57 @@ assert(db.cards.length >= 5, "has card catalog");
         /all three months of the qualifying quarter/i.test(warning)
     ),
     "UOB One optimizer value discloses the selected tier's full quarterly conditions"
+  );
+  assert(
+    Math.abs(qualifyingTier.cashFromRate - 400) < 0.01,
+    "UOB One retains four complete S$100 quarters over the 12-month UI horizon"
+  );
+
+  const twoMonthPartial = E.scoreCard(uobOne, {
+    oneOff: 0,
+    monthly: 1000,
+    months: 2,
+    optimizerMode: true,
+    existingCardIds: [uobOne.id],
+    asOf: "2026-08-10",
+  });
+  assert(twoMonthPartial.cashFromRate === 0, "an incomplete first quarter earns no modeled cashback");
+  assert(
+    twoMonthPartial.warnings.some((warning) => /0 of 2.*complete 3-month/i.test(warning)),
+    "an incomplete first quarter is disclosed"
+  );
+
+  const fourMonthPartial = E.scoreCard(uobOne, {
+    oneOff: 0,
+    monthly: 1000,
+    months: 4,
+    optimizerMode: true,
+    existingCardIds: [uobOne.id],
+    asOf: "2026-08-10",
+  });
+  assert(
+    Math.abs(fourMonthPartial.cashFromRate - 100) < 0.01,
+    "a four-month horizon counts only its one complete qualifying quarter"
+  );
+  assert(
+    fourMonthPartial.warnings.some((warning) => /3 of 4.*complete 3-month/i.test(warning)),
+    "a trailing incomplete quarter is disclosed"
+  );
+
+  const invalidPeriodDirectCall = E.scoreCard(
+    { ...uobOne, qualifyingPeriodMonths: 0 },
+    {
+      oneOff: 0,
+      monthly: 1000,
+      months: 2,
+      optimizerMode: true,
+      existingCardIds: [uobOne.id],
+      asOf: "2026-08-10",
+    }
+  );
+  assert(
+    Number.isFinite(invalidPeriodDirectCall.cashFromRate),
+    "an invalid direct-call qualifying period cannot poison reward math"
   );
 
   const ocbc365 = db.cards.find((card) => card.id === "ocbc-365");
