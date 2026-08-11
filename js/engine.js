@@ -235,13 +235,31 @@
     if (card.style === "flat") {
       cashFromRate = totalSpend * (card.flatRate || 0);
     } else if (card.style === "intro_then_flat") {
-      const introSpend = Math.min(totalSpend, card.introCapSpend || 0);
-      const introCash = Math.min(introSpend * (card.introRate || 0), card.introCapCash || Infinity);
-      const rest = Math.max(0, totalSpend - introSpend);
-      cashFromRate = introCash + rest * (card.flatRate || 0);
-      notes.push(
-        `Intro ${((card.introRate || 0) * 100).toFixed(1)}% up to S$${card.introCapCash} on first S$${card.introCapSpend}.`
-      );
+      const validIntroMonths =
+        Number.isInteger(card.introMonths) &&
+        card.introMonths >= 1 &&
+        card.introMonths <= MAX_HORIZON_MONTHS;
+      if (alreadyHold) {
+        cashFromRate = totalSpend * (card.flatRate || 0);
+        notes.push("Existing card: new-member intro rate excluded from the estimate.");
+      } else if (!validIntroMonths) {
+        cashFromRate = totalSpend * (card.flatRate || 0);
+        warnings.push("Intro window metadata is invalid — modeled at the standard rate.");
+      } else {
+        const introWindowMonths = Math.min(months, card.introMonths);
+        const introWindowSpend = oneOff + monthly * introWindowMonths;
+        const introSpend = Math.min(introWindowSpend, card.introCapSpend || 0);
+        const introCash = Math.min(
+          introSpend * (card.introRate || 0),
+          card.introCapCash || Infinity
+        );
+        const rest = Math.max(0, totalSpend - introSpend);
+        cashFromRate = introCash + rest * (card.flatRate || 0);
+        notes.push(
+          `Intro ${((card.introRate || 0) * 100).toFixed(1)}% up to S$${card.introCapCash} ` +
+          `on first S$${card.introCapSpend} during the first ${card.introMonths} months.`
+        );
+      }
     } else if (card.style === "category" || card.style === "category_tiered") {
       // Conservative: assume only base rate unless user opts into optimizer mode
       if (scenario.optimizerMode) {

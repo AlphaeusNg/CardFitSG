@@ -21,6 +21,7 @@ CardFitSG encodes that decision logic client-side with a dated card catalog (`da
 - One-off + monthly spend horizon (6 / 12 / 24 months)
 - Existing cards & issuer soft-penalties
 - Fuss-free preference vs optimizer mode
+- New-member intro rates bounded by their declared month/spend caps
 - Selected-tier spend, transaction-count, and complete-quarter reward modeling
 - Amex acceptance toggle
 - Ranked estimates + concrete next-step plan

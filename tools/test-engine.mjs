@@ -43,6 +43,7 @@ console.log("CardFitSG engine tests\n");
   assert(byId["ocbc-infinity"].signup.activeThrough === "2026-08-31", "Infinity signup window is current");
   assert(byId["uob-absolute"].network === "Amex", "Absolute uses the official Amex network");
   assert(byId["uob-absolute"].signup.giftValueEst === 100, "Absolute non-cash signup value is current");
+  assert(byId["amex-true"].introMonths === 6, "True Cashback's welcome rate lasts six months");
   assert(byId["sc-simply"].signup.cashReward === 100, "Simply Cash active cash reward is represented");
   assert(byId["uob-one"].minMonthlySpend === 600, "UOB One current minimum tier starts at S$600");
   assert(
@@ -309,6 +310,63 @@ assert(db.cards.length >= 5, "has card catalog");
     asOf: "2026-07-19",
   });
   assert(Math.abs(s.cashFromRate - 170) < 0.01, "1.7% of 10k = 170");
+}
+
+// Intro rates apply only to spend inside their declared acquisition window
+{
+  const card = db.cards.find((c) => c.id === "amex-true");
+  const firstSixMonths = E.scoreCard(card, {
+    oneOff: 0,
+    monthly: 500,
+    months: 6,
+    existingCardIds: [],
+    asOf: "2026-08-11",
+  });
+  const fullYear = E.scoreCard(card, {
+    oneOff: 0,
+    monthly: 500,
+    months: 12,
+    existingCardIds: [],
+    asOf: "2026-08-11",
+  });
+  assert(firstSixMonths.cashFromRate === 90, "six months of S$500 spend earn the 3% intro rate");
+  assert(
+    fullYear.cashFromRate === 135,
+    "months seven to twelve earn the 1.5% standard rate instead of extending the intro offer"
+  );
+  assert(
+    fullYear.notes.some((note) => /first 6 months/i.test(note)),
+    "intro disclosure names the modeled six-month window"
+  );
+
+  const invalidWindow = E.scoreCard(
+    { ...card, introMonths: 0 },
+    {
+      oneOff: 0,
+      monthly: 500,
+      months: 12,
+      existingCardIds: [],
+      asOf: "2026-08-11",
+    }
+  );
+  assert(invalidWindow.cashFromRate === 90, "invalid direct-call intro windows fall back to the standard rate");
+  assert(
+    invalidWindow.warnings.some((warning) => /intro window.*invalid/i.test(warning)),
+    "invalid direct-call intro metadata is disclosed"
+  );
+
+  const existingCard = E.scoreCard(card, {
+    oneOff: 0,
+    monthly: 500,
+    months: 6,
+    existingCardIds: [card.id],
+    asOf: "2026-08-11",
+  });
+  assert(existingCard.cashFromRate === 45, "existing cards do not receive a new-member intro rate");
+  assert(
+    existingCard.notes.some((note) => /existing card.*intro rate excluded/i.test(note)),
+    "existing-card scoring explains why the welcome rate is excluded"
+  );
 }
 
 // Annual fees track each charged card year across arbitrary horizons

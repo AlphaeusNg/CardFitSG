@@ -1,12 +1,12 @@
 # CardFitSG continuous improvement log
 
-Last updated: 2026-08-11 (Cycle 107 across the projects workspace; CardFitSG Cycle 39)
+Last updated: 2026-08-11 (Cycle 117 across the projects workspace; CardFitSG Cycle 40)
 
 ## Current state
 
 - Branch: `main`; continuous-improvement commits are published to `origin/main` after verification.
 - Runtime: zero-build static HTML/CSS/JavaScript.
-- Verification: `node tools/test-engine.mjs` (79 assertions), `node
+- Verification: `node tools/test-engine.mjs` (87 assertions), `node
   tools/test-catalog-freshness.mjs` (17 assertions), the live catalog-deadline
   check, `node tools/test-site.mjs` (14 references/fragments), `node
   tools/test-app.mjs` (25 assertions), recursive JavaScript syntax checks, JSON
@@ -15,9 +15,74 @@ Last updated: 2026-08-11 (Cycle 107 across the projects workspace; CardFitSG Cyc
 - UOB One's optimizer condition was reverified against UOB's product page, full
   terms, and FAQ on 2026-08-10; the official product page reconfirmed its
   quarterly award structure on 2026-08-11.
+- AMEX True Cashback's official page reconfirmed on 2026-08-11 that 3% applies
+  to up to S$5,000 of eligible spend in the first six months for new members,
+  followed by 1.5% on subsequent eligible purchases.
 - Catalog review policy: audit by 2026-08-24, seven days before the earliest dated offers end on 2026-08-31; daily CI enforces the boundary.
 
-## Latest cycle: count only complete qualifying quarters
+## Latest cycle: bound intro cashback by its acquisition window
+
+### Why this was selected
+
+The scheduled full catalog audit remains 13 days early. Engine review exposed
+a current correctness bug instead: `introMonths` was catalog-validated but
+never used. AMEX True Cashback therefore applied 3% to the first S$5,000 even
+when low recurring spend reached that amount after the six-month welcome
+window, and it also awarded the new-member rate to an already-held card.
+
+### Changes
+
+- Limits intro-eligible spend to the one-off purchase plus recurring spend in
+  the lesser of the scenario horizon and declared intro months.
+- Applies the standard rate to all later or above-cap spend and names the month
+  window in result notes.
+- Excludes new-member intro rates when the card is already in the wallet.
+- Makes malformed direct-call intro windows fail safely to the standard rate
+  with an explicit warning instead of extending promotional value.
+- Added eight official-term, six-/twelve-month, disclosure, invalid-metadata,
+  and existing-card assertions; engine coverage increased from 79 to 87.
+- Documented the model and bumped version to `2026.08.11.3`.
+
+### Verification and scores
+
+- Official issuer evidence: AMEX's live True Cashback page states 3% on up to
+  S$5,000 of eligible purchases in the first six months for new card members,
+  then 1.5% on subsequent eligible purchases.
+- Test-first evidence: the initial contracts left the six-month case green but
+  failed four times on the 12-month amount, missing window disclosure, unsafe
+  direct-call value, and absent warning.
+- At S$500/month, twelve-month modeled cashback fell from S$165 to the correct
+  S$135 (S$90 intro plus S$45 standard); six months remain S$90.
+- An already-held card now models S$45 across six months instead of incorrectly
+  awarding S$90 of new-member value.
+- `node tools/test-engine.mjs`: 87 passed, 0 failed.
+- All 17 freshness contracts passed; the live deadline check still reports 13
+  days until review. Fourteen site references/fragments and 25 app startup,
+  event, and render assertions passed.
+- Catalog JSON parsing, recursive syntax, and diff checks passed; hosted CI,
+  Pages, and live-version evidence are recorded in the Cycle 117 completion
+  summary.
+- Correctness/reliability: 5/10 → 10/10 (both spend and membership eligibility
+  now obey the declared acquisition window).
+- Verifiability: 7/10 → 10/10 (window boundary, later spend, direct bypass, and
+  tenure all have exact contracts).
+- Maintainability: 7/10 → 9/10 (the existing catalog field finally owns the
+  engine rule rather than remaining dead metadata).
+- Performance: 10/10 → 10/10 (constant-time arithmetic only).
+- Security/robustness: 7/10 → 9/10 (malformed direct inputs remain finite and
+  fail toward lower promotional value).
+- User experience: 7/10 → 10/10 (rankings and notes no longer overstate a
+  time-limited or new-member-only offer).
+
+### Lessons and process improvements
+
+- A validated field is not a behavioral contract until a boundary test proves
+  the calculation consumes it.
+- Promotional spend needs both a monetary cap and a temporal cap; applying only
+  the first can overstate low-cadence users most severely.
+- “Already hold” must suppress acquisition economics, not only signup cash.
+
+## Previous cycle: count only complete qualifying quarters
 
 ### Why this was selected
 
@@ -123,6 +188,7 @@ Fuss-free and optimizer checkboxes are intentionally mutually exclusive, but the
 
 ## Previous cycles
 
+- Cycle 40: bounded AMEX welcome cashback by its six-month/new-member window.
 - Cycle 39: limited UOB One optimizer value to complete declarative qualifying
   quarters across arbitrary engine horizons.
 - Cycle 38: aligned opposing mode events with exactly one corrected ranking render.
@@ -143,9 +209,13 @@ Fuss-free and optimizer checkboxes are intentionally mutually exclusive, but the
 | Priority | Opportunity | Category | Impact | Effort / risk | Evidence / dependency |
 |---|---|---|---|---|---|
 | 1 | Execute the official-source catalog audit by 2026-08-24 | Process / data | High | Small / low | Daily CI now fails on the deadline; OCBC and SC offers end 2026-08-31 |
+| — | Apply intro rates only inside their acquisition window | Correctness / safety | Medium-high | Small-medium / low | Eight contracts cover time, cap, tenure, disclosure, and direct-call fallback | Completed in Cycle 40 |
 | — | Model qualifying-quarter completeness for arbitrary horizons | Correctness / safety | Low-medium | Medium / medium | Declarative three-month periods now exclude incomplete quarters and preserve standard horizons | Completed in Cycle 39 |
 | — | Align opposing optimizer/fuss-free toggle events | Correctness / UI tests | Medium | Small / low | Ordered event tests prove corrected controls reach the single ranking render | Completed in Cycle 38 |
 
 ## Next cycle
 
-Local next: execute the full official-source audit by 2026-08-24 and advance both `asOf` and `reviewBy`; avoid a low-information repeat before the deadline absent issuer changes. Workspace next: rotate to the next least-recently improved project after this focused correctness cycle.
+Local next: execute the full official-source audit by 2026-08-24 and advance
+both `asOf` and `reviewBy`; avoid a low-information repeat before the deadline
+absent issuer changes. Workspace next: rotate to AlpArcade after this focused
+correctness cycle.
