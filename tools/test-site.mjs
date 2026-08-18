@@ -57,6 +57,19 @@ assert.equal(manifest.display, "standalone", "manifest must use standalone displ
 assert.match(manifest.theme_color, /^#[0-9a-f]{6}$/i, "manifest theme_color must be a hex colour");
 
 const index = readFileSync(resolve(root, "index.html"), "utf8");
+assert.match(index, /id="asof-label"/, "as-of date label remains for the catalog stamp");
+assert.doesNotMatch(index, /Most SG card blogs/, "hero no longer carries the manifesto lede");
+assert.match(
+  index,
+  /<nav class="top-nav"[^>]*>\s*<a href="https:\/\/alphaeusng\.github\.io\/">Portfolio<\/a>\s*<\/nav>/,
+  "desktop top-nav keeps Portfolio only"
+);
+assert.match(index, /<a href="#method">Method<\/a>/, "Method remains reachable from the footer");
+assert.match(
+  index,
+  /<a href="#disclaimer-block">Disclaimer<\/a>/,
+  "Disclaimer remains reachable from the footer"
+);
 const runtimeScripts = ["js/version.js", "js/engine.js", "js/app.js"];
 let previousScriptIndex = -1;
 for (const script of runtimeScripts) {
