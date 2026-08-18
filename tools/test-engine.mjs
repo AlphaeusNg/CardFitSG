@@ -368,8 +368,9 @@ assert(db.cards.length >= 5, "has card catalog");
   });
   assert(otherwiseEligible.signupCash === 180, "eligible OCBC spend retains the live signup cash");
   assert(
-    otherwiseEligible.notes.some((note) => /no OCBC.*previous 12 months.*not collected/i.test(note)),
-    "eligible scoring discloses the uncollected recent-card history condition"
+    otherwiseEligible.notes.some((note) => /no OCBC.*previous 12 months/i.test(note)) &&
+      !otherwiseEligible.notes.some((note) => /not collected/i.test(note)),
+    "eligible scoring names the lookback without claiming history is uncollected"
   );
 
   const invalidLookback = E.scoreCard(
@@ -416,6 +417,35 @@ assert(db.cards.length >= 5, "has card catalog");
   assert(
     existingUob.warnings.some((warning) => /new-to-UOB.*6 months.*excluded/i.test(warning)),
     "same-issuer exclusion names the official UOB lookback"
+  );
+
+  const unlistedOcbc = E.scoreCard(ocbc365, {
+    oneOff: 600,
+    monthly: 0,
+    months: 12,
+    existingCardIds: [],
+    existingIssuers: ["OCBC"],
+    asOf: "2026-08-11",
+  });
+  assert(unlistedOcbc.signupCash === 0, "an unlisted or recent OCBC card excludes 365 signup cash");
+  assert(
+    unlistedOcbc.warnings.some((warning) => /current or recent OCBC card/i.test(warning)),
+    "unlisted or recent issuer history names a current or recent principal card"
+  );
+
+  const lookbackIssuers = E.issuersWithSignupLookback(db);
+  assert(
+    JSON.stringify(lookbackIssuers) ===
+      JSON.stringify([
+        { issuer: "OCBC", months: 12 },
+        { issuer: "Standard Chartered", months: 12 },
+        { issuer: "UOB", months: 6 },
+      ]),
+    "lookback helper lists unique official issuer windows"
+  );
+  assert(
+    E.issuersWithSignupLookback({ cards: [{ issuer: "OCBC" }] }).length === 0,
+    "lookback helper ignores cards without a valid new-to-issuer window"
   );
 }
 

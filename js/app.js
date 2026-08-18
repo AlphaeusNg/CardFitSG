@@ -58,6 +58,7 @@
       $("#rates-note").textContent = db.meta.ratesNote;
     }
     renderExistingOptions();
+    renderIssuerHistoryOptions();
     bind();
     run();
     if (typeof SITE_VERSION !== "undefined") {
@@ -73,6 +74,20 @@
       <label class="check">
         <input type="checkbox" name="existing" value="${escapeAttr(c.id)}" />
         <span>${escapeHtml(c.name)}</span>
+      </label>`
+      )
+      .join("");
+  }
+
+  function renderIssuerHistoryOptions() {
+    const box = $("#recent-issuers");
+    if (!box || typeof CardFitEngine.issuersWithSignupLookback !== "function") return;
+    box.innerHTML = CardFitEngine.issuersWithSignupLookback(db)
+      .map(
+        (entry) => `
+      <label class="check">
+        <input type="checkbox" name="recent-issuer" value="${escapeAttr(entry.issuer)}" />
+        <span>${escapeHtml(entry.issuer)} principal card now or in the last ${entry.months} months</span>
       </label>`
       )
       .join("");
@@ -104,8 +119,12 @@
 
   function scenarioFromForm() {
     const existing = $$('input[name="existing"]:checked').map((el) => el.value);
+    const recentIssuers = $$('input[name="recent-issuer"]:checked').map((el) => el.value);
     const existingIssuers = [
-      ...new Set(existing.map((id) => db.cards.find((c) => c.id === id)?.issuer).filter(Boolean)),
+      ...new Set([
+        ...existing.map((id) => db.cards.find((c) => c.id === id)?.issuer).filter(Boolean),
+        ...recentIssuers,
+      ]),
     ];
     const goal = $("#goal").value;
     const asOf =

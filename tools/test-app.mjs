@@ -49,7 +49,7 @@ function makeElement(initial = {}) {
   };
 }
 
-function makeDocument(existingCardIds = []) {
+function makeDocument(existingCardIds = [], recentIssuers = []) {
   const elements = Object.fromEntries(
     [
       "fatal",
@@ -57,6 +57,7 @@ function makeDocument(existingCardIds = []) {
       "disclaimer",
       "rates-note",
       "existing-cards",
+      "recent-issuers",
       "form",
       "oneOff",
       "monthly",
@@ -89,6 +90,7 @@ function makeDocument(existingCardIds = []) {
     elements.amexOk,
   ];
   const checkedExisting = existingCardIds.map((value) => ({ value }));
+  const checkedRecentIssuers = recentIssuers.map((value) => ({ value }));
 
   return {
     elements,
@@ -103,14 +105,15 @@ function makeDocument(existingCardIds = []) {
       querySelectorAll(selector) {
         if (selector === "#form input, #form select") return formControls;
         if (selector === 'input[name="existing"]:checked') return checkedExisting;
+        if (selector === 'input[name="recent-issuer"]:checked') return checkedRecentIssuers;
         return [];
       },
     },
   };
 }
 
-async function boot(response, { existingCardIds = [] } = {}) {
-  const { document, elements } = makeDocument(existingCardIds);
+async function boot(response, { existingCardIds = [], recentIssuers = [] } = {}) {
+  const { document, elements } = makeDocument(existingCardIds, recentIssuers);
   const errors = [];
   const scenarios = [];
   const recommendations = [];
@@ -175,6 +178,34 @@ async function boot(response, { existingCardIds = [] } = {}) {
 }
 
 {
+  const result = await boot(
+    {
+      ok: true,
+      status: 200,
+      async json() {
+        return JSON.parse(JSON.stringify(catalog));
+      },
+    },
+    { recentIssuers: ["UOB"] }
+  );
+  assert.equal(
+    result.scenarios[0].existingIssuers.join(","),
+    "UOB",
+    "unlisted or recent issuer history reaches the recommendation scenario"
+  );
+  assert.equal(
+    result.recommendations[0].ranked.find((score) => score.card.id === "uob-absolute").signupCash,
+    0,
+    "composed app ranking excludes UOB signup value from recent issuer history"
+  );
+  assert.match(
+    result.elements.ranked.innerHTML,
+    /current or recent UOB card/i,
+    "recent issuer exclusion is visible in the ranking"
+  );
+}
+
+{
   const result = await boot({
     ok: true,
     status: 200,
@@ -186,6 +217,11 @@ async function boot(response, { existingCardIds = [] } = {}) {
   assert.equal(result.errors.length, 0, "valid startup logs no errors");
   assert.equal(result.elements["asof-label"].textContent, catalog.meta.asOf, "audit date renders");
   assert.match(result.elements["existing-cards"].innerHTML, /ocbc-infinity/, "wallet options render");
+  assert.match(
+    result.elements["recent-issuers"].innerHTML,
+    /name="recent-issuer"[\s\S]*OCBC[\s\S]*Standard Chartered[\s\S]*UOB/,
+    "issuer-history options render official lookback banks"
+  );
   assert.match(result.elements.primary.innerHTML, /Top fit for your inputs/, "primary recommendation renders");
   assert.equal(
     (result.elements.ranked.innerHTML.match(/<article/g) || []).length,
@@ -245,4 +281,4 @@ async function boot(response, { existingCardIds = [] } = {}) {
   assert(result.errors.some((error) => /HTTP 503/.test(error)), "HTTP status is logged for diagnosis");
 }
 
-console.log("test-app.mjs: 27 startup, event, eligibility, and render assertions passed");
+console.log("test-app.mjs: 31 startup, event, eligibility, and render assertions passed");

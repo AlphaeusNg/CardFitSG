@@ -32,4 +32,5 @@ node --check js/engine.js && node --check js/app.js
 
 - Keep fuss-free bias as default; optimizer mode is opt-in
 - Always show disclaimer
+- Collect issuer-level current/recent principal-card history separately from the six catalog wallet checkboxes
 - Bump version on deploy

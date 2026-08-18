@@ -231,6 +231,7 @@
    *   - monthly: number (ongoing monthly card spend)
    *   - months: number (horizon, default 12)
    *   - existingCardIds: string[]
+   *   - existingIssuers: string[] current or recent principal-card issuers
    *   - preferFussFree: boolean
    *   - amexOk: boolean
    *   - asOf: YYYY-MM-DD
@@ -386,7 +387,7 @@
         warnings.push(
           `New-to-${card.issuer} signup requires no ${card.issuer} principal card now or ` +
           `in the previous ${su.newToIssuerMonths} months — signup value excluded because ` +
-          `you marked a ${card.issuer} card as held.`
+          `you marked a current or recent ${card.issuer} card.`
         );
       } else if (promoOk && hasSignupValue) {
         const need = su.minSpend || 0;
@@ -402,7 +403,7 @@
           if (validIssuerLookback) {
             notes.push(
               `Requires no ${card.issuer} principal card now or in the previous ` +
-              `${su.newToIssuerMonths} months; recent closed-card history is not collected.`
+              `${su.newToIssuerMonths} months.`
             );
           }
         } else {
@@ -584,6 +585,22 @@
     };
   }
 
+  function issuersWithSignupLookback(db) {
+    const byIssuer = new Map();
+    const cards = Array.isArray(db?.cards) ? db.cards : [];
+    for (const card of cards) {
+      const issuer = typeof card?.issuer === "string" ? card.issuer.trim() : "";
+      const months = card?.signup?.newToIssuerMonths;
+      if (!issuer) continue;
+      if (!Number.isInteger(months) || months < 1 || months > MAX_HORIZON_MONTHS) continue;
+      const existing = byIssuer.get(issuer);
+      if (!existing || months > existing.months) {
+        byIssuer.set(issuer, { issuer, months });
+      }
+    }
+    return [...byIssuer.values()].sort((left, right) => left.issuer.localeCompare(right.issuer));
+  }
+
   function todayYmd(now = new Date()) {
     const parts = new Intl.DateTimeFormat("en-CA", {
       timeZone: "Asia/Singapore",
@@ -609,6 +626,7 @@
     daysUntil,
     clampSpend,
     normalizeMonths,
+    issuersWithSignupLookback,
     todayYmd,
   };
 })(typeof window !== "undefined" ? window : globalThis);

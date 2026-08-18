@@ -87,6 +87,13 @@
         <p class="eyebrow" style="margin-top:0.5rem">Cards you already hold</p>
         <div class="checks" id="existing-cards"></div>
 
+        <p class="eyebrow">Current or recent principal cards</p>
+        <p class="muted tiny" style="margin:0 0 0.35rem">
+          Official welcome offers need no principal card now or in the last 6–12 months.
+          Check any issuer you hold or recently cancelled, including cards not listed above.
+        </p>
+        <div class="checks" id="recent-issuers"></div>
+
         <div class="toggles">
           <label class="check">
             <input type="checkbox" id="fussFree" checked />
@@ -128,8 +135,8 @@
         <li>Estimates cash from published flat / intro rates on your one-off + monthly spend.</li>
         <li>Adds signup cash only if the promo is active, spend clears the hurdle, and known issuer eligibility permits it.</li>
         <li>Boosts high fuss-free scores; penalises min-spend category cards unless optimizer mode is on.</li>
-        <li>Excludes declared new-to-issuer value when your selected wallet already contains that issuer; other overlaps retain a soft penalty.</li>
-        <li>Recent closed-card history is not collected, so confirm the disclosed 6/12-month issuer lookback before applying.</li>
+        <li>Excludes declared new-to-issuer value when your selected wallet or current/recent issuer history includes that bank; other overlaps retain a soft penalty.</li>
+        <li>Unlisted and cancelled principal cards can be marked by issuer so the 6/12-month lookback is decided in the tool.</li>
         <li>Does <em>not</em> model FX fees, 0% instalments, or insurance perks — keep those separate.</li>
       </ul>
       <p class="muted tiny">

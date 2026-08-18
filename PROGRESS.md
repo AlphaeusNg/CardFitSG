@@ -1,15 +1,15 @@
 # CardFitSG continuous improvement log
 
-Last updated: 2026-08-11 (Cycle 145 across the projects workspace; CardFitSG Cycle 43)
+Last updated: 2026-08-18 (Cycle 155 across the projects workspace; CardFitSG Cycle 44)
 
 ## Current state
 
 - Branch: `main`; continuous-improvement commits are published to `origin/main` after verification.
 - Runtime: zero-build static HTML/CSS/JavaScript.
-- Verification: `node tools/test-engine.mjs` (113 assertions), `node
+- Verification: `node tools/test-engine.mjs` (117 assertions), `node
   tools/test-catalog-freshness.mjs` (17 assertions), the live catalog-deadline
   check, `node tools/test-site.mjs` (14 references/fragments), `node
-  tools/test-app.mjs` (27 assertions), recursive JavaScript syntax checks, JSON
+  tools/test-app.mjs` (31 assertions), recursive JavaScript syntax checks, JSON
   catalog JSON parsing, and repository CI on Node 24 LTS.
 - Catalog snapshot: all six cards were checked against official issuer pages on 2026-08-09; `data/cards.json` declares the same `asOf` date.
 - UOB One's optimizer condition was reverified against UOB's product page, full
@@ -23,7 +23,67 @@ Last updated: 2026-08-11 (Cycle 145 across the projects workspace; CardFitSG Cyc
   12 months without the issuer's principal credit cards.
 - Catalog review policy: audit by 2026-08-24, seven days before the earliest dated offers end on 2026-08-31; daily CI enforces the boundary.
 
-## Latest cycle: exclude known same-issuer signup ineligibility
+## Latest cycle: collect issuer-level current/recent card history
+
+### Why this was selected
+
+Workspace rotation returned here after Seeking Biblical Truth. The scheduled
+full catalog audit remains 6 days early. Cycle 43 could exclude signup value
+only when one of the six catalog cards implied the issuer, so an unlisted or
+recently cancelled OCBC, UOB, or Standard Chartered principal card still kept
+impossible welcome value and the tool told users that history was uncollected.
+
+### Changes
+
+- Added `issuersWithSignupLookback()` to list unique official lookback windows
+  from catalog metadata.
+- Added current-or-recent principal-card checkboxes independent of the six
+  wallet cards, then merged those issuers into the existing eligibility set.
+- Treat catalog holdings and unlisted/recent issuer marks as the same
+  current-or-recent principal-card signal.
+- Drop the contradictory “history is not collected” note now that the form
+  asks the lookback question.
+- Documented the control and bumped the deployed version to `2026.08.18.1`.
+
+### Verification and scores
+
+- Test-first evidence: the engine already zeroed OCBC 365 when `existingIssuers`
+  contained OCBC, but the warning still said a catalog card was “held”, the
+  lookback helper did not exist, and an app scenario with only a UOB recent-
+  issuer mark produced an empty issuer list.
+- `node tools/test-engine.mjs`: 117 passed, 0 failed (up from 113).
+- `node tools/test-app.mjs`: 31 startup, event, eligibility, and render
+  assertions passed (up from 27), including rendered lookback banks and
+  composed recent-issuer → ranking exclusion.
+- All 117 engine assertions pass under `TZ=UTC`, `America/Los_Angeles`, and
+  `Pacific/Kiritimati`; 17 freshness contracts, the live deadline check
+  (6 days remaining), 14 site references/fragments, catalog JSON parsing,
+  recursive syntax, and `git diff --check` pass.
+- Correctness/reliability: 6/10 → 10/10 (unlisted and cancelled issuer history
+  can now suppress welcome value).
+- Verifiability: 7/10 → 10/10 (helper, empty-metadata, unlisted OCBC, and
+  composed UOB ranking contracts cover the new path).
+- Maintainability: 8/10 → 9/10 (one catalog-derived issuer list drives the form
+  and keeps lookback months out of hardcoded UI).
+- Performance: 10/10 → 10/10 (three extra checkboxes and a tiny issuer set).
+- Security/robustness: 9/10 → 9/10 (malformed lookbacks still fail closed).
+- User experience: 6/10 → 9/10 (users can resolve the 6/12-month rule without
+  leaving the tool).
+
+### Lessons and process improvements
+
+- A binary eligibility rule is only as complete as the inputs that can set it;
+  catalog wallet cards are a convenience, not the official lookback domain.
+- Once the form collects a signal, stop claiming that signal is uncollected.
+- Derive optional form options from validated catalog metadata so a later
+  issuer lookback does not require a second hardcoded bank list.
+
+### Next opportunity
+
+Execute the official-source catalog audit by 2026-08-24 and advance both
+`asOf` and `reviewBy`.
+
+## Previous cycle: exclude known same-issuer signup ineligibility
 
 ### Why this was selected
 
@@ -389,6 +449,10 @@ Fuss-free and optimizer checkboxes are intentionally mutually exclusive, but the
 
 ## Previous cycles
 
+- Cycle 44: collected issuer-level current/recent principal-card history so
+  unlisted and cancelled cards can exclude official welcome value.
+- Cycle 43: excluded known same-issuer signup cash and gifts using official
+  6/12-month lookbacks.
 - Cycle 41: modeled UOB One's fixed quarterly awards across threshold bands and
   rejected incomplete fixed-period metadata.
 - Cycle 40: bounded AMEX welcome cashback by its six-month/new-member window.
@@ -412,8 +476,8 @@ Fuss-free and optimizer checkboxes are intentionally mutually exclusive, but the
 | Priority | Opportunity | Category | Impact | Effort / risk | Evidence / dependency |
 |---|---|---|---|---|---|
 | 1 | Execute the official-source catalog audit by 2026-08-24 | Process / data | High | Small / low | Daily CI now fails on the deadline; OCBC and SC offers end 2026-08-31 |
-| 2 | Collect issuer-level current/recent card history | Correctness / UX | Medium-high | Medium / low | Current wallet inputs cover only six catalog cards; disclosure cannot determine unlisted or recently cancelled issuer cards |
-| — | Exclude known same-issuer signup ineligibility | Correctness / safety | High | Small-medium / low | 113 engine and 27 app assertions cover official 6/12-month rules, cash/gift suppression, schema, bypass, and composition | Completed in Cycle 43 |
+| — | Collect issuer-level current/recent card history | Correctness / UX | Medium-high | Small-medium / low | Unlisted and cancelled principal cards now set the same eligibility set as catalog holdings | Completed in Cycle 44 |
+| — | Exclude known same-issuer signup ineligibility | Correctness / safety | High | Small-medium / low | 117 engine and 31 app assertions cover official 6/12-month rules, cash/gift suppression, schema, bypass, and composition | Completed in Cycle 43 |
 | — | Model fixed quarterly awards between UOB One thresholds | Correctness / safety | High | Small-medium / low | Nine contracts cover fixed bands, schema dependencies, and direct-call fallback | Completed in Cycle 41 |
 | — | Apply intro rates only inside their acquisition window | Correctness / safety | Medium-high | Small-medium / low | Eight contracts cover time, cap, tenure, disclosure, and direct-call fallback | Completed in Cycle 40 |
 | — | Model qualifying-quarter completeness for arbitrary horizons | Correctness / safety | Low-medium | Medium / medium | Declarative three-month periods now exclude incomplete quarters and preserve standard horizons | Completed in Cycle 39 |
@@ -422,6 +486,5 @@ Fuss-free and optimizer checkboxes are intentionally mutually exclusive, but the
 ## Next cycle
 
 Local next: execute the full official-source audit by 2026-08-24 and advance
-both `asOf` and `reviewBy`; before then, collect issuer-level recent-card history
-so lookback eligibility can be decided for unlisted and cancelled cards.
-Workspace next: rotate to AlpArcade after this focused correctness cycle.
+both `asOf` and `reviewBy`. Workspace next: rotate to AlpArcade after this
+focused correctness cycle.

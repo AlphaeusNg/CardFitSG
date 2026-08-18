@@ -20,11 +20,11 @@ CardFitSG encodes that decision logic client-side with a dated card catalog (`da
 
 - One-off + monthly spend horizon (6 / 12 / 24 months)
 - Existing cards, issuer overlap, and official new-to-issuer signup lookbacks
+- Current or recent principal-card history by issuer for unlisted and cancelled cards
 - Fuss-free preference vs optimizer mode
 - New-member intro rates bounded by their declared month/spend caps
 - Signup cash and gifts excluded for known same-issuer holdings when official
-  new-to-issuer rules apply; recent closed-card history remains a disclosed
-  confirmation step
+  new-to-issuer rules apply, including issuer-level recent-card history
 - Singapore-market date boundaries for expiring offers, independent of device timezone
 - Selected-tier fixed awards, spend/transaction conditions, and complete-quarter reward modeling
 - Amex acceptance toggle
