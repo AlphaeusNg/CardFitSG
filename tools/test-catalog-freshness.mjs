@@ -15,11 +15,11 @@ function check(condition, message) {
   assertions += 1;
 }
 
-const beforeDeadline = evaluateCatalogFreshness(catalog, "2026-08-23");
+const beforeDeadline = evaluateCatalogFreshness(catalog, "2026-08-27");
 check(beforeDeadline.ok, "catalog remains current before its review deadline");
 check(beforeDeadline.earliestOfferEnd === "2026-08-31", "earliest dated offer is reported");
 
-const onDeadline = evaluateCatalogFreshness(catalog, "2026-08-24");
+const onDeadline = evaluateCatalogFreshness(catalog, "2026-08-28");
 check(!onDeadline.ok, "catalog audit becomes due on the review date");
 check(onDeadline.errors.some((error) => /review is due/i.test(error)), "due-date failure is actionable");
 
@@ -35,7 +35,7 @@ lateDeadline.meta.reviewBy = "2026-08-31";
 check(!evaluateCatalogFreshness(lateDeadline, "2026-08-10").ok, "review must precede offer expiry");
 
 const predatesSnapshot = structuredClone(catalog);
-predatesSnapshot.meta.reviewBy = "2026-08-08";
+predatesSnapshot.meta.reviewBy = "2026-08-17";
 check(!evaluateCatalogFreshness(predatesSnapshot, "2026-08-10").ok, "review cannot predate the snapshot");
 
 check(/^\s*schedule:/m.test(workflow), "CI includes a scheduled freshness check");

@@ -48,10 +48,10 @@ console.log("CardFitSG engine tests\n");
   );
 }
 
-// Official issuer audit snapshot (2026-08-09)
+// Official issuer audit snapshot (2026-08-18)
 {
   const byId = Object.fromEntries(db.cards.map((card) => [card.id, card]));
-  assert(db.meta.asOf === "2026-08-09", "catalog audit date is current");
+  assert(db.meta.asOf === "2026-08-18", "catalog audit date is current");
   assert(
     db.meta.sources.length === 6 && db.meta.sources.every((source) => /ocbc\.com|uob\.com\.sg|americanexpress\.com|sc\.com/.test(source)),
     "catalog cites one official issuer page per card"

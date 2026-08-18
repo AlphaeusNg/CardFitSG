@@ -1,6 +1,6 @@
 # CardFitSG continuous improvement log
 
-Last updated: 2026-08-18 (CardFitSG Cycle 45)
+Last updated: 2026-08-18 (CardFitSG Cycle 46)
 
 ## Current state
 
@@ -11,7 +11,7 @@ Last updated: 2026-08-18 (CardFitSG Cycle 45)
   check, `node tools/test-site.mjs` (15 references/fragments), `node
   tools/test-app.mjs` (47 assertions), recursive JavaScript syntax checks, JSON
   catalog JSON parsing, and repository CI on Node 24 LTS.
-- Catalog snapshot: all six cards were checked against official issuer pages on 2026-08-09; `data/cards.json` declares the same `asOf` date.
+- Catalog snapshot: all six cards were rechecked against official issuer pages on 2026-08-18; `data/cards.json` declares `asOf` 2026-08-18 and `reviewBy` 2026-08-28 (before 2026-08-31 offer ends).
 - UOB One's optimizer condition was reverified against UOB's product page, full
   terms, and FAQ on 2026-08-10; the official product page reconfirmed its
   fixed S$60/S$100/S$200 quarterly award structure on 2026-08-11.
@@ -23,7 +23,25 @@ Last updated: 2026-08-18 (CardFitSG Cycle 45)
   12 months without the issuer's principal credit cards.
 - Catalog review policy: audit by 2026-08-24, seven days before the earliest dated offers end on 2026-08-31; daily CI enforces the boundary.
 
-## Latest cycle: glanceable spend presets and ranking UX
+## Latest cycle: official catalog re-audit (2026-08-18)
+
+### Why this was selected
+
+The approved feature plan’s first cycle is the issuer audit due before
+2026-08-24. OCBC and SC welcome windows still end 2026-08-31.
+
+### Changes
+
+- Rechecked official product pages for all six cards. Base rates, UOB One
+  fixed quarterly awards, AMEX 6-month/S$5,000 intro, and 6/12-month
+  lookbacks are unchanged. OCBC S$180 and SC S$100+luggage still end
+  31 August 2026; UOB gifts still list 30 September 2026.
+- Advanced `asOf` to 2026-08-18 and `reviewBy` to 2026-08-28.
+- Top-fit card now shows remaining SGT days on dated signup value and a
+  Copy result line for WhatsApp.
+- Version `2026.08.18.4`.
+
+## Previous cycle: glanceable spend presets and ranking UX
 
 ### Why this was selected
 

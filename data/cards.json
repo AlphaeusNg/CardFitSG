@@ -2,9 +2,9 @@
   "meta": {
     "currency": "SGD",
     "market": "Singapore",
-    "asOf": "2026-08-09",
-    "reviewBy": "2026-08-24",
-    "ratesNote": "Rates, fees, card networks and public offers verified against official issuer pages on 2026-08-09. Issuer-level signup lookbacks were reverified against official promotion terms on 2026-08-11. Promo windows are date-checked at runtime — expired or known-ineligible signup value is not counted.",
+    "asOf": "2026-08-18",
+    "reviewBy": "2026-08-28",
+    "ratesNote": "Rates, fees, card networks and public offers verified against official issuer pages on 2026-08-18. Base earn rates, 6/12-month issuer lookbacks, UOB One fixed quarterly awards, and AMEX 6-month intro window are unchanged. Promo windows are date-checked at runtime — expired or known-ineligible signup value is not counted.",
     "disclaimer": "Rates, promos, and fees change. Always verify on the issuer's official page before applying. This tool is educational, not financial advice.",
     "sources": [
       "https://www.ocbc.com/personal-banking/cards/infinity-unlimited-cashback-card.page",

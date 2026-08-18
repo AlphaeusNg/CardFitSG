@@ -130,7 +130,44 @@
         applyPreset(btn);
       });
     });
+    document.addEventListener("click", (event) => {
+      const btn = event.target && event.target.closest && event.target.closest("#copy-result");
+      if (!btn) return;
+      copyTopFit(btn);
+    });
     markActivePreset();
+  }
+
+  function signupExpiryLine(card, asOfYmd) {
+    const end = card?.signup?.activeThrough;
+    if (!end || typeof CardFitEngine === "undefined" || !CardFitEngine.daysUntil) {
+      if (!end) return "";
+      const days = Math.round((Date.parse(end + "T00:00:00+08:00") - Date.parse(asOfYmd + "T00:00:00+08:00")) / 86400000);
+      if (!Number.isFinite(days) || days < 0) return "";
+      return `Signup ends ${end} SGT · ${days} day${days === 1 ? "" : "s"} left`;
+    }
+    const days = CardFitEngine.daysUntil(end, asOfYmd);
+    if (days == null || days < 0) return "";
+    return `Signup ends ${end} SGT · ${days} day${days === 1 ? "" : "s"} left`;
+  }
+
+  function copyTopFit(btn) {
+    if (!db) return;
+    const result = CardFitEngine.recommend(db, scenarioFromForm());
+    const p = result?.primary;
+    if (!p) return;
+    const line = `CardFitSG top fit: ${p.card.name} · S$${fmt(p.net)} est. net over ${result.scenario.months} months. Educational only, not financial advice. ${location.href.split("#")[0]}`;
+    const done = () => {
+      btn.textContent = "Copied";
+      setTimeout(() => { btn.textContent = "Copy result"; }, 1600);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(line).then(done).catch(() => {
+        btn.textContent = "Copy failed";
+      });
+      return;
+    }
+    btn.textContent = "Copy failed";
   }
 
   function applyPreset(btn) {
@@ -232,6 +269,7 @@
       // Still show ranking for curiosity
     } else {
       const c = p.card;
+      const expiry = signupExpiryLine(c, result.scenario.asOf);
       const banners = [];
       if (result.noNewCard) {
         banners.push(
@@ -249,6 +287,8 @@
         <div class="metric"><b>S$${fmt(p.signupCash)}</b><span>Signup cash (if any)</span></div>
         <div class="metric"><b>${c.fussFreeScore}</b><span>Fuss-free score / 100</span></div>
       </div>
+      ${expiry ? `<p class="muted tiny">${escapeHtml(expiry)}</p>` : ""}
+      <p><button type="button" class="btn" id="copy-result">Copy result</button></p>
       <ul class="reasons">
         ${p.rankReasons.map((r) => `<li>${escapeHtml(r)}</li>`).join("")}
         ${c.pros.slice(0, 3).map((r) => `<li>${escapeHtml(r)}</li>`).join("")}
