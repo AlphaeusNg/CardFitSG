@@ -82,6 +82,9 @@ function makeDocument(existingCardIds = [], recentIssuers = []) {
       "ranked",
       "site-version",
       "top-fit-dock",
+      "compare-a",
+      "compare-b",
+      "compare-out",
     ].map((id) => [id, makeElement()])
   );
   elements.fatal.hidden = true;
@@ -262,6 +265,10 @@ async function boot(response, { existingCardIds = [], recentIssuers = [] } = {})
     "issuer-history options render official lookback banks"
   );
   assert.match(result.elements.primary.innerHTML, /Top fit for your inputs/, "primary recommendation renders");
+  assert.match(result.elements.primary.innerHTML, /Official product page/, "top fit links to the official issuer page");
+  assert.match(result.elements["compare-a"].innerHTML, /ocbc-infinity/, "compare lists catalog cards");
+  assert.match(result.elements["compare-out"].innerHTML, /Official page/, "compare surfaces official product links");
+  assert.match(appSource, /cardfitsg-last-scenario-v1/, "app remembers the last scenario locally");
   assert.equal(
     (result.elements.ranked.innerHTML.match(/<article/g) || []).length,
     catalog.cards.length,

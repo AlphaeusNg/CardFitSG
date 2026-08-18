@@ -8,6 +8,8 @@
   const $$ = (sel, el = document) => [...el.querySelectorAll(sel)];
 
   let db = null;
+  let lastResult = null;
+  const SCENARIO_KEY = "cardfitsg-last-scenario-v1";
 
   function syncTopbarOffset() {
     const header = $(".topbar");
@@ -68,7 +70,9 @@
     }
     renderExistingOptions();
     renderIssuerHistoryOptions();
+    populateCompareSelects();
     bind();
+    restoreScenario();
     run();
     if (typeof SITE_VERSION !== "undefined") {
       $("#site-version").textContent = SITE_VERSION.id;
@@ -130,6 +134,8 @@
         applyPreset(btn);
       });
     });
+    $("#compare-a")?.addEventListener("change", renderCompare);
+    $("#compare-b")?.addEventListener("change", renderCompare);
     document.addEventListener("click", (event) => {
       const btn = event.target && event.target.closest && event.target.closest("#copy-result");
       if (!btn) return;
@@ -224,11 +230,97 @@
     };
   }
 
+  function officialUrl(card) {
+    if (!card || !db) return "";
+    if (typeof card.officialUrl === "string" && card.officialUrl) return card.officialUrl;
+    const idx = db.cards.findIndex((c) => c.id === card.id);
+    return (idx >= 0 && db.meta.sources && db.meta.sources[idx]) || "";
+  }
+
+  function persistScenario(scenario) {
+    try {
+      globalThis.localStorage?.setItem(SCENARIO_KEY, JSON.stringify({
+        oneOff: scenario.oneOff,
+        monthly: scenario.monthly,
+        months: scenario.months,
+        intent: scenario.intent,
+        preferFussFree: scenario.preferFussFree,
+        optimizerMode: scenario.optimizerMode,
+        amexOk: scenario.amexOk,
+      }));
+    } catch {
+      /* fail closed */
+    }
+  }
+
+  function restoreScenario() {
+    try {
+      const raw = globalThis.localStorage?.getItem(SCENARIO_KEY);
+      if (!raw) return;
+      const saved = JSON.parse(raw);
+      if (!saved || typeof saved !== "object") return;
+      if (Number.isFinite(saved.oneOff) && $("#oneOff")) $("#oneOff").value = saved.oneOff;
+      if (Number.isFinite(saved.monthly) && $("#monthly")) $("#monthly").value = saved.monthly;
+      if (Number.isFinite(saved.months) && $("#months")) $("#months").value = String(saved.months);
+      if ($("#goal")) {
+        if (saved.intent === "long_term") $("#goal").value = "long_term";
+        else if (saved.intent === "keep") $("#goal").value = "keep";
+        else if (saved.intent === "acquire") $("#goal").value = "acquire";
+      }
+      if (typeof saved.preferFussFree === "boolean" && $("#fussFree")) $("#fussFree").checked = saved.preferFussFree;
+      if (typeof saved.optimizerMode === "boolean" && $("#optimizer")) $("#optimizer").checked = saved.optimizerMode;
+      if (typeof saved.amexOk === "boolean" && $("#amexOk")) $("#amexOk").checked = saved.amexOk;
+      if ($("#fussFree")?.checked && $("#optimizer")?.checked) $("#optimizer").checked = false;
+    } catch {
+      /* fail closed */
+    }
+  }
+
+  function populateCompareSelects() {
+    ["compare-a", "compare-b"].forEach((id, i) => {
+      const el = $("#" + id);
+      if (!el || !db?.cards?.length) return;
+      el.innerHTML = db.cards
+        .map((c) => `<option value="${escapeAttr(c.id)}">${escapeHtml(c.name)}</option>`)
+        .join("");
+      if (db.cards[i]) el.value = db.cards[i].id;
+    });
+    renderCompare();
+  }
+
+  function renderCompare() {
+    const out = $("#compare-out");
+    if (!out || !db) return;
+    const a = db.cards.find((c) => c.id === $("#compare-a")?.value);
+    const b = db.cards.find((c) => c.id === $("#compare-b")?.value);
+    if (!a || !b) {
+      out.innerHTML = "";
+      return;
+    }
+    if (a.id === b.id) {
+      out.innerHTML = `<p class="muted">Pick two different cards to compare published rates.</p>`;
+      return;
+    }
+    const ranked = lastResult?.ranked || [];
+    const ra = ranked.find((r) => r.card.id === a.id);
+    const rb = ranked.find((r) => r.card.id === b.id);
+    const linkA = officialUrl(a);
+    const linkB = officialUrl(b);
+    out.innerHTML = `
+      <div class="metrics">
+        <div class="metric"><b>${escapeHtml(a.name)}</b><span>${(a.flatRate * 100).toFixed(1)}% base · fuss ${a.fussFreeScore}${ra ? ` · est. S$${fmt(ra.net)}` : ""}</span>${linkA ? `<a href="${escapeAttr(linkA)}" target="_blank" rel="noopener">Official page</a>` : ""}</div>
+        <div class="metric"><b>${escapeHtml(b.name)}</b><span>${(b.flatRate * 100).toFixed(1)}% base · fuss ${b.fussFreeScore}${rb ? ` · est. S$${fmt(rb.net)}` : ""}</span>${linkB ? `<a href="${escapeAttr(linkB)}" target="_blank" rel="noopener">Official page</a>` : ""}</div>
+      </div>`;
+  }
+
   function run() {
     if (!db) return;
     const scenario = scenarioFromForm();
+    persistScenario(scenario);
     const result = CardFitEngine.recommend(db, scenario);
+    lastResult = result;
     renderResult(result);
+    renderCompare();
   }
 
   function updateTopFitDock(result) {
@@ -288,7 +380,7 @@
         <div class="metric"><b>${c.fussFreeScore}</b><span>Fuss-free score / 100</span></div>
       </div>
       ${expiry ? `<p class="muted tiny">${escapeHtml(expiry)}</p>` : ""}
-      <p><button type="button" class="btn" id="copy-result">Copy result</button></p>
+      <p>${officialUrl(c) ? `<a class="btn" href="${escapeAttr(officialUrl(c))}" target="_blank" rel="noopener">Official product page</a> ` : ""}<button type="button" class="btn" id="copy-result">Copy result</button></p>
       <ul class="reasons">
         ${p.rankReasons.map((r) => `<li>${escapeHtml(r)}</li>`).join("")}
         ${c.pros.slice(0, 3).map((r) => `<li>${escapeHtml(r)}</li>`).join("")}
