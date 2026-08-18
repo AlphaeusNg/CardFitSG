@@ -9,11 +9,19 @@
 
   let db = null;
 
+  function syncTopbarOffset() {
+    const header = $(".topbar");
+    const root = document.documentElement;
+    if (!header || !root || !root.style || typeof root.style.setProperty !== "function") return;
+    root.style.setProperty("--topbar-h", `${header.offsetHeight}px`);
+  }
+
   function bindAutoHideHeader() {
     const header = $(".topbar");
     if (!header) return;
     let lastY = Math.max(0, window.scrollY);
     let ticking = false;
+    syncTopbarOffset();
 
     function update() {
       const y = Math.max(0, window.scrollY);
@@ -33,6 +41,7 @@
       ticking = true;
       requestAnimationFrame(update);
     }, { passive: true });
+    window.addEventListener("resize", syncTopbarOffset, { passive: true });
   }
 
   async function init() {
@@ -115,6 +124,38 @@
     });
     $("#oneOff").addEventListener("input", debounce(run, 200));
     $("#monthly").addEventListener("input", debounce(run, 200));
+
+    $$("[data-preset]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        applyPreset(btn);
+      });
+    });
+    markActivePreset();
+  }
+
+  function applyPreset(btn) {
+    const oneOff = btn.getAttribute ? btn.getAttribute("data-one-off") : btn.dataset?.oneOff;
+    const monthly = btn.getAttribute ? btn.getAttribute("data-monthly") : btn.dataset?.monthly;
+    $("#oneOff").value = oneOff == null || oneOff === "" ? "0" : String(oneOff);
+    $("#monthly").value = monthly == null || monthly === "" ? "0" : String(monthly);
+    markActivePreset();
+    run();
+  }
+
+  function markActivePreset() {
+    const oneOff = String(Number($("#oneOff")?.value) || 0);
+    const monthly = String(Number($("#monthly")?.value) || 0);
+    $$("[data-preset]").forEach((btn) => {
+      const presetOff = String(Number(btn.getAttribute ? btn.getAttribute("data-one-off") : btn.dataset?.oneOff) || 0);
+      const presetMonthly = String(Number(btn.getAttribute ? btn.getAttribute("data-monthly") : btn.dataset?.monthly) || 0);
+      const active = presetOff === oneOff && presetMonthly === monthly;
+      if (btn.classList) {
+        if (typeof btn.classList.toggle === "function") btn.classList.toggle("is-active", active);
+        else if (active) btn.classList.add("is-active");
+        else btn.classList.remove("is-active");
+      }
+      if (typeof btn.setAttribute === "function") btn.setAttribute("aria-pressed", active ? "true" : "false");
+    });
   }
 
   function scenarioFromForm() {
@@ -153,13 +194,31 @@
     renderResult(result);
   }
 
+  function updateTopFitDock(result) {
+    const dock = $("#top-fit-dock");
+    if (!dock) return;
+    const p = result?.primary;
+    if (!p || !result.ranked?.length || result.zeroSpend) {
+      dock.hidden = true;
+      dock.textContent = "Top fit";
+      if (typeof dock.removeAttribute === "function") dock.removeAttribute("aria-label");
+      return;
+    }
+    const label = `Top fit · ${p.card.name} · S$${fmt(p.net)} · ${(p.effectiveRate * 100).toFixed(2)}%`;
+    dock.hidden = false;
+    dock.textContent = label;
+    if (typeof dock.setAttribute === "function") dock.setAttribute("aria-label", `Jump to top fit: ${p.card.name}`);
+  }
+
   function renderResult(result) {
     const p = result.primary;
     const primary = $("#primary");
+    markActivePreset();
     if (!p) {
       primary.innerHTML = "<p>No recommendation.</p>";
       $("#plan").innerHTML = "";
       $("#ranked").innerHTML = "";
+      updateTopFitDock(null);
       return;
     }
 
@@ -201,10 +260,18 @@
     }
 
     const list = $("#ranked");
+    const maxNet = Math.max(0, ...result.ranked.map((r) => Number(r.net) || 0));
     list.innerHTML = result.ranked
       .map((r, i) => {
         const card = r.card;
         const basePct = ((card.flatRate || 0) * 100).toFixed(1);
+        const barPct = maxNet > 0 ? Math.min(100, Math.max(0, (Number(r.net) / maxNet) * 100)) : 0;
+        const reasons = Array.isArray(r.rankReasons) ? r.rankReasons : [];
+        const whyItems = [
+          ...reasons.map((reason) => `<li>${escapeHtml(reason)}</li>`),
+          `<li>Signup S$${fmt(r.signupCash)}</li>`,
+          `<li>Rate cash S$${fmt(r.cashFromRate)}</li>`,
+        ].join("");
         return `
         <article class="rank-card ${r === p ? "is-top" : ""} ${r.alreadyHold ? "is-held" : ""}">
           <div class="rank-num">${i + 1}</div>
@@ -215,13 +282,20 @@
               ${r.alreadyHold ? '<span class="pill pill-held">In wallet</span>' : ""}
               ${r === p ? '<span class="pill pill-top">Top fit</span>' : ""}
             </header>
+            <p class="rank-hero"><strong>S$${fmt(r.net)}</strong> est. net</p>
+            <div class="rank-bar" aria-hidden="true"><span class="rank-bar-fill" style="width:${barPct.toFixed(1)}%"></span></div>
             <p class="rank-meta">${escapeHtml(card.issuer)} · fuss ${card.fussFreeScore} · accept ${card.acceptanceScore}</p>
-            <p class="rank-value"><strong>S$${fmt(r.net)}</strong> est. net · signup S$${fmt(r.signupCash)} · rate cash S$${fmt(r.cashFromRate)}</p>
+            <details class="rank-why">
+              <summary>Why this rank</summary>
+              <ul>${whyItems}</ul>
+            </details>
             ${r.warnings.length ? `<p class="warn-inline">${escapeHtml(r.warnings[0])}</p>` : ""}
           </div>
         </article>`;
       })
       .join("");
+
+    updateTopFitDock(result);
 
     $("#plan").innerHTML = result.zeroSpend
       ? `<p class="muted">Enter one-off and/or monthly spend, then recalculate for a concrete action plan.</p>`

@@ -44,7 +44,18 @@ function makeElement(initial = {}) {
       contains(name) {
         return classes.has(name);
       },
+      toggle(name, force) {
+        const on = force === undefined ? !classes.has(name) : !!force;
+        if (on) classes.add(name);
+        else classes.delete(name);
+        return on;
+      },
     },
+    getAttribute() {
+      return null;
+    },
+    setAttribute() {},
+    removeAttribute() {},
     ...initial,
   };
 }
@@ -70,9 +81,12 @@ function makeDocument(existingCardIds = [], recentIssuers = []) {
       "plan",
       "ranked",
       "site-version",
+      "top-fit-dock",
     ].map((id) => [id, makeElement()])
   );
   elements.fatal.hidden = true;
+  elements["top-fit-dock"].hidden = true;
+  elements["top-fit-dock"].textContent = "Top fit";
   elements.oneOff.value = "3500";
   elements.monthly.value = "1200";
   elements.months.value = "12";
@@ -91,6 +105,12 @@ function makeDocument(existingCardIds = [], recentIssuers = []) {
   ];
   const checkedExisting = existingCardIds.map((value) => ({ value }));
   const checkedRecentIssuers = recentIssuers.map((value) => ({ value }));
+  const presetButtons = [
+    makePresetButton("3500", "1200"),
+    makePresetButton("0", "1200"),
+    makePresetButton("8000", "1200"),
+  ];
+  elements.presets = presetButtons;
 
   return {
     elements,
@@ -106,10 +126,29 @@ function makeDocument(existingCardIds = [], recentIssuers = []) {
         if (selector === "#form input, #form select") return formControls;
         if (selector === 'input[name="existing"]:checked') return checkedExisting;
         if (selector === 'input[name="recent-issuer"]:checked') return checkedRecentIssuers;
+        if (selector === "[data-preset]") return presetButtons;
         return [];
       },
     },
   };
+}
+
+function makePresetButton(oneOff, monthly) {
+  const attrs = {
+    "data-preset": "",
+    "data-one-off": String(oneOff),
+    "data-monthly": String(monthly),
+    "aria-pressed": "false",
+  };
+  return makeElement({
+    dataset: { oneOff: String(oneOff), monthly: String(monthly) },
+    getAttribute(name) {
+      return Object.prototype.hasOwnProperty.call(attrs, name) ? attrs[name] : null;
+    },
+    setAttribute(name, value) {
+      attrs[name] = String(value);
+    },
+  });
 }
 
 async function boot(response, { existingCardIds = [], recentIssuers = [] } = {}) {
@@ -228,9 +267,37 @@ async function boot(response, { existingCardIds = [], recentIssuers = [] } = {})
     catalog.cards.length,
     "every catalog card renders in the ranking"
   );
+  assert.match(result.elements.ranked.innerHTML, /rank-hero/, "ranking makes S$ net the hero number");
+  assert.match(result.elements.ranked.innerHTML, /rank-bar-fill/, "ranking includes glanceable net bars");
+  assert.match(result.elements.ranked.innerHTML, /<details class="rank-why">[\s\S]*Why this rank/, "ranking tucks reasons into details");
+  assert.equal(result.elements["top-fit-dock"].hidden, false, "top-fit dock shows when a ranking exists");
+  assert.match(
+    result.elements["top-fit-dock"].textContent,
+    new RegExp(`Top fit · ${result.recommendations[0].primary.card.name} · S\\$.+ · .+%`),
+    "dock summarizes the top card, net, and rate"
+  );
   assert.match(result.elements.plan.innerHTML, /plan-steps/, "action plan renders");
   assert.equal(result.elements["site-version"].textContent, "test-version", "version renders");
   assert.equal(typeof result.sandbox.window.CardFitApp.run, "function", "app API is exposed");
+  assert.equal(
+    result.elements.presets[0].classList.contains("is-active"),
+    true,
+    "default honeymoon amounts mark the matching preset"
+  );
+
+  const presetRuns = result.scenarios.length;
+  result.elements.presets[1].dispatch("click");
+  assert.equal(result.elements.oneOff.value, "0", "monthly-only preset clears the one-off amount");
+  assert.equal(result.elements.monthly.value, "1200", "monthly-only preset keeps monthly spend");
+  assert.equal(result.scenarios.length, presetRuns + 1, "preset click triggers a live ranking update");
+  assert.equal(result.scenarios.at(-1).oneOff, 0, "preset ranking uses the one-off amount");
+  assert.equal(result.scenarios.at(-1).monthly, 1200, "preset ranking uses the monthly amount");
+  assert.equal(result.elements.presets[1].classList.contains("is-active"), true, "selected preset is marked active");
+  assert.equal(result.elements.presets[0].classList.contains("is-active"), false, "unselected presets are not active");
+
+  result.elements.presets[2].dispatch("click");
+  assert.equal(result.elements.oneOff.value, "8000", "big-trip preset sets the one-off amount");
+  assert.equal(result.scenarios.at(-1).oneOff, 8000, "big-trip ranking uses the one-off amount");
 
   const startupRuns = result.scenarios.length;
   result.elements.optimizer.checked = true;
@@ -258,6 +325,11 @@ async function boot(response, { existingCardIds = [], recentIssuers = [] } = {})
     /S\$100 quarterly cashback[^<]*10 eligible purchases[^<]*each statement month/i,
     "optimizer ranking renders UOB One's selected-tier conditions"
   );
+
+  result.elements.oneOff.value = "0";
+  result.elements.monthly.value = "0";
+  result.sandbox.window.CardFitApp.run();
+  assert.equal(result.elements["top-fit-dock"].hidden, true, "dock hides when spend is empty");
 }
 
 {
@@ -281,4 +353,4 @@ async function boot(response, { existingCardIds = [], recentIssuers = [] } = {})
   assert(result.errors.some((error) => /HTTP 503/.test(error)), "HTTP status is logged for diagnosis");
 }
 
-console.log("test-app.mjs: 31 startup, event, eligibility, and render assertions passed");
+console.log("test-app.mjs: 47 startup, event, eligibility, preset, dock, and render assertions passed");

@@ -1,6 +1,6 @@
 # CardFitSG continuous improvement log
 
-Last updated: 2026-08-18 (Cycle 155 across the projects workspace; CardFitSG Cycle 44)
+Last updated: 2026-08-18 (CardFitSG Cycle 45)
 
 ## Current state
 
@@ -8,8 +8,8 @@ Last updated: 2026-08-18 (Cycle 155 across the projects workspace; CardFitSG Cyc
 - Runtime: zero-build static HTML/CSS/JavaScript.
 - Verification: `node tools/test-engine.mjs` (117 assertions), `node
   tools/test-catalog-freshness.mjs` (17 assertions), the live catalog-deadline
-  check, `node tools/test-site.mjs` (14 references/fragments), `node
-  tools/test-app.mjs` (31 assertions), recursive JavaScript syntax checks, JSON
+  check, `node tools/test-site.mjs` (15 references/fragments), `node
+  tools/test-app.mjs` (47 assertions), recursive JavaScript syntax checks, JSON
   catalog JSON parsing, and repository CI on Node 24 LTS.
 - Catalog snapshot: all six cards were checked against official issuer pages on 2026-08-09; `data/cards.json` declares the same `asOf` date.
 - UOB One's optimizer condition was reverified against UOB's product page, full
@@ -23,7 +23,67 @@ Last updated: 2026-08-18 (Cycle 155 across the projects workspace; CardFitSG Cyc
   12 months without the issuer's principal credit cards.
 - Catalog review policy: audit by 2026-08-24, seven days before the earliest dated offers end on 2026-08-31; daily CI enforces the boundary.
 
-## Latest cycle: collect issuer-level current/recent card history
+## Latest cycle: glanceable spend presets and ranking UX
+
+### Why this was selected
+
+The calculator already ranked fuss-free cashback correctly, but the first
+visible screen still asked users to invent amounts and then hunt for the
+answer below a stacked form on phones. The honeymoon / monthly / big-trip
+scenarios were buried in copy. A ranking that printed signup, rate cash, and
+reasons in one dense line was accurate and unread.
+
+### Changes
+
+- Added three gold outline preset chips above the amount fields: Honeymoon
+  S$3,500, Monthly only, and Big trip S$8,000. Chips write `#oneOff` /
+  `#monthly` and call the existing live `run()` path; fields stay editable.
+- Added a sticky top-fit dock under the header summarizing
+  `Top fit · CARD · S$NET · RATE%`. It jumps to `#primary`, matches the
+  topbar blur and gold line, tracks header auto-hide, and collapses when
+  there is no spend ranking.
+- Made S$ net the ranking hero, added a thin gold bar scaled to the best
+  net, and moved signup / rate cash plus `rankReasons` into a
+  `Why this rank` `<details>`. The `.is-top` gold ring is unchanged.
+- Presentation only: engine scoring is untouched. Version is `2026.08.18.2`.
+
+### Verification and scores
+
+- `node tools/test-engine.mjs`: 117 passed, 0 failed.
+- `node tools/test-app.mjs`: 47 startup, event, eligibility, preset, dock,
+  and render assertions passed (up from 31), including honeymoon default
+  state, monthly-only / big-trip live updates, dock show/hide, hero net,
+  bars, and tucked reasons.
+- `node tools/test-site.mjs`: local references and fragments still resolve,
+  including the new `#primary` dock target.
+- Recursive `node --check js/*.js`, catalog JSON, and `git diff --check`
+  pass; scoring contracts were not changed.
+- Correctness/reliability: 10/10 → 10/10 (no scoring change).
+- Verifiability: 9/10 → 10/10 (preset, dock, and ranking presentation now
+  have harness contracts).
+- Maintainability: 9/10 → 9/10 (chips reuse `run()`; dock is a sibling of
+  the existing sticky header).
+- Performance: 10/10 → 10/10 (three buttons and one extra render string).
+- Security/robustness: 9/10 → 9/10 (preset values are static; card names
+  stay escaped).
+- User experience: 6/10 → 9/10 (a first-screen scenario, a phone-visible
+  top pick, and a scannable ranking).
+
+### Lessons and process improvements
+
+- A correct ranking is still a form-first page on mobile unless the answer
+  can travel with the header.
+- Presets should write the same fields a person would type so the live
+  path stays the single source of truth.
+- Keep warnings outside collapsed details: they are the line the optimizer
+  and eligibility tests already treat as the visible ranking signal.
+
+### Next opportunity
+
+Execute the official-source catalog audit by 2026-08-24 and advance both
+`asOf` and `reviewBy`.
+
+## Previous cycle: collect issuer-level current/recent card history
 
 ### Why this was selected
 
@@ -449,6 +509,8 @@ Fuss-free and optimizer checkboxes are intentionally mutually exclusive, but the
 
 ## Previous cycles
 
+- Cycle 45: shipped spend-preset chips, a sticky mobile top-fit dock, and
+  glanceable ranking bars without changing engine math.
 - Cycle 44: collected issuer-level current/recent principal-card history so
   unlisted and cancelled cards can exclude official welcome value.
 - Cycle 43: excluded known same-issuer signup cash and gifts using official
@@ -476,6 +538,7 @@ Fuss-free and optimizer checkboxes are intentionally mutually exclusive, but the
 | Priority | Opportunity | Category | Impact | Effort / risk | Evidence / dependency |
 |---|---|---|---|---|---|
 | 1 | Execute the official-source catalog audit by 2026-08-24 | Process / data | High | Small / low | Daily CI now fails on the deadline; OCBC and SC offers end 2026-08-31 |
+| — | Glanceable spend presets, sticky top-fit dock, ranking bars | UX | Medium | Small / low | 47 app assertions cover presets, dock show/hide, hero net, and tucked reasons | Completed in Cycle 45 |
 | — | Collect issuer-level current/recent card history | Correctness / UX | Medium-high | Small-medium / low | Unlisted and cancelled principal cards now set the same eligibility set as catalog holdings | Completed in Cycle 44 |
 | — | Exclude known same-issuer signup ineligibility | Correctness / safety | High | Small-medium / low | 117 engine and 31 app assertions cover official 6/12-month rules, cash/gift suppression, schema, bypass, and composition | Completed in Cycle 43 |
 | — | Model fixed quarterly awards between UOB One thresholds | Correctness / safety | High | Small-medium / low | Nine contracts cover fixed bands, schema dependencies, and direct-call fallback | Completed in Cycle 41 |
@@ -486,5 +549,4 @@ Fuss-free and optimizer checkboxes are intentionally mutually exclusive, but the
 ## Next cycle
 
 Local next: execute the full official-source audit by 2026-08-24 and advance
-both `asOf` and `reviewBy`. Workspace next: rotate to AlpArcade after this
-focused correctness cycle.
+both `asOf` and `reviewBy`. Workspace next: rotate after this UX cycle.

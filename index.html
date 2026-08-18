@@ -37,6 +37,7 @@
       <a href="#disclaimer-block">Disclaimer</a>
     </nav>
   </header>
+  <a id="top-fit-dock" class="top-fit-dock" hidden href="#primary">Top fit</a>
 
   <p id="fatal" hidden role="alert"></p>
 
@@ -55,6 +56,12 @@
       <form id="form" class="panel" aria-label="Spend scenario">
         <p class="eyebrow">Your scenario</p>
         <h2 style="font-size:1.15rem;margin-bottom:0.85rem">Inputs</h2>
+
+        <div class="preset-row" id="scenario-presets" role="group" aria-label="Spend presets">
+          <button type="button" class="preset-chip" data-preset data-one-off="3500" data-monthly="1200" aria-pressed="true">Honeymoon S$3,500</button>
+          <button type="button" class="preset-chip" data-preset data-one-off="0" data-monthly="1200" aria-pressed="false">Monthly only</button>
+          <button type="button" class="preset-chip" data-preset data-one-off="8000" data-monthly="1200" aria-pressed="false">Big trip S$8,000</button>
+        </div>
 
         <label class="field">
           <span>Large one-off soon (SGD)</span>
