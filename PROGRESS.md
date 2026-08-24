@@ -1,6 +1,6 @@
 # CardFitSG continuous improvement log
 
-Last updated: 2026-08-25 (CardFitSG Cycle 49)
+Last updated: 2026-08-25 (CardFitSG Cycle 50)
 
 ## Current state
 
@@ -27,7 +27,52 @@ Last updated: 2026-08-25 (CardFitSG Cycle 49)
 - Catalog review policy: recheck by 2026-08-30, one day before the earliest
   dated offers end on 2026-08-31; daily CI enforces the boundary.
 
-## Latest cycle: truthful style-aware card comparison (2026-08-25)
+## Latest cycle: reconcile completed backlog state (2026-08-25)
+
+### Why this was selected
+
+State loading found that Cycle 49's style-aware comparison was fully shipped
+and verified, but the prioritized table and `Next cycle` section still named
+that same work as pending. Both active rows also omitted the table's Status
+field. That stale handoff could send future improvement cycles back through
+already-completed work, directly violating the workspace's anti-loop rule.
+
+### Changes
+
+- Marked the comparison and persistence work completed with its Cycle 49
+  evidence instead of leaving it as priority 2.
+- Marked the official-source recheck explicitly pending with its enforced 30
+  August deadline.
+- Replaced the stale local handoff with the only currently scheduled CardFitSG
+  work and retained the instruction to rotate until the deadline.
+- Runtime files, catalog facts, and deployment version remain unchanged.
+
+### Verification and scores
+
+- Cross-checked the backlog against the Cycle 49 log, current 65-assertion app
+  baseline, and deployment version `2026.08.25.2`.
+- Engine 120, catalog freshness 17, app 65, and site reference/fragment
+  contracts passed. The live deadline sentinel reports five days remaining.
+- Recursive JavaScript syntax, catalog/manifest JSON parsing, and diff checks
+  passed.
+- Correctness/reliability: 6/10 → 10/10 (planning state matches shipped state).
+- Verifiability: 7/10 → 9/10 (the completed row points to its exact evidence).
+- Maintainability/process: 4/10 → 10/10 (the next cycle cannot select completed work).
+- Performance, security, and user experience: unchanged (no runtime change).
+
+### Lessons and process improvements
+
+- Completion must be reflected in every active planning surface, not only the
+  narrative cycle log.
+- Treat a stale `Next cycle` pointer as a real process defect because it can
+  waste autonomous cycles and distort prioritization.
+
+### Next opportunity
+
+Recheck the expiring OCBC and Standard Chartered offers on 30 August 2026; at
+workspace scope, rotate to another repository until that enforced date.
+
+## Previous cycle: truthful style-aware card comparison (2026-08-25)
 
 ### Why this was selected
 
@@ -703,10 +748,10 @@ Fuss-free and optimizer checkboxes are intentionally mutually exclusive, but the
 
 ## Prioritized opportunities
 
-| Priority | Opportunity | Category | Impact | Effort / risk | Evidence / dependency |
-|---|---|---|---|---|---|
-| 1 | Recheck expiring OCBC and SC offers by 2026-08-30 | Process / data | High | Small / low | Daily CI fails on the deadline; both offers end 2026-08-31 |
-| 2 | Make compare summaries style-aware and behaviorally test selection/persistence | Correctness / UX / tests | Medium-high | Small / low | Category cards currently show only raw base rate; Cycle 47 tests do not dispatch compare/storage paths |
+| Priority | Opportunity | Category | Impact | Effort / risk | Evidence / dependency | Status |
+|---|---|---|---|---|---|---|
+| 1 | Recheck expiring OCBC and SC offers by 2026-08-30 | Process / data | High | Small / low | Daily CI fails on the deadline; both offers end 2026-08-31 | Pending — due 2026-08-30 |
+| — | Make compare summaries style-aware and behaviorally test selection/persistence | Correctness / UX / tests | Medium-high | Small / low | Cycle 49 derives all four earning styles and exercises 65 app/storage assertions | Completed in Cycle 49 |
 | — | Glanceable spend presets, sticky top-fit dock, ranking bars | UX | Medium | Small / low | 47 app assertions cover presets, dock show/hide, hero net, and tucked reasons | Completed in Cycle 45 |
 | — | Collect issuer-level current/recent card history | Correctness / UX | Medium-high | Small-medium / low | Unlisted and cancelled principal cards now set the same eligibility set as catalog holdings | Completed in Cycle 44 |
 | — | Exclude known same-issuer signup ineligibility | Correctness / safety | High | Small-medium / low | 117 engine and 31 app assertions cover official 6/12-month rules, cash/gift suppression, schema, bypass, and composition | Completed in Cycle 43 |
@@ -717,6 +762,5 @@ Fuss-free and optimizer checkboxes are intentionally mutually exclusive, but the
 
 ## Next cycle
 
-Local next: make comparison summaries style-aware and behaviorally test compare
-selection plus malformed/valid saved-scenario recovery. Workspace next: rotate
-after this financial-data cycle.
+Local next: recheck the expiring OCBC and Standard Chartered offers on
+2026-08-30. Workspace next: rotate until the enforced financial-data deadline.
