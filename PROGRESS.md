@@ -63,6 +63,8 @@ app harness only checked that comparison markup existed and provided no
   9 local references and 4 fragments passed.
 - Recursive JavaScript syntax checks, catalog/manifest JSON parsing, and
   `git diff --check` passed.
+- Hosted CI run `32763011108` and Pages run `32763009847` passed; the public
+  site serves version `2026.08.25.2` and the style-aware comparison formatter.
 - Correctness/reliability: 8/10 → 9/10 (conditional products are no longer flattened or rounded misleadingly).
 - Verifiability: 7/10 → 9/10 (selection and both storage recovery paths execute in the app harness).
 - Maintainability: 8/10 → 9/10 (one style dispatcher derives copy from validated catalog fields).
