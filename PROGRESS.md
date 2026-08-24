@@ -62,6 +62,8 @@ already-shipped comparison feature by one cycle.
 - `node tools/test-app.mjs`: 47 startup, event, eligibility, preset, dock, and
   render assertions passed. `node tools/test-site.mjs`: 9 references and 4
   fragments passed.
+- Hosted CI run `32759372374` and Pages run `32759370029` passed; the live site
+  serves `2026.08.25.1`, `asOf` 2026-08-25, and `reviewBy` 2026-08-30.
 - Correctness/reliability: 8/10 → 10/10 (current facts and omitted-rate scope are explicit).
 - Verifiability: 8/10 → 10/10 (snapshot date, next deadline, and both new disclosures are locked).
 - Maintainability: 8/10 → 9/10 (conditions stay in dated catalog data, not UI code).
