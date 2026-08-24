@@ -154,11 +154,28 @@ function makePresetButton(oneOff, monthly) {
   });
 }
 
-async function boot(response, { existingCardIds = [], recentIssuers = [] } = {}) {
+function makeStorage(initialValue) {
+  const values = new Map();
+  if (initialValue !== undefined) values.set("cardfitsg-last-scenario-v1", initialValue);
+  return {
+    getItem(key) {
+      return values.has(key) ? values.get(key) : null;
+    },
+    setItem(key, value) {
+      values.set(key, String(value));
+    },
+  };
+}
+
+async function boot(
+  response,
+  { existingCardIds = [], recentIssuers = [], savedScenario } = {}
+) {
   const { document, elements } = makeDocument(existingCardIds, recentIssuers);
   const errors = [];
   const scenarios = [];
   const recommendations = [];
+  const localStorage = makeStorage(savedScenario);
   const sandbox = {
     window: {
       scrollY: 0,
@@ -176,6 +193,7 @@ async function boot(response, { existingCardIds = [], recentIssuers = [] } = {})
     requestAnimationFrame(callback) {
       callback();
     },
+    localStorage,
     setTimeout,
     clearTimeout,
     SITE_VERSION: { id: "test-version" },
@@ -193,7 +211,7 @@ async function boot(response, { existingCardIds = [], recentIssuers = [] } = {})
   };
   vm.runInContext(appSource, sandbox, { filename: "js/app.js" });
   await new Promise((resolvePromise) => setImmediate(resolvePromise));
-  return { elements, errors, sandbox, scenarios, recommendations };
+  return { elements, errors, localStorage, sandbox, scenarios, recommendations };
 }
 
 {
@@ -268,6 +286,7 @@ async function boot(response, { existingCardIds = [], recentIssuers = [] } = {})
   assert.match(result.elements.primary.innerHTML, /Official product page/, "top fit links to the official issuer page");
   assert.match(result.elements["compare-a"].innerHTML, /ocbc-infinity/, "compare lists catalog cards");
   assert.match(result.elements["compare-out"].innerHTML, /Official page/, "compare surfaces official product links");
+  assert.match(result.elements["compare-out"].innerHTML, /1\.6% flat/, "flat comparison labels the flat rate");
   assert.match(appSource, /cardfitsg-last-scenario-v1/, "app remembers the last scenario locally");
   assert.equal(
     (result.elements.ranked.innerHTML.match(/<article/g) || []).length,
@@ -306,6 +325,35 @@ async function boot(response, { existingCardIds = [], recentIssuers = [] } = {})
   assert.equal(result.elements.oneOff.value, "8000", "big-trip preset sets the one-off amount");
   assert.equal(result.scenarios.at(-1).oneOff, 8000, "big-trip ranking uses the one-off amount");
 
+  result.elements["compare-a"].value = "uob-one";
+  result.elements["compare-a"].dispatch("change");
+  result.elements["compare-b"].value = "ocbc-365";
+  result.elements["compare-b"].dispatch("change");
+  assert.match(result.elements["compare-out"].innerHTML, /<b>UOB One<\/b>/, "compare selection renders card A");
+  assert.match(result.elements["compare-out"].innerHTML, /<b>OCBC 365<\/b>/, "compare selection renders card B");
+  assert.match(
+    result.elements["compare-out"].innerHTML,
+    /S\$60–S\$200 per 3-month qualifying period from S\$600–S\$2,000\/month/,
+    "tiered comparison describes fixed published awards instead of a zero base rate"
+  );
+  assert.match(
+    result.elements["compare-out"].innerHTML,
+    /0\.25% base · category rates up to 6\.0% from S\$800\/month/,
+    "category comparison distinguishes the base and conditional category rates"
+  );
+  assert.doesNotMatch(
+    result.elements["compare-out"].innerHTML,
+    /UOB One[\s\S]*0\.0% base/,
+    "tiered comparison never presents the card as a zero-rate product"
+  );
+  result.elements["compare-a"].value = "amex-true";
+  result.elements["compare-a"].dispatch("change");
+  assert.match(
+    result.elements["compare-out"].innerHTML,
+    /3\.0% intro on first S\$5,000 within 6 months · then 1\.5% flat/,
+    "intro comparison distinguishes the capped acquisition rate from the ongoing rate"
+  );
+
   const startupRuns = result.scenarios.length;
   result.elements.optimizer.checked = true;
   result.elements.optimizer.dispatch("change");
@@ -340,6 +388,55 @@ async function boot(response, { existingCardIds = [], recentIssuers = [] } = {})
 }
 
 {
+  const saved = JSON.stringify({
+    oneOff: 900,
+    monthly: 1800,
+    months: 24,
+    intent: "long_term",
+    preferFussFree: true,
+    optimizerMode: true,
+    amexOk: true,
+  });
+  const result = await boot(
+    {
+      ok: true,
+      status: 200,
+      async json() {
+        return JSON.parse(JSON.stringify(catalog));
+      },
+    },
+    { savedScenario: saved }
+  );
+  assert.equal(result.elements.oneOff.value, 900, "saved one-off spend is restored");
+  assert.equal(result.elements.monthly.value, 1800, "saved monthly spend is restored");
+  assert.equal(result.elements.months.value, "24", "saved horizon is restored");
+  assert.equal(result.elements.goal.value, "long_term", "saved goal is restored");
+  assert.equal(result.elements.fussFree.checked, true, "saved fuss-free preference is restored");
+  assert.equal(result.elements.optimizer.checked, false, "conflicting saved modes recover to fuss-free");
+  assert.equal(result.elements.amexOk.checked, true, "saved Amex preference is restored");
+  assert.equal(result.scenarios.at(-1).monthly, 1800, "first ranking uses the recovered scenario");
+}
+
+{
+  const result = await boot(
+    {
+      ok: true,
+      status: 200,
+      async json() {
+        return JSON.parse(JSON.stringify(catalog));
+      },
+    },
+    { savedScenario: "{not-json" }
+  );
+  assert.equal(result.elements.oneOff.value, "3500", "malformed saved state preserves default one-off spend");
+  assert.equal(result.scenarios.at(-1).monthly, 1200, "malformed saved state still produces the default ranking");
+  assert.doesNotThrow(
+    () => JSON.parse(result.localStorage.getItem("cardfitsg-last-scenario-v1")),
+    "the next run replaces malformed saved state with valid JSON"
+  );
+}
+
+{
   const result = await boot({
     ok: true,
     status: 200,
@@ -360,4 +457,4 @@ async function boot(response, { existingCardIds = [], recentIssuers = [] } = {})
   assert(result.errors.some((error) => /HTTP 503/.test(error)), "HTTP status is logged for diagnosis");
 }
 
-console.log("test-app.mjs: 47 startup, event, eligibility, preset, dock, and render assertions passed");
+console.log("test-app.mjs: 65 startup, event, persistence, compare, preset, dock, and render assertions passed");

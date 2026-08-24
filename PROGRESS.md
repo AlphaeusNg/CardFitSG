@@ -1,6 +1,6 @@
 # CardFitSG continuous improvement log
 
-Last updated: 2026-08-25 (CardFitSG Cycle 48)
+Last updated: 2026-08-25 (CardFitSG Cycle 49)
 
 ## Current state
 
@@ -9,7 +9,7 @@ Last updated: 2026-08-25 (CardFitSG Cycle 48)
 - Verification: `node tools/test-engine.mjs` (120 assertions), `node
   tools/test-catalog-freshness.mjs` (17 assertions), the live catalog-deadline
   check, `node tools/test-site.mjs` (15 references/fragments), `node
-  tools/test-app.mjs` (47 assertions), recursive JavaScript syntax checks, JSON
+  tools/test-app.mjs` (65 assertions), recursive JavaScript syntax checks, JSON
   catalog JSON parsing, and repository CI on Node 24 LTS.
 - Catalog snapshot: all six cards and the current OCBC/UOB/SC promotion terms
   were rechecked from official sources on 2026-08-25; `data/cards.json`
@@ -27,7 +27,65 @@ Last updated: 2026-08-25 (CardFitSG Cycle 48)
 - Catalog review policy: recheck by 2026-08-30, one day before the earliest
   dated offers end on 2026-08-31; daily CI enforces the boundary.
 
-## Latest cycle: official-source audit and conservative disclosures (2026-08-25)
+## Latest cycle: truthful style-aware card comparison (2026-08-25)
+
+### Why this was selected
+
+The comparison panel described every card using `flatRate`. That made UOB One
+look like a 0.0% product and rounded OCBC 365's 0.25% base to 0.3%, obscuring
+the conditions users most need when comparing non-flat products. The existing
+app harness only checked that comparison markup existed and provided no
+`localStorage`, leaving both selection and scenario recovery unverified.
+
+### Changes
+
+- Replaced the generic base-rate line with catalog-driven summaries for flat,
+  intro-then-flat, category, and fixed-period tiered products.
+- UOB One now shows its S$60–S$200 award range, three-month qualifying period,
+  and S$600–S$2,000 monthly thresholds instead of `0.0% base`.
+- OCBC 365 now distinguishes its exact 0.25% base from category rates up to
+  6.0% and the S$800 monthly threshold. AMEX True separates its 3.0% capped
+  six-month intro from the 1.5% ongoing rate.
+- Expanded the VM harness with a real in-memory storage boundary. Compare
+  selection, valid scenario restoration, mutually exclusive saved modes,
+  malformed JSON recovery, and replacement with valid persisted state are now
+  behavioral contracts.
+- Bumped the deployed version to `2026.08.25.2` and clarified the README feature.
+
+### Verification and scores
+
+- Test-first: the new tiered-card assertion failed on the observed `UOB One ·
+  0.0% base` output before the implementation.
+- `node tools/test-engine.mjs`: 120 passed, 0 failed.
+- `node tools/test-catalog-freshness.mjs`: 17 passed; the live sentinel reports
+  five days until the enforced review date.
+- `node tools/test-app.mjs`: 65 passed, up from 47. `node tools/test-site.mjs`:
+  9 local references and 4 fragments passed.
+- Recursive JavaScript syntax checks, catalog/manifest JSON parsing, and
+  `git diff --check` passed.
+- Correctness/reliability: 8/10 → 9/10 (conditional products are no longer flattened or rounded misleadingly).
+- Verifiability: 7/10 → 9/10 (selection and both storage recovery paths execute in the app harness).
+- Maintainability: 8/10 → 9/10 (one style dispatcher derives copy from validated catalog fields).
+- Performance: 10/10 → 10/10 (six tiny synchronous summaries per render).
+- Security/robustness: 9/10 → 9/10 (rendered summaries pass through HTML escaping).
+- User experience: 7/10 → 9/10 (comparison now explains the qualification model at a glance).
+
+### Lessons and process improvements
+
+- A common field is not necessarily a common user-facing concept; rendering
+  must follow the product's earning model, not merely schema availability.
+- Exact sub-percent rates need two-decimal precision even when most rates fit
+  the interface's one-decimal convention.
+- A persistence claim should include executable storage recovery coverage, not
+  just a source-string assertion.
+
+### Next opportunity
+
+Rotate to ChristoDay and reload its ranked backlog before selecting a new
+small, test-backed reliability improvement; avoid another financial-data cycle
+unless the 30 August review deadline is reached.
+
+## Previous cycle: official-source audit and conservative disclosures (2026-08-25)
 
 ### Why this was selected
 

@@ -288,6 +288,42 @@
     renderCompare();
   }
 
+  function publishedRateSummary(card) {
+    const percent = (rate) => {
+      const value = Number(rate || 0) * 100;
+      const decimals = Math.abs(value * 10 - Math.round(value * 10)) < 1e-9 ? 1 : 2;
+      return `${value.toFixed(decimals)}%`;
+    };
+    if (card.style === "flat") return `${percent(card.flatRate)} flat`;
+    if (card.style === "intro_then_flat") {
+      return (
+        `${percent(card.introRate)} intro on first S$${fmt(card.introCapSpend)} ` +
+        `within ${card.introMonths} months · then ${percent(card.flatRate)} flat`
+      );
+    }
+    if (card.style === "category") {
+      const topRate = Math.max(...Object.values(card.categoryRates || {}));
+      const conditional = Number.isFinite(topRate) ? ` · category rates up to ${percent(topRate)}` : "";
+      const threshold = card.minMonthlySpend ? ` from S$${fmt(card.minMonthlySpend)}/month` : "";
+      return `${percent(card.flatRate)} base${conditional}${threshold}`;
+    }
+    if (card.style === "category_tiered" && Array.isArray(card.tieredRates)) {
+      const fixedTiers = card.tieredRates.filter(
+        (tier) => Number.isFinite(tier.minSpend) && Number.isFinite(tier.periodCashback)
+      );
+      if (fixedTiers.length) {
+        const awards = fixedTiers.map((tier) => tier.periodCashback);
+        const thresholds = fixedTiers.map((tier) => tier.minSpend);
+        return (
+          `S$${fmt(Math.min(...awards))}–S$${fmt(Math.max(...awards))} per ` +
+          `${card.qualifyingPeriodMonths}-month qualifying period from ` +
+          `S$${fmt(Math.min(...thresholds))}–S$${fmt(Math.max(...thresholds))}/month`
+        );
+      }
+    }
+    return `${percent(card.flatRate)} base`;
+  }
+
   function renderCompare() {
     const out = $("#compare-out");
     if (!out || !db) return;
@@ -308,8 +344,8 @@
     const linkB = officialUrl(b);
     out.innerHTML = `
       <div class="metrics">
-        <div class="metric"><b>${escapeHtml(a.name)}</b><span>${(a.flatRate * 100).toFixed(1)}% base · fuss ${a.fussFreeScore}${ra ? ` · est. S$${fmt(ra.net)}` : ""}</span>${linkA ? `<a href="${escapeAttr(linkA)}" target="_blank" rel="noopener">Official page</a>` : ""}</div>
-        <div class="metric"><b>${escapeHtml(b.name)}</b><span>${(b.flatRate * 100).toFixed(1)}% base · fuss ${b.fussFreeScore}${rb ? ` · est. S$${fmt(rb.net)}` : ""}</span>${linkB ? `<a href="${escapeAttr(linkB)}" target="_blank" rel="noopener">Official page</a>` : ""}</div>
+        <div class="metric"><b>${escapeHtml(a.name)}</b><span>${escapeHtml(publishedRateSummary(a))} · fuss ${a.fussFreeScore}${ra ? ` · est. S$${fmt(ra.net)}` : ""}</span>${linkA ? `<a href="${escapeAttr(linkA)}" target="_blank" rel="noopener">Official page</a>` : ""}</div>
+        <div class="metric"><b>${escapeHtml(b.name)}</b><span>${escapeHtml(publishedRateSummary(b))} · fuss ${b.fussFreeScore}${rb ? ` · est. S$${fmt(rb.net)}` : ""}</span>${linkB ? `<a href="${escapeAttr(linkB)}" target="_blank" rel="noopener">Official page</a>` : ""}</div>
       </div>`;
   }
 
