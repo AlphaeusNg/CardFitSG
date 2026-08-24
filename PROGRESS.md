@@ -1,12 +1,13 @@
 # CardFitSG continuous improvement log
 
-Last updated: 2026-08-25 (CardFitSG Cycle 51)
+Last updated: 2026-08-25 (CardFitSG Cycle 52)
 
 ## Current state
 
 - Branch: `main`; continuous-improvement commits are published to `origin/main` after verification.
 - Runtime: zero-build static HTML/CSS/JavaScript.
-- Verification: `node tools/test-engine.mjs` (124 assertions), `node
+- Verification: workflow policy (14 assertions), `node tools/test-engine.mjs`
+  (124 assertions), `node
   tools/test-catalog-freshness.mjs` (17 assertions), the live catalog-deadline
   check, `node tools/test-site.mjs` (15 references/fragments), `node
   tools/test-app.mjs` (68 assertions), recursive JavaScript syntax checks, JSON
@@ -28,7 +29,59 @@ Last updated: 2026-08-25 (CardFitSG Cycle 51)
   dated offers end on 2026-08-31; daily CI enforces the boundary.
 - Deployment version: `2026.08.25.3`.
 
-## Latest cycle: fail closed on unsafe or mismatched issuer links (2026-08-25)
+## Latest cycle: cancel duplicate and stale CI work (2026-08-25)
+
+### Why this was selected
+
+Cycle 51's code push unexpectedly launched two complete CI runs for the same
+commit (`32774933691` and `32774934265`). CardFit's workflow had no concurrency
+group, so duplicated events or rapid superseding pushes could consume two
+hosted gates and let obsolete work continue. This was new, measured evidence
+and a small compounding process fix that did not require changing dated card
+facts.
+
+### Changes
+
+- Added a workflow/ref-scoped concurrency group with
+  `cancel-in-progress: true`.
+- Added a zero-dependency workflow-policy suite covering triggers, scheduled
+  deadline enforcement, least privilege, timeout, supported actions/Node,
+  self-execution order, and concurrency behavior.
+- Made the policy suite the first CI test after Node setup.
+- Runtime files, catalog facts, and deployment version remain unchanged.
+
+### Verification and scores
+
+- Test-first: the new policy suite failed on the absent concurrency group.
+- Workflow policy 14, engine 124, catalog freshness 17, live five-day deadline,
+  app 68, site references/fragments, recursive syntax, catalog/manifest JSON,
+  and diff checks passed locally.
+- Push CI `32775192959` passed the policy first and then every product gate;
+  Pages `32775191543` also passed.
+- Controlled same-ref proof: dispatch `32775252976` was cancelled when
+  `32775256228` arrived two seconds later. The replacement passed all gates in
+  10s.
+- Correctness/reliability: 9/10 → 9/10 (runtime behavior is unchanged).
+- Verifiability: 3/10 → 10/10 (policy and real cancellation both execute).
+- Maintainability/process: 6/10 → 9/10 (workflow assumptions are executable).
+- Performance/resources: 4/10 → 10/10 (obsolete same-ref work is cancelled).
+- Security/robustness: 9/10 → 9/10 (read-only permission remains enforced).
+- User experience: 9/10 → 9/10 (no calculator behavior changed).
+
+### Lessons and process improvements
+
+- Hosted run history is an observability surface: duplicate successful runs can
+  reveal waste even when no test fails.
+- A concurrency declaration deserves both a source contract and a controlled
+  two-run proof; either alone leaves part of the behavior assumed.
+- Process-only workflow changes should keep the runtime version stable.
+
+### Next opportunity
+
+Recheck the expiring OCBC and Standard Chartered offers on 30 August 2026. At
+workspace scope, rotate until that enforced financial-data deadline.
+
+## Previous cycle: fail closed on unsafe or mismatched issuer links (2026-08-25)
 
 ### Why this was selected
 
@@ -807,8 +860,8 @@ Fuss-free and optimizer checkboxes are intentionally mutually exclusive, but the
 
 | Priority | Opportunity | Category | Impact | Effort / risk | Evidence / dependency | Status |
 |---|---|---|---|---|---|---|
-| 1 | Add ref-scoped stale/duplicate CI cancellation | Process / efficiency | Medium | Small / low | Runs 32774933691 and 32774934265 executed the same push concurrently | Pending |
-| 2 | Recheck expiring OCBC and SC offers by 2026-08-30 | Process / data | High | Small / low | Daily CI fails on the deadline; both offers end 2026-08-31 | Pending — due 2026-08-30 |
+| 1 | Recheck expiring OCBC and SC offers by 2026-08-30 | Process / data | High | Small / low | Daily CI fails on the deadline; both offers end 2026-08-31 | Pending — due 2026-08-30 |
+| — | Add ref-scoped stale/duplicate CI cancellation | Process / efficiency | Medium | Small / low | Controlled dispatch 32775252976 cancelled; replacement 32775256228 passed | Completed in Cycle 52 |
 | — | Validate official URLs against each card issuer | Correctness / security | High | Small / low | Engine 124 and app 68 reject schemes, lookalikes, mismatches, and unsafe overrides | Completed in Cycle 51 |
 | — | Make compare summaries style-aware and behaviorally test selection/persistence | Correctness / UX / tests | Medium-high | Small / low | Cycle 49 derives all four earning styles and exercises 65 app/storage assertions | Completed in Cycle 49 |
 | — | Glanceable spend presets, sticky top-fit dock, ranking bars | UX | Medium | Small / low | 47 app assertions cover presets, dock show/hide, hero net, and tucked reasons | Completed in Cycle 45 |
@@ -821,6 +874,5 @@ Fuss-free and optimizer checkboxes are intentionally mutually exclusive, but the
 
 ## Next cycle
 
-Local next: add ref-scoped stale/duplicate CI cancellation, then recheck the
-expiring OCBC and Standard Chartered offers on 2026-08-30.
-Workspace next: finish the small workflow guard, then rotate.
+Local next: recheck the expiring OCBC and Standard Chartered offers on
+2026-08-30. Workspace next: rotate until the enforced financial-data deadline.
