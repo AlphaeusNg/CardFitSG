@@ -48,10 +48,11 @@ console.log("CardFitSG engine tests\n");
   );
 }
 
-// Official issuer audit snapshot (2026-08-18)
+// Official issuer audit snapshot (2026-08-25)
 {
   const byId = Object.fromEntries(db.cards.map((card) => [card.id, card]));
-  assert(db.meta.asOf === "2026-08-18", "catalog audit date is current");
+  assert(db.meta.asOf === "2026-08-25", "catalog audit date is current");
+  assert(db.meta.reviewBy === "2026-08-30", "catalog review precedes the earliest offer end");
   assert(
     db.meta.sources.length === 6 && db.meta.sources.every((source) => /ocbc\.com|uob\.com\.sg|americanexpress\.com|sc\.com/.test(source)),
     "catalog cites one official issuer page per card"
@@ -90,8 +91,16 @@ console.log("CardFitSG engine tests\n");
     "UOB One tiers declare their fixed quarterly cashback"
   );
   assert(byId["ocbc-365"].flatRate === 0.0025, "OCBC 365 below-threshold rate is 0.25%");
+  assert(
+    /1%.*marketing.*no minimum.*no cap/i.test(byId["ocbc-365"].exclusionsNote),
+    "OCBC 365 discloses its independent marketing-expense rate without misapplying category caps"
+  );
   assert(byId["ocbc-365"].feeWaiverYears === 2, "OCBC 365 has a two-year fee waiver");
   assert(byId["ocbc-365"].signup.cashReward === 180, "OCBC 365 active cash reward is represented");
+  assert(
+    /not modeled.*partner.*grocery.*utilities/i.test(byId["uob-one"].exclusionsNote),
+    "UOB One discloses category cashback omitted from the generic-spend estimate"
+  );
 }
 
 // Cash rewards can disclose a bundled gift without adding it to ranking value

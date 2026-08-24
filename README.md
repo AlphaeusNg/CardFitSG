@@ -29,6 +29,8 @@ CardFitSG encodes that decision logic client-side with a dated card catalog (`da
 - Selected-tier fixed awards, spend/transaction conditions, and complete-quarter reward modeling
 - Amex acceptance toggle
 - Ranked estimates + concrete next-step plan
+- Side-by-side card comparison with official issuer links
+- Local restore of the last spend scenario (no account or server)
 - Full disclaimer: rates change; not financial advice
 
 ## Stack

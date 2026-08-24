@@ -1,17 +1,20 @@
 # CardFitSG continuous improvement log
 
-Last updated: 2026-08-18 (CardFitSG Cycle 46)
+Last updated: 2026-08-25 (CardFitSG Cycle 48)
 
 ## Current state
 
 - Branch: `main`; continuous-improvement commits are published to `origin/main` after verification.
 - Runtime: zero-build static HTML/CSS/JavaScript.
-- Verification: `node tools/test-engine.mjs` (117 assertions), `node
+- Verification: `node tools/test-engine.mjs` (120 assertions), `node
   tools/test-catalog-freshness.mjs` (17 assertions), the live catalog-deadline
   check, `node tools/test-site.mjs` (15 references/fragments), `node
   tools/test-app.mjs` (47 assertions), recursive JavaScript syntax checks, JSON
   catalog JSON parsing, and repository CI on Node 24 LTS.
-- Catalog snapshot: all six cards were rechecked against official issuer pages on 2026-08-18; `data/cards.json` declares `asOf` 2026-08-18 and `reviewBy` 2026-08-28 (before 2026-08-31 offer ends).
+- Catalog snapshot: all six cards and the current OCBC/UOB/SC promotion terms
+  were rechecked from official sources on 2026-08-25; `data/cards.json`
+  declares `asOf` 2026-08-25 and `reviewBy` 2026-08-30 (before the earliest
+  2026-08-31 offer ends).
 - UOB One's optimizer condition was reverified against UOB's product page, full
   terms, and FAQ on 2026-08-10; the official product page reconfirmed its
   fixed S$60/S$100/S$200 quarterly award structure on 2026-08-11.
@@ -21,9 +24,94 @@ Last updated: 2026-08-18 (CardFitSG Cycle 46)
 - Current OCBC, UOB, and Standard Chartered promotion terms reconfirmed on
   2026-08-11 that their modeled signup offers require respectively 12, 6, and
   12 months without the issuer's principal credit cards.
-- Catalog review policy: audit by 2026-08-24, seven days before the earliest dated offers end on 2026-08-31; daily CI enforces the boundary.
+- Catalog review policy: recheck by 2026-08-30, one day before the earliest
+  dated offers end on 2026-08-31; daily CI enforces the boundary.
 
-## Latest cycle: official catalog re-audit (2026-08-18)
+## Latest cycle: official-source audit and conservative disclosures (2026-08-25)
+
+### Why this was selected
+
+The catalog had only three days until its enforced review date, and its two
+OCBC/SC signup campaigns end on 31 August. Financial correctness and a fresh
+source trail outranked another interface feature. Durable state also lagged the
+already-shipped comparison feature by one cycle.
+
+### Changes
+
+- Rechecked all six official issuer product pages plus OCBC, UOB, and Standard
+  Chartered acquisition terms. Base rates, annual fees, 6/12-month issuer
+  lookbacks, signup amounts/windows, UOB One fixed quarterly awards, and AMEX's
+  six-month/S$5,000 intro remain unchanged.
+- Recorded OCBC 365's newly advertised 1% marketing-expense rate with no usual
+  minimum or cap as a disclosure. Generic-spend rankings do not assume a
+  marketing category or incorrectly apply the lifestyle cap to it.
+- Clarified that UOB One's estimate models the fixed quarterly award but not
+  its additional partner, grocery, and Singapore Power cashback because the
+  form does not collect a category mix.
+- Advanced `asOf` to 2026-08-25, `reviewBy` to 2026-08-30, and deployed version
+  to `2026.08.25.1`. README and this state now include Cycle 47's compare and
+  local scenario-restore features.
+
+### Verification and scores
+
+- Test-first: four assertions failed on the stale audit/review dates and absent
+  OCBC/UOB disclosures before the catalog change.
+- `node tools/test-engine.mjs`: 120 passed, 0 failed (up from 117).
+- `node tools/test-catalog-freshness.mjs`: 17 passed; the live sentinel reports
+  five days to review and 2026-08-31 as the earliest dated offer end.
+- `node tools/test-app.mjs`: 47 startup, event, eligibility, preset, dock, and
+  render assertions passed. `node tools/test-site.mjs`: 9 references and 4
+  fragments passed.
+- Correctness/reliability: 8/10 → 10/10 (current facts and omitted-rate scope are explicit).
+- Verifiability: 8/10 → 10/10 (snapshot date, next deadline, and both new disclosures are locked).
+- Maintainability: 8/10 → 9/10 (conditions stay in dated catalog data, not UI code).
+- Performance: 10/10 → 10/10 (data-only runtime change).
+- Security/robustness: 9/10 → 9/10 (no new external boundary; estimates remain conservative).
+- User experience: 8/10 → 9/10 (users can see what the generic estimate omits and why).
+
+### Lessons and process improvements
+
+- A new rate with different qualification/cap semantics should be disclosed,
+  not inserted into a shared rate bucket that would silently inherit the wrong
+  rules.
+- Source audits must compare both modeled values and explicit omissions.
+- Update durable state in the same shipping cycle; the comparison feature's
+  missing Cycle 47 entry made prioritization noisier than necessary.
+
+### Next opportunity
+
+Make card comparison truthful for non-flat products: replace the current raw
+`flatRate` line with style-aware summaries and add behavioral tests for compare
+selection plus saved-scenario recovery.
+
+## Previous cycle: compare cards and restore the last scenario (2026-08-18)
+
+### Why this was selected
+
+Rankings answered “what wins” but did not let users inspect two alternatives,
+and refreshing discarded a carefully entered scenario.
+
+### Changes
+
+- Added side-by-side card selectors with current-scenario net estimates and
+  direct official issuer links.
+- Added best-effort local persistence for one-off/monthly spend, horizon,
+  intent, modes, and Amex acceptance; malformed or unavailable storage fails
+  closed.
+- Added the top recommendation's official product link and bumped version to
+  `2026.08.18.5` (`4c9478d`).
+
+### Verification
+
+- The app harness confirms catalog options, compare output, official links,
+  and the local scenario key. The full 47 app assertions and existing engine,
+  freshness, site, syntax, CI, and Pages gates passed when shipped.
+
+### Next opportunity
+
+Execute the official-source catalog audit before the enforced review date.
+
+## Previous cycle: official catalog re-audit (2026-08-18)
 
 ### Why this was selected
 
@@ -555,7 +643,8 @@ Fuss-free and optimizer checkboxes are intentionally mutually exclusive, but the
 
 | Priority | Opportunity | Category | Impact | Effort / risk | Evidence / dependency |
 |---|---|---|---|---|---|
-| 1 | Execute the official-source catalog audit by 2026-08-24 | Process / data | High | Small / low | Daily CI now fails on the deadline; OCBC and SC offers end 2026-08-31 |
+| 1 | Recheck expiring OCBC and SC offers by 2026-08-30 | Process / data | High | Small / low | Daily CI fails on the deadline; both offers end 2026-08-31 |
+| 2 | Make compare summaries style-aware and behaviorally test selection/persistence | Correctness / UX / tests | Medium-high | Small / low | Category cards currently show only raw base rate; Cycle 47 tests do not dispatch compare/storage paths |
 | — | Glanceable spend presets, sticky top-fit dock, ranking bars | UX | Medium | Small / low | 47 app assertions cover presets, dock show/hide, hero net, and tucked reasons | Completed in Cycle 45 |
 | — | Collect issuer-level current/recent card history | Correctness / UX | Medium-high | Small-medium / low | Unlisted and cancelled principal cards now set the same eligibility set as catalog holdings | Completed in Cycle 44 |
 | — | Exclude known same-issuer signup ineligibility | Correctness / safety | High | Small-medium / low | 117 engine and 31 app assertions cover official 6/12-month rules, cash/gift suppression, schema, bypass, and composition | Completed in Cycle 43 |
@@ -566,5 +655,6 @@ Fuss-free and optimizer checkboxes are intentionally mutually exclusive, but the
 
 ## Next cycle
 
-Local next: execute the full official-source audit by 2026-08-24 and advance
-both `asOf` and `reviewBy`. Workspace next: rotate after this UX cycle.
+Local next: make comparison summaries style-aware and behaviorally test compare
+selection plus malformed/valid saved-scenario recovery. Workspace next: rotate
+after this financial-data cycle.
