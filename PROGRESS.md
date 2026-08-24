@@ -1,15 +1,15 @@
 # CardFitSG continuous improvement log
 
-Last updated: 2026-08-25 (CardFitSG Cycle 50)
+Last updated: 2026-08-25 (CardFitSG Cycle 51)
 
 ## Current state
 
 - Branch: `main`; continuous-improvement commits are published to `origin/main` after verification.
 - Runtime: zero-build static HTML/CSS/JavaScript.
-- Verification: `node tools/test-engine.mjs` (120 assertions), `node
+- Verification: `node tools/test-engine.mjs` (124 assertions), `node
   tools/test-catalog-freshness.mjs` (17 assertions), the live catalog-deadline
   check, `node tools/test-site.mjs` (15 references/fragments), `node
-  tools/test-app.mjs` (65 assertions), recursive JavaScript syntax checks, JSON
+  tools/test-app.mjs` (68 assertions), recursive JavaScript syntax checks, JSON
   catalog JSON parsing, and repository CI on Node 24 LTS.
 - Catalog snapshot: all six cards and the current OCBC/UOB/SC promotion terms
   were rechecked from official sources on 2026-08-25; `data/cards.json`
@@ -26,8 +26,65 @@ Last updated: 2026-08-25 (CardFitSG Cycle 50)
   12 months without the issuer's principal credit cards.
 - Catalog review policy: recheck by 2026-08-30, one day before the earliest
   dated offers end on 2026-08-31; daily CI enforces the boundary.
+- Deployment version: `2026.08.25.3`.
 
-## Latest cycle: reconcile completed backlog state (2026-08-25)
+## Latest cycle: fail closed on unsafe or mismatched issuer links (2026-08-25)
+
+### Why this was selected
+
+Catalog text was escaped consistently, but official product URLs were only
+attribute-encoded before entering `href`. Encoding quotes does not make a
+`javascript:` URL safe or prove that an HTTPS hostname belongs to the card's
+issuer. The positional `meta.sources` fallback also had no contract tying each
+URL to its corresponding card, so a reorder could send users to the wrong
+bank's product page.
+
+### Changes
+
+- Added one issuer-domain policy covering OCBC, UOB, American Express, and
+  Standard Chartered.
+- Require exactly one source URL per card, absolute HTTPS, no URL credentials,
+  and an exact or subdomain match for that card's issuer.
+- Apply the same policy to optional per-card `officialUrl` overrides.
+- Added engine contracts for unsafe schemes, issuer mismatches, lookalike
+  domains, and unsafe overrides, plus app-level fail-closed startup coverage.
+- Bumped deployment version to `2026.08.25.3`; card facts and dates are unchanged.
+
+### Verification and scores
+
+- Test-first: all four unsafe/mismatched URL fixtures passed validation, and
+  the application continued startup instead of showing its safe fatal state.
+- Engine 124, catalog freshness 17, app 68, site references/fragments, live
+  five-day deadline sentinel, recursive syntax, catalog/manifest JSON parsing,
+  and diff checks passed.
+- CardFit has no package manifest, lockfile, or runtime dependency; an
+  exploratory `npm audit` was therefore inapplicable and made no changes.
+- Duplicate hosted CI runs `32774933691` and `32774934265` both passed the same
+  commit. Pages run `32774933278` deployed successfully, and the live site
+  serves version `2026.08.25.3`.
+- Correctness/reliability: 5/10 → 10/10 (each source is tied to its card issuer).
+- Verifiability: 4/10 → 10/10 (four URL attacks and app startup are executable).
+- Maintainability: 7/10 → 9/10 (one domain policy owns both catalog URL paths).
+- Performance: 10/10 → 10/10 (six tiny URL parses occur once at startup).
+- Security/robustness: 3/10 → 10/10 (unsafe schemes and lookalikes fail closed).
+- User experience: 6/10 → 9/10 (an “Official page” link now proves its claim).
+
+### Lessons and process improvements
+
+- HTML attribute escaping and URL authorization solve different problems; a
+  safe `href` needs both.
+- Positional metadata needs a semantic alignment check, not only equal lengths.
+- Check whether a project has dependency metadata before running package-manager
+  audits; zero-dependency static checks are the correct gate here.
+- Two CI runs started for one push. Add ref-scoped stale-run cancellation so a
+  duplicated or superseded event cannot consume two complete hosted gates.
+
+### Next opportunity
+
+Add tested ref-scoped concurrency cancellation to CardFit CI, then rotate until
+the enforced 30 August official-source review date.
+
+## Previous cycle: reconcile completed backlog state (2026-08-25)
 
 ### Why this was selected
 
@@ -750,7 +807,9 @@ Fuss-free and optimizer checkboxes are intentionally mutually exclusive, but the
 
 | Priority | Opportunity | Category | Impact | Effort / risk | Evidence / dependency | Status |
 |---|---|---|---|---|---|---|
-| 1 | Recheck expiring OCBC and SC offers by 2026-08-30 | Process / data | High | Small / low | Daily CI fails on the deadline; both offers end 2026-08-31 | Pending — due 2026-08-30 |
+| 1 | Add ref-scoped stale/duplicate CI cancellation | Process / efficiency | Medium | Small / low | Runs 32774933691 and 32774934265 executed the same push concurrently | Pending |
+| 2 | Recheck expiring OCBC and SC offers by 2026-08-30 | Process / data | High | Small / low | Daily CI fails on the deadline; both offers end 2026-08-31 | Pending — due 2026-08-30 |
+| — | Validate official URLs against each card issuer | Correctness / security | High | Small / low | Engine 124 and app 68 reject schemes, lookalikes, mismatches, and unsafe overrides | Completed in Cycle 51 |
 | — | Make compare summaries style-aware and behaviorally test selection/persistence | Correctness / UX / tests | Medium-high | Small / low | Cycle 49 derives all four earning styles and exercises 65 app/storage assertions | Completed in Cycle 49 |
 | — | Glanceable spend presets, sticky top-fit dock, ranking bars | UX | Medium | Small / low | 47 app assertions cover presets, dock show/hide, hero net, and tucked reasons | Completed in Cycle 45 |
 | — | Collect issuer-level current/recent card history | Correctness / UX | Medium-high | Small-medium / low | Unlisted and cancelled principal cards now set the same eligibility set as catalog holdings | Completed in Cycle 44 |
@@ -762,5 +821,6 @@ Fuss-free and optimizer checkboxes are intentionally mutually exclusive, but the
 
 ## Next cycle
 
-Local next: recheck the expiring OCBC and Standard Chartered offers on
-2026-08-30. Workspace next: rotate until the enforced financial-data deadline.
+Local next: add ref-scoped stale/duplicate CI cancellation, then recheck the
+expiring OCBC and Standard Chartered offers on 2026-08-30.
+Workspace next: finish the small workflow guard, then rotate.
