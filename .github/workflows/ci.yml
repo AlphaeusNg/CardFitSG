@@ -11,6 +11,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: cardfitsg-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -20,6 +24,8 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: "24"
+      - name: Workflow policy
+        run: node tools/test-workflow.mjs
       - name: Recommendation engine tests
         run: node tools/test-engine.mjs
       - name: Catalog freshness policy tests
