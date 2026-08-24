@@ -193,6 +193,7 @@ async function boot(
     requestAnimationFrame(callback) {
       callback();
     },
+    URL,
     localStorage,
     setTimeout,
     clearTimeout,
@@ -263,6 +264,24 @@ async function boot(
     /current or recent UOB card/i,
     "recent issuer exclusion is visible in the ranking"
   );
+}
+
+{
+  const unsafeCatalog = JSON.parse(JSON.stringify(catalog));
+  unsafeCatalog.meta.sources[0] = "javascript:alert('unsafe')";
+  const result = await boot({
+    ok: true,
+    status: 200,
+    async json() {
+      return unsafeCatalog;
+    },
+  });
+  assert.equal(result.elements.fatal.hidden, false, "unsafe official links fail startup closed");
+  assert(
+    result.errors.some((error) => /meta\.sources\[0\].*HTTPS/i.test(error)),
+    "unsafe link details are logged"
+  );
+  assert.equal(result.elements.primary.innerHTML, "", "unsafe links never reach recommendation markup");
 }
 
 {
@@ -457,4 +476,4 @@ async function boot(
   assert(result.errors.some((error) => /HTTP 503/.test(error)), "HTTP status is logged for diagnosis");
 }
 
-console.log("test-app.mjs: 65 startup, event, persistence, compare, preset, dock, and render assertions passed");
+console.log("test-app.mjs: 68 startup, event, persistence, compare, preset, dock, and render assertions passed");

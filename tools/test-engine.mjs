@@ -11,7 +11,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const db = JSON.parse(readFileSync(join(root, "data/cards.json"), "utf8"));
 const src = readFileSync(join(root, "js/engine.js"), "utf8");
 
-const sandbox = { window: {}, console };
+const sandbox = { window: {}, console, URL };
 sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
 vm.runInContext(src, sandbox);
@@ -165,6 +165,42 @@ assert(db.cards.length >= 5, "has card catalog");
   if (typeof E.validateCatalog === "function") {
     const valid = E.validateCatalog(db);
     assert(valid.valid && valid.errors.length === 0, "current catalog satisfies engine contract");
+
+    const unsafeSource = JSON.parse(JSON.stringify(db));
+    unsafeSource.meta.sources[0] = "javascript:alert('unsafe')";
+    const unsafeSourceResult = E.validateCatalog(unsafeSource);
+    assert(
+      !unsafeSourceResult.valid &&
+        unsafeSourceResult.errors.some((error) => /meta\.sources\[0\].*HTTPS/i.test(error)),
+      "official source links must use HTTPS"
+    );
+
+    const wrongIssuerSource = JSON.parse(JSON.stringify(db));
+    wrongIssuerSource.meta.sources[0] = db.meta.sources[1];
+    const wrongIssuerSourceResult = E.validateCatalog(wrongIssuerSource);
+    assert(
+      !wrongIssuerSourceResult.valid &&
+        wrongIssuerSourceResult.errors.some((error) => /meta\.sources\[0\].*official OCBC/i.test(error)),
+      "positional source links must match the card issuer"
+    );
+
+    const lookalikeSource = JSON.parse(JSON.stringify(db));
+    lookalikeSource.meta.sources[0] = "https://ocbc.com.evil.example/card";
+    const lookalikeSourceResult = E.validateCatalog(lookalikeSource);
+    assert(
+      !lookalikeSourceResult.valid &&
+        lookalikeSourceResult.errors.some((error) => /meta\.sources\[0\].*official OCBC/i.test(error)),
+      "issuer-domain lookalikes are rejected"
+    );
+
+    const unsafeOverride = JSON.parse(JSON.stringify(db));
+    unsafeOverride.cards[0].officialUrl = "javascript:alert('override')";
+    const unsafeOverrideResult = E.validateCatalog(unsafeOverride);
+    assert(
+      !unsafeOverrideResult.valid &&
+        unsafeOverrideResult.errors.some((error) => /cards\[0\]\.officialUrl.*HTTPS/i.test(error)),
+      "per-card official URL overrides share the safe-link contract"
+    );
 
     const duplicate = JSON.parse(JSON.stringify(db));
     duplicate.cards[1].id = duplicate.cards[0].id;

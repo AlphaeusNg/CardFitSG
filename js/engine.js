@@ -7,6 +7,12 @@
   /** Cap absurd inputs so metrics stay finite. */
   const MAX_SPEND = 1e8;
   const MAX_HORIZON_MONTHS = 120;
+  const OFFICIAL_ISSUER_DOMAINS = Object.freeze({
+    OCBC: "ocbc.com",
+    UOB: "uob.com.sg",
+    "American Express": "americanexpress.com",
+    "Standard Chartered": "sc.com",
+  });
 
   function clampSpend(n) {
     const v = Number(n);
@@ -66,6 +72,29 @@
       }
     };
     const requireRate = (value, path) => requireNumber(value, path, { min: 0, max: 1 });
+    const requireOfficialUrl = (value, path, issuer) => {
+      let parsed;
+      try {
+        parsed = new URL(value);
+      } catch {
+        errors.push(`${path} must be an absolute HTTPS URL`);
+        return;
+      }
+      if (parsed.protocol !== "https:") {
+        errors.push(`${path} must use HTTPS`);
+        return;
+      }
+      if (parsed.username || parsed.password) {
+        errors.push(`${path} must not contain URL credentials`);
+      }
+      const domain = OFFICIAL_ISSUER_DOMAINS[issuer];
+      const hostname = parsed.hostname.toLowerCase();
+      if (!domain || (hostname !== domain && !hostname.endsWith(`.${domain}`))) {
+        errors.push(
+          `${path} must use the official ${issuer || "issuer"} domain${domain ? ` (${domain})` : ""}`
+        );
+      }
+    };
 
     if (!isRecord(db)) return { valid: false, errors: ["catalog must be an object"] };
     if (!isRecord(db.meta)) {
@@ -77,6 +106,9 @@
     if (!Array.isArray(db.cards) || db.cards.length === 0) {
       errors.push("cards must be a non-empty array");
       return { valid: false, errors };
+    }
+    if (!Array.isArray(db.meta?.sources) || db.meta.sources.length !== db.cards.length) {
+      errors.push("meta.sources must contain one official URL per card");
     }
 
     const ids = new Set();
@@ -91,6 +123,12 @@
       ["id", "name", "issuer", "network", "style"].forEach((key) =>
         requireString(card[key], `${path}.${key}`)
       );
+      if (Array.isArray(db.meta?.sources)) {
+        requireOfficialUrl(db.meta.sources[index], `meta.sources[${index}]`, card.issuer);
+      }
+      if (card.officialUrl != null) {
+        requireOfficialUrl(card.officialUrl, `${path}.officialUrl`, card.issuer);
+      }
       if (typeof card.id === "string" && card.id.trim()) {
         if (ids.has(card.id)) errors.push(`${path}.id has duplicate card ID "${card.id}"`);
         ids.add(card.id);
