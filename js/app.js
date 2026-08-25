@@ -153,6 +153,27 @@
     return Number.isFinite(n) && n >= 0 ? n : null;
   }
 
+  function csvList(value) {
+    if (!value || typeof value !== "string") return [];
+    return value
+      .split(",")
+      .map((part) => part.trim())
+      .filter(Boolean);
+  }
+
+  function knownCardIds() {
+    return new Set((db?.cards || []).map((card) => card.id).filter(Boolean));
+  }
+
+  function knownIssuers() {
+    return new Set((db?.cards || []).map((card) => card.issuer).filter(Boolean));
+  }
+
+  function allowedList(values, known) {
+    if (!Array.isArray(values) || !known?.size) return [];
+    return [...new Set(values.filter((value) => known.has(value)))].sort();
+  }
+
   function scenarioFromSearch(search) {
     if (!search || typeof search !== "string") return null;
     const params = new URLSearchParams(search[0] === "?" ? search.slice(1) : search);
@@ -175,6 +196,10 @@
     if (params.get("amex") === "0" || params.get("amex") === "1") {
       record.amexOk = params.get("amex") === "1";
     }
+    const hold = allowedList(csvList(params.get("hold")), knownCardIds());
+    if (hold.length) record.existingCardIds = hold;
+    const issuers = allowedList(csvList(params.get("issuers")), knownIssuers());
+    if (issuers.length) record.recentIssuers = issuers;
     return Object.keys(record).length ? record : null;
   }
 
@@ -187,6 +212,10 @@
     params.set("fuss", scenario.preferFussFree ? "1" : "0");
     params.set("opt", scenario.optimizerMode ? "1" : "0");
     params.set("amex", scenario.amexOk ? "1" : "0");
+    const hold = allowedList(scenario.existingCardIds, knownCardIds());
+    if (hold.length) params.set("hold", hold.join(","));
+    const issuers = allowedList(scenario.recentIssuers, knownIssuers());
+    if (issuers.length) params.set("issuers", issuers.join(","));
     return params.toString();
   }
 
@@ -229,6 +258,18 @@
     if (typeof saved.optimizerMode === "boolean" && $("#optimizer")) $("#optimizer").checked = saved.optimizerMode;
     if (typeof saved.amexOk === "boolean" && $("#amexOk")) $("#amexOk").checked = saved.amexOk;
     if ($("#fussFree")?.checked && $("#optimizer")?.checked) $("#optimizer").checked = false;
+    if (Array.isArray(saved.existingCardIds)) {
+      const hold = new Set(allowedList(saved.existingCardIds, knownCardIds()));
+      $$('input[name="existing"]').forEach((el) => {
+        el.checked = hold.has(el.value);
+      });
+    }
+    if (Array.isArray(saved.recentIssuers)) {
+      const issuers = new Set(allowedList(saved.recentIssuers, knownIssuers()));
+      $$('input[name="recent-issuer"]').forEach((el) => {
+        el.checked = issuers.has(el.value);
+      });
+    }
   }
 
   function signupExpiryLine(card, asOfYmd) {
@@ -324,6 +365,7 @@
       monthly: Number($("#monthly").value) || 0,
       months: Number($("#months").value) || 12,
       existingCardIds: existing,
+      recentIssuers,
       existingIssuers,
       preferFussFree: $("#fussFree").checked,
       optimizerMode: $("#optimizer").checked,
@@ -351,6 +393,8 @@
         preferFussFree: scenario.preferFussFree,
         optimizerMode: scenario.optimizerMode,
         amexOk: scenario.amexOk,
+        existingCardIds: scenario.existingCardIds || [],
+        recentIssuers: scenario.recentIssuers || [],
       }));
     } catch {
       /* fail closed */

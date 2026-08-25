@@ -1,6 +1,6 @@
 # CardFitSG continuous improvement log
 
-Last updated: 2026-08-25 (CardFitSG Cycle 53)
+Last updated: 2026-08-25 (CardFitSG Cycle 54)
 
 ## Current state
 
@@ -10,7 +10,7 @@ Last updated: 2026-08-25 (CardFitSG Cycle 53)
   (124 assertions), `node
   tools/test-catalog-freshness.mjs` (17 assertions), the live catalog-deadline
   check, `node tools/test-site.mjs` (15 references/fragments), `node
-  tools/test-app.mjs` (75 assertions), recursive JavaScript syntax checks, JSON
+  tools/test-app.mjs` (85 assertions), recursive JavaScript syntax checks, JSON
   catalog JSON parsing, and repository CI on Node 24 LTS.
 - Catalog snapshot: all six cards and the current OCBC/UOB/SC promotion terms
   were rechecked from official sources on 2026-08-25; `data/cards.json`
@@ -27,9 +27,23 @@ Last updated: 2026-08-25 (CardFitSG Cycle 53)
   12 months without the issuer's principal credit cards.
 - Catalog review policy: recheck by 2026-08-30, one day before the earliest
   dated offers end on 2026-08-31; daily CI enforces the boundary.
-- Deployment version: `2026.08.25.4`.
+- Deployment version: `2026.08.25.5`.
 
-## Latest cycle: share a scenario as a URL (2026-08-25)
+## Latest cycle: share wallet and issuer history in the URL (2026-08-25)
+
+### Why this was selected
+
+Copy link restored spend and flags, but not cards already held or recent
+issuer lookbacks. A partner reopening the URL saw signup cash that the sender
+had already excluded.
+
+### Changes
+
+- Encode held catalog cards as `hold=` and extra recent issuers as `issuers=`.
+- Boot restores those checkboxes; unknown tokens are dropped.
+- Version `2026.08.25.5`.
+
+## Previous cycle: share a scenario as a URL (2026-08-25)
 
 ### Why this was selected
 

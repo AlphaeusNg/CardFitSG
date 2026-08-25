@@ -106,14 +106,20 @@ function makeDocument(existingCardIds = [], recentIssuers = []) {
     elements.optimizer,
     elements.amexOk,
   ];
-  const checkedExisting = existingCardIds.map((value) => ({ value }));
-  const checkedRecentIssuers = recentIssuers.map((value) => ({ value }));
+  const existingBoxes = catalog.cards.map((card) =>
+    makeElement({ value: card.id, checked: existingCardIds.includes(card.id) })
+  );
+  const recentIssuerBoxes = [...new Set(catalog.cards.map((card) => card.issuer))].map((issuer) =>
+    makeElement({ value: issuer, checked: recentIssuers.includes(issuer) })
+  );
   const presetButtons = [
     makePresetButton("3500", "1200"),
     makePresetButton("0", "1200"),
     makePresetButton("8000", "1200"),
   ];
   elements.presets = presetButtons;
+  elements.existingBoxes = existingBoxes;
+  elements.recentIssuerBoxes = recentIssuerBoxes;
 
   return {
     elements,
@@ -127,8 +133,14 @@ function makeDocument(existingCardIds = [], recentIssuers = []) {
       },
       querySelectorAll(selector) {
         if (selector === "#form input, #form select") return formControls;
-        if (selector === 'input[name="existing"]:checked') return checkedExisting;
-        if (selector === 'input[name="recent-issuer"]:checked') return checkedRecentIssuers;
+        if (selector === 'input[name="existing"]') return existingBoxes;
+        if (selector === 'input[name="existing"]:checked') {
+          return existingBoxes.filter((box) => box.checked);
+        }
+        if (selector === 'input[name="recent-issuer"]') return recentIssuerBoxes;
+        if (selector === 'input[name="recent-issuer"]:checked') {
+          return recentIssuerBoxes.filter((box) => box.checked);
+        }
         if (selector === "[data-preset]") return presetButtons;
         return [];
       },
@@ -538,4 +550,68 @@ async function boot(
   );
 }
 
-console.log("test-app.mjs: 75 startup, event, persistence, compare, preset, dock, share-link, and render assertions passed");
+{
+  const result = await boot(
+    {
+      ok: true,
+      status: 200,
+      async json() {
+        return JSON.parse(JSON.stringify(catalog));
+      },
+    },
+    { search: "?oneOff=3500&monthly=1200&hold=ocbc-infinity&issuers=UOB" }
+  );
+  assert.deepEqual(
+    result.elements.existingBoxes.filter((box) => box.checked).map((box) => box.value),
+    ["ocbc-infinity"],
+    "shared URL restores held catalog cards"
+  );
+  assert.deepEqual(
+    result.elements.recentIssuerBoxes.filter((box) => box.checked).map((box) => box.value),
+    ["UOB"],
+    "shared URL restores recent issuer history"
+  );
+  assert.equal(
+    result.scenarios.at(-1).existingCardIds.join(","),
+    "ocbc-infinity",
+    "restored wallet reaches ranking"
+  );
+  assert.equal(
+    result.scenarios.at(-1).recentIssuers.join(","),
+    "UOB",
+    "restored issuer history reaches ranking"
+  );
+  assert.equal(
+    result.recommendations.at(-1).ranked.find((score) => score.card.id === "ocbc-365").signupCash,
+    0,
+    "shared OCBC wallet excludes same-issuer signup cash"
+  );
+  assert.equal(
+    result.recommendations.at(-1).ranked.find((score) => score.card.id === "uob-absolute").signupCash,
+    0,
+    "shared UOB history excludes UOB signup cash"
+  );
+  const encoded = result.sandbox.window.CardFitApp.scenarioSearch(result.scenarios.at(-1));
+  assert.match(encoded, /hold=ocbc-infinity/, "canonical share URL keeps held cards");
+  assert.match(encoded, /issuers=UOB/, "canonical share URL keeps recent issuers");
+}
+
+{
+  const result = await boot(
+    {
+      ok: true,
+      status: 200,
+      async json() {
+        return JSON.parse(JSON.stringify(catalog));
+      },
+    }
+  );
+  const parsed = result.sandbox.window.CardFitApp.scenarioFromSearch(
+    "?oneOff=3500&hold=not-a-card&issuers=NotABank"
+  );
+  assert.equal(parsed.oneOff, 3500, "spend still parses when wallet tokens are junk");
+  assert.equal(parsed.existingCardIds, undefined, "unknown held cards are dropped");
+  assert.equal(parsed.recentIssuers, undefined, "unknown issuers are dropped");
+}
+
+console.log("test-app.mjs: 85 startup, event, persistence, compare, preset, dock, share-link, and render assertions passed");
