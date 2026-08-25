@@ -1,6 +1,6 @@
 # CardFitSG continuous improvement log
 
-Last updated: 2026-08-25 (CardFitSG Cycle 52)
+Last updated: 2026-08-25 (CardFitSG Cycle 53)
 
 ## Current state
 
@@ -10,7 +10,7 @@ Last updated: 2026-08-25 (CardFitSG Cycle 52)
   (124 assertions), `node
   tools/test-catalog-freshness.mjs` (17 assertions), the live catalog-deadline
   check, `node tools/test-site.mjs` (15 references/fragments), `node
-  tools/test-app.mjs` (68 assertions), recursive JavaScript syntax checks, JSON
+  tools/test-app.mjs` (75 assertions), recursive JavaScript syntax checks, JSON
   catalog JSON parsing, and repository CI on Node 24 LTS.
 - Catalog snapshot: all six cards and the current OCBC/UOB/SC promotion terms
   were rechecked from official sources on 2026-08-25; `data/cards.json`
@@ -27,9 +27,29 @@ Last updated: 2026-08-25 (CardFitSG Cycle 52)
   12 months without the issuer's principal credit cards.
 - Catalog review policy: recheck by 2026-08-30, one day before the earliest
   dated offers end on 2026-08-31; daily CI enforces the boundary.
-- Deployment version: `2026.08.25.3`.
+- Deployment version: `2026.08.25.4`.
 
-## Latest cycle: cancel duplicate and stale CI work (2026-08-25)
+## Latest cycle: share a scenario as a URL (2026-08-25)
+
+### Why this was selected
+
+Copy result pasted the generic site URL. Partners on WhatsApp could not reopen
+the same one-off, monthly, horizon, and flags. Saved localStorage helped only
+the same browser.
+
+### Changes
+
+- Encode oneOff, monthly, months, goal, fuss, optimizer, and Amex into the query.
+- Boot prefers the shared URL over the last local scenario.
+- Ranking `replaceState`s the canonical query so the address bar matches the screen.
+- Top fit adds Copy link; Copy result now includes that same scenario URL.
+- Version `2026.08.25.4`.
+
+### Next opportunity
+
+Recheck the expiring OCBC and Standard Chartered offers on 30 August 2026.
+
+## Previous cycle: cancel duplicate and stale CI work (2026-08-25)
 
 ### Why this was selected
 

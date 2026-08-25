@@ -137,11 +137,98 @@
     $("#compare-a")?.addEventListener("change", renderCompare);
     $("#compare-b")?.addEventListener("change", renderCompare);
     document.addEventListener("click", (event) => {
-      const btn = event.target && event.target.closest && event.target.closest("#copy-result");
-      if (!btn) return;
-      copyTopFit(btn);
+      const copyResult = event.target && event.target.closest && event.target.closest("#copy-result");
+      if (copyResult) {
+        copyTopFit(copyResult);
+        return;
+      }
+      const copyLink = event.target && event.target.closest && event.target.closest("#copy-link");
+      if (copyLink) copyScenarioLink(copyLink);
     });
     markActivePreset();
+  }
+
+  function parseFiniteAmount(value) {
+    const n = Number(value);
+    return Number.isFinite(n) && n >= 0 ? n : null;
+  }
+
+  function scenarioFromSearch(search) {
+    if (!search || typeof search !== "string") return null;
+    const params = new URLSearchParams(search[0] === "?" ? search.slice(1) : search);
+    if (![...params.keys()].length) return null;
+    const record = {};
+    const oneOff = parseFiniteAmount(params.get("oneOff"));
+    const monthly = parseFiniteAmount(params.get("monthly"));
+    const months = Number(params.get("months"));
+    if (oneOff != null) record.oneOff = oneOff;
+    if (monthly != null) record.monthly = monthly;
+    if (months === 6 || months === 12 || months === 24) record.months = months;
+    const goal = params.get("goal");
+    if (goal === "long_term" || goal === "keep" || goal === "acquire") record.intent = goal;
+    if (params.get("fuss") === "0" || params.get("fuss") === "1") {
+      record.preferFussFree = params.get("fuss") === "1";
+    }
+    if (params.get("opt") === "0" || params.get("opt") === "1") {
+      record.optimizerMode = params.get("opt") === "1";
+    }
+    if (params.get("amex") === "0" || params.get("amex") === "1") {
+      record.amexOk = params.get("amex") === "1";
+    }
+    return Object.keys(record).length ? record : null;
+  }
+
+  function scenarioSearch(scenario) {
+    const params = new URLSearchParams();
+    params.set("oneOff", String(Math.round(Number(scenario.oneOff) || 0)));
+    params.set("monthly", String(Math.round(Number(scenario.monthly) || 0)));
+    params.set("months", String(scenario.months === 6 || scenario.months === 24 ? scenario.months : 12));
+    params.set("goal", scenario.intent === "long_term" || scenario.intent === "keep" ? scenario.intent : "acquire");
+    params.set("fuss", scenario.preferFussFree ? "1" : "0");
+    params.set("opt", scenario.optimizerMode ? "1" : "0");
+    params.set("amex", scenario.amexOk ? "1" : "0");
+    return params.toString();
+  }
+
+  function scenarioPageUrl(scenario) {
+    try {
+      const url = new URL(String(location.href || "https://alphaeusng.github.io/CardFitSG/"));
+      url.search = scenarioSearch(scenario);
+      url.hash = "";
+      return url.toString();
+    } catch {
+      return String(location.href || "").split("#")[0] || "https://alphaeusng.github.io/CardFitSG/";
+    }
+  }
+
+  function writeScenarioLink(scenario) {
+    try {
+      const url = new URL(String(location.href || "https://alphaeusng.github.io/CardFitSG/"));
+      url.search = scenarioSearch(scenario);
+      const next = `${url.pathname}${url.search}${url.hash}`;
+      const current = `${location.pathname || ""}${location.search || ""}${location.hash || ""}`;
+      if (next !== current && typeof history.replaceState === "function") {
+        history.replaceState(null, "", next);
+      }
+    } catch {
+      /* fail closed */
+    }
+  }
+
+  function applyScenarioRecord(saved) {
+    if (!saved || typeof saved !== "object") return;
+    if (Number.isFinite(saved.oneOff) && $("#oneOff")) $("#oneOff").value = saved.oneOff;
+    if (Number.isFinite(saved.monthly) && $("#monthly")) $("#monthly").value = saved.monthly;
+    if (Number.isFinite(saved.months) && $("#months")) $("#months").value = String(saved.months);
+    if ($("#goal")) {
+      if (saved.intent === "long_term") $("#goal").value = "long_term";
+      else if (saved.intent === "keep") $("#goal").value = "keep";
+      else if (saved.intent === "acquire") $("#goal").value = "acquire";
+    }
+    if (typeof saved.preferFussFree === "boolean" && $("#fussFree")) $("#fussFree").checked = saved.preferFussFree;
+    if (typeof saved.optimizerMode === "boolean" && $("#optimizer")) $("#optimizer").checked = saved.optimizerMode;
+    if (typeof saved.amexOk === "boolean" && $("#amexOk")) $("#amexOk").checked = saved.amexOk;
+    if ($("#fussFree")?.checked && $("#optimizer")?.checked) $("#optimizer").checked = false;
   }
 
   function signupExpiryLine(card, asOfYmd) {
@@ -159,16 +246,33 @@
 
   function copyTopFit(btn) {
     if (!db) return;
-    const result = CardFitEngine.recommend(db, scenarioFromForm());
+    const scenario = scenarioFromForm();
+    const result = CardFitEngine.recommend(db, scenario);
     const p = result?.primary;
     if (!p) return;
-    const line = `CardFitSG top fit: ${p.card.name} · S$${fmt(p.net)} est. net over ${result.scenario.months} months. Educational only, not financial advice. ${location.href.split("#")[0]}`;
+    const line = `CardFitSG top fit: ${p.card.name} · S$${fmt(p.net)} est. net over ${result.scenario.months} months. Educational only, not financial advice. ${scenarioPageUrl(scenario)}`;
     const done = () => {
       btn.textContent = "Copied";
       setTimeout(() => { btn.textContent = "Copy result"; }, 1600);
     };
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(line).then(done).catch(() => {
+        btn.textContent = "Copy failed";
+      });
+      return;
+    }
+    btn.textContent = "Copy failed";
+  }
+
+  function copyScenarioLink(btn) {
+    if (!db) return;
+    const url = scenarioPageUrl(scenarioFromForm());
+    const done = () => {
+      btn.textContent = "Link copied";
+      setTimeout(() => { btn.textContent = "Copy link"; }, 1600);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(done).catch(() => {
         btn.textContent = "Copy failed";
       });
       return;
@@ -255,22 +359,15 @@
 
   function restoreScenario() {
     try {
+      const fromUrl = scenarioFromSearch(location.search);
+      if (fromUrl) {
+        applyScenarioRecord(fromUrl);
+        return;
+      }
       const raw = globalThis.localStorage?.getItem(SCENARIO_KEY);
       if (!raw) return;
       const saved = JSON.parse(raw);
-      if (!saved || typeof saved !== "object") return;
-      if (Number.isFinite(saved.oneOff) && $("#oneOff")) $("#oneOff").value = saved.oneOff;
-      if (Number.isFinite(saved.monthly) && $("#monthly")) $("#monthly").value = saved.monthly;
-      if (Number.isFinite(saved.months) && $("#months")) $("#months").value = String(saved.months);
-      if ($("#goal")) {
-        if (saved.intent === "long_term") $("#goal").value = "long_term";
-        else if (saved.intent === "keep") $("#goal").value = "keep";
-        else if (saved.intent === "acquire") $("#goal").value = "acquire";
-      }
-      if (typeof saved.preferFussFree === "boolean" && $("#fussFree")) $("#fussFree").checked = saved.preferFussFree;
-      if (typeof saved.optimizerMode === "boolean" && $("#optimizer")) $("#optimizer").checked = saved.optimizerMode;
-      if (typeof saved.amexOk === "boolean" && $("#amexOk")) $("#amexOk").checked = saved.amexOk;
-      if ($("#fussFree")?.checked && $("#optimizer")?.checked) $("#optimizer").checked = false;
+      applyScenarioRecord(saved);
     } catch {
       /* fail closed */
     }
@@ -353,6 +450,7 @@
     if (!db) return;
     const scenario = scenarioFromForm();
     persistScenario(scenario);
+    writeScenarioLink(scenario);
     const result = CardFitEngine.recommend(db, scenario);
     lastResult = result;
     renderResult(result);
@@ -416,7 +514,7 @@
         <div class="metric"><b>${c.fussFreeScore}</b><span>Fuss-free score / 100</span></div>
       </div>
       ${expiry ? `<p class="muted tiny">${escapeHtml(expiry)}</p>` : ""}
-      <p>${officialUrl(c) ? `<a class="btn" href="${escapeAttr(officialUrl(c))}" target="_blank" rel="noopener">Official product page</a> ` : ""}<button type="button" class="btn" id="copy-result">Copy result</button></p>
+      <p>${officialUrl(c) ? `<a class="btn" href="${escapeAttr(officialUrl(c))}" target="_blank" rel="noopener">Official product page</a> ` : ""}<button type="button" class="btn" id="copy-result">Copy result</button> <button type="button" class="btn" id="copy-link">Copy link</button></p>
       <ul class="reasons">
         ${p.rankReasons.map((r) => `<li>${escapeHtml(r)}</li>`).join("")}
         ${c.pros.slice(0, 3).map((r) => `<li>${escapeHtml(r)}</li>`).join("")}
@@ -541,7 +639,7 @@
     };
   }
 
-  window.CardFitApp = { run, scenarioFromForm };
+  window.CardFitApp = { run, scenarioFromForm, scenarioSearch, scenarioFromSearch, scenarioPageUrl };
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init);

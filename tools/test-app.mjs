@@ -169,17 +169,35 @@ function makeStorage(initialValue) {
 
 async function boot(
   response,
-  { existingCardIds = [], recentIssuers = [], savedScenario } = {}
+  { existingCardIds = [], recentIssuers = [], savedScenario, search = "" } = {}
 ) {
   const { document, elements } = makeDocument(existingCardIds, recentIssuers);
   const errors = [];
   const scenarios = [];
   const recommendations = [];
+  const replacedUrls = [];
   const localStorage = makeStorage(savedScenario);
+  const location = {
+    href: `https://alphaeusng.github.io/CardFitSG/${search}`,
+    pathname: "/CardFitSG/",
+    search,
+    hash: "",
+  };
   const sandbox = {
     window: {
       scrollY: 0,
       addEventListener() {},
+    },
+    location,
+    history: {
+      replaceState(_state, _title, url) {
+        replacedUrls.push(String(url));
+        const next = new URL(String(url), "https://alphaeusng.github.io");
+        location.href = next.toString();
+        location.pathname = next.pathname;
+        location.search = next.search;
+        location.hash = next.hash;
+      },
     },
     document,
     fetch: async () => response,
@@ -194,6 +212,7 @@ async function boot(
       callback();
     },
     URL,
+    URLSearchParams,
     localStorage,
     setTimeout,
     clearTimeout,
@@ -212,7 +231,7 @@ async function boot(
   };
   vm.runInContext(appSource, sandbox, { filename: "js/app.js" });
   await new Promise((resolvePromise) => setImmediate(resolvePromise));
-  return { elements, errors, localStorage, sandbox, scenarios, recommendations };
+  return { elements, errors, localStorage, sandbox, scenarios, recommendations, replacedUrls };
 }
 
 {
@@ -476,4 +495,47 @@ async function boot(
   assert(result.errors.some((error) => /HTTP 503/.test(error)), "HTTP status is logged for diagnosis");
 }
 
-console.log("test-app.mjs: 68 startup, event, persistence, compare, preset, dock, and render assertions passed");
+{
+  const result = await boot(
+    {
+      ok: true,
+      status: 200,
+      async json() {
+        return JSON.parse(JSON.stringify(catalog));
+      },
+    },
+    {
+      savedScenario: JSON.stringify({
+        oneOff: 900,
+        monthly: 1800,
+        months: 24,
+        intent: "long_term",
+        preferFussFree: true,
+        optimizerMode: false,
+        amexOk: true,
+      }),
+      search: "?oneOff=8000&monthly=0&months=6",
+    }
+  );
+  assert.equal(result.elements.oneOff.value, 8000, "shared URL one-off overrides saved scenario");
+  assert.equal(result.elements.monthly.value, 0, "shared URL monthly overrides saved scenario");
+  assert.equal(result.elements.months.value, "6", "shared URL horizon overrides saved scenario");
+  assert.equal(result.elements.goal.value, "acquire", "shared URL goal overrides saved scenario");
+  assert.equal(result.elements.amexOk.checked, false, "shared URL Amex flag overrides saved scenario");
+  assert.match(
+    result.sandbox.window.CardFitApp.scenarioSearch(result.scenarios.at(-1)),
+    /oneOff=8000/,
+    "live ranking is encoded back into the share query"
+  );
+  assert(
+    result.replacedUrls.some((url) => url.includes("oneOff=8000") && url.includes("months=6")),
+    "boot writes the canonical share URL"
+  );
+  assert.match(
+    result.elements.primary.innerHTML,
+    /id="copy-link"/,
+    "top fit exposes a copy-link control"
+  );
+}
+
+console.log("test-app.mjs: 75 startup, event, persistence, compare, preset, dock, share-link, and render assertions passed");
