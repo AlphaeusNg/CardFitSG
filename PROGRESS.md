@@ -65,6 +65,11 @@ reachable from a recommendation.
 - Engine 128, freshness 17, app 86, site 13 references/fragments, workflow 14,
   live two-day deadline, recursive syntax, catalog/manifest JSON, and diff
   checks pass locally.
+- Hosted CI run `33097431797` passed every gate; Pages run `33097430186`
+  deployed successfully. The public site serves version `2026.08.28.1`, audit
+  date 2026-08-28, review date 2026-08-30, all five dated terms links, and the
+  `Offer terms` action. Each of the three distinct deployed terms URLs returns
+  HTTP 200 from its issuer domain.
 - Correctness/reliability: 7/10 -> 10/10 (offer claims now carry their own
   validated source rather than borrowing a product-page citation).
 - Verifiability: 7/10 -> 10/10 (presence, issuer binding, rendering, and live
