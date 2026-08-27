@@ -1,20 +1,20 @@
 # CardFitSG continuous improvement log
 
-Last updated: 2026-08-25 (CardFitSG Cycle 54)
+Last updated: 2026-08-28 (CardFitSG Cycle 55)
 
 ## Current state
 
 - Branch: `main`; continuous-improvement commits are published to `origin/main` after verification.
 - Runtime: zero-build static HTML/CSS/JavaScript.
 - Verification: workflow policy (14 assertions), `node tools/test-engine.mjs`
-  (124 assertions), `node
+  (128 assertions), `node
   tools/test-catalog-freshness.mjs` (17 assertions), the live catalog-deadline
-  check, `node tools/test-site.mjs` (15 references/fragments), `node
-  tools/test-app.mjs` (85 assertions), recursive JavaScript syntax checks, JSON
+  check, `node tools/test-site.mjs` (13 references/fragments), `node
+  tools/test-app.mjs` (86 assertions), recursive JavaScript syntax checks, JSON
   catalog JSON parsing, and repository CI on Node 24 LTS.
 - Catalog snapshot: all six cards and the current OCBC/UOB/SC promotion terms
-  were rechecked from official sources on 2026-08-25; `data/cards.json`
-  declares `asOf` 2026-08-25 and `reviewBy` 2026-08-30 (before the earliest
+  were rechecked from official sources on 2026-08-28; `data/cards.json`
+  declares `asOf` 2026-08-28 and `reviewBy` 2026-08-30 (before the earliest
   2026-08-31 offer ends).
 - UOB One's optimizer condition was reverified against UOB's product page, full
   terms, and FAQ on 2026-08-10; the official product page reconfirmed its
@@ -27,9 +27,69 @@ Last updated: 2026-08-25 (CardFitSG Cycle 54)
   12 months without the issuer's principal credit cards.
 - Catalog review policy: recheck by 2026-08-30, one day before the earliest
   dated offers end on 2026-08-31; daily CI enforces the boundary.
-- Deployment version: `2026.08.25.5`.
+- Deployment version: `2026.08.28.1`.
 
-## Latest cycle: share wallet and issuer history in the URL (2026-08-25)
+## Latest cycle: bind dated offers to official terms (2026-08-28)
+
+### Why this was selected
+
+The scheduled source audit found no modeled reward change, but it exposed a
+verification gap: product-page links established each card's identity while
+the separate acquisition terms established offer dates and 6/12-month issuer
+lookbacks. Those governing terms were neither retained in the catalog nor
+reachable from a recommendation.
+
+### Changes
+
+- Rechecked all six products and current OCBC, UOB, and Standard Chartered
+  acquisition terms. Modeled rates, fees, eligibility windows, and dated
+  offers remain unchanged; the audit date advances to 2026-08-28.
+- Clarified OCBC 365's separate 0.5% advertising-instalment disclosure and the
+  4 August start of UOB Absolute's temporary contactless bonus without adding
+  either category-specific rate to generic-spend rankings.
+- Added `signup.termsUrl` to every dated offer and an `Offer terms` action on
+  the top recommendation.
+- Extended the issuer URL boundary so a dated offer fails catalog validation
+  when its terms link is missing, non-HTTPS, credentialed, or outside that
+  card's official issuer domain.
+- Documented the offer-terms field and bumped deployment version to
+  `2026.08.28.1`.
+
+### Verification and scores
+
+- Test-first: engine baseline was 123 passed / 4 failed for the stale audit
+  date, missing terms links, and absent validation; the app render contract
+  also failed before the action existed.
+- The three distinct OCBC, UOB, and Standard Chartered terms URLs each
+  returned HTTP 200 from their official domains.
+- Engine 128, freshness 17, app 86, site 13 references/fragments, workflow 14,
+  live two-day deadline, recursive syntax, catalog/manifest JSON, and diff
+  checks pass locally.
+- Correctness/reliability: 7/10 -> 10/10 (offer claims now carry their own
+  validated source rather than borrowing a product-page citation).
+- Verifiability: 7/10 -> 10/10 (presence, issuer binding, rendering, and live
+  reachability are independently checked).
+- Maintainability: 8/10 -> 9/10 (the existing issuer-domain policy owns both
+  product and offer URLs).
+- User experience: 7/10 -> 9/10 (the exact eligibility terms are one action
+  away from the recommendation).
+- Performance: 10/10 -> 10/10; security/robustness: 9/10 -> 10/10.
+
+### Lessons and process improvements
+
+- A product page and acquisition terms support different facts; retain both
+  instead of expecting one generic source URL to prove the whole model.
+- Bind acquisition links to the modeled issuer at startup, before rendering,
+  so catalog drift cannot silently redirect users to unrelated terms.
+- The 28 August audit is useful new evidence but does not replace the final
+  pre-expiry check enforced for 30 August.
+
+### Next opportunity
+
+Recheck the expiring OCBC and Standard Chartered offers on 30 August 2026. At
+workspace scope, rotate until that enforced financial-data deadline.
+
+## Previous cycle: share wallet and issuer history in the URL (2026-08-25)
 
 ### Why this was selected
 
@@ -894,7 +954,8 @@ Fuss-free and optimizer checkboxes are intentionally mutually exclusive, but the
 
 | Priority | Opportunity | Category | Impact | Effort / risk | Evidence / dependency | Status |
 |---|---|---|---|---|---|---|
-| 1 | Recheck expiring OCBC and SC offers by 2026-08-30 | Process / data | High | Small / low | Daily CI fails on the deadline; both offers end 2026-08-31 | Pending — due 2026-08-30 |
+| 1 | Recheck expiring OCBC and SC offers by 2026-08-30 | Process / data | High | Small / low | Full audit passed 2026-08-28; daily CI still enforces the final pre-expiry check because both offers end 2026-08-31 | Pending final check — due 2026-08-30 |
+| — | Bind each dated offer to its issuer's official acquisition terms | Correctness / security / UX | High | Small / low | Engine 128 and app 86 cover required issuer-bound URLs and the top-fit action; all three distinct links returned HTTP 200 | Completed in Cycle 55 |
 | — | Add ref-scoped stale/duplicate CI cancellation | Process / efficiency | Medium | Small / low | Controlled dispatch 32775252976 cancelled; replacement 32775256228 passed | Completed in Cycle 52 |
 | — | Validate official URLs against each card issuer | Correctness / security | High | Small / low | Engine 124 and app 68 reject schemes, lookalikes, mismatches, and unsafe overrides | Completed in Cycle 51 |
 | — | Make compare summaries style-aware and behaviorally test selection/persistence | Correctness / UX / tests | Medium-high | Small / low | Cycle 49 derives all four earning styles and exercises 65 app/storage assertions | Completed in Cycle 49 |

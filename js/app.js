@@ -383,6 +383,10 @@
     return (idx >= 0 && db.meta.sources && db.meta.sources[idx]) || "";
   }
 
+  function offerTermsUrl(card) {
+    return typeof card?.signup?.termsUrl === "string" ? card.signup.termsUrl : "";
+  }
+
   function persistScenario(scenario) {
     try {
       globalThis.localStorage?.setItem(SCENARIO_KEY, JSON.stringify({
@@ -540,6 +544,7 @@
     } else {
       const c = p.card;
       const expiry = signupExpiryLine(c, result.scenario.asOf);
+      const termsUrl = offerTermsUrl(c);
       const banners = [];
       if (result.noNewCard) {
         banners.push(
@@ -558,7 +563,7 @@
         <div class="metric"><b>${c.fussFreeScore}</b><span>Fuss-free score / 100</span></div>
       </div>
       ${expiry ? `<p class="muted tiny">${escapeHtml(expiry)}</p>` : ""}
-      <p>${officialUrl(c) ? `<a class="btn" href="${escapeAttr(officialUrl(c))}" target="_blank" rel="noopener">Official product page</a> ` : ""}<button type="button" class="btn" id="copy-result">Copy result</button> <button type="button" class="btn" id="copy-link">Copy link</button></p>
+      <p>${officialUrl(c) ? `<a class="btn" href="${escapeAttr(officialUrl(c))}" target="_blank" rel="noopener">Official product page</a> ` : ""}${termsUrl ? `<a class="btn" href="${escapeAttr(termsUrl)}" target="_blank" rel="noopener">Offer terms</a> ` : ""}<button type="button" class="btn" id="copy-result">Copy result</button> <button type="button" class="btn" id="copy-link">Copy link</button></p>
       <ul class="reasons">
         ${p.rankReasons.map((r) => `<li>${escapeHtml(r)}</li>`).join("")}
         ${c.pros.slice(0, 3).map((r) => `<li>${escapeHtml(r)}</li>`).join("")}

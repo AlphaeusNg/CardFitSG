@@ -236,6 +236,9 @@
           if (card.signup.activeThrough != null && !parseYmd(card.signup.activeThrough)) {
             errors.push(`${signupPath}.activeThrough must be null or a valid YYYY-MM-DD date`);
           }
+          if (card.signup.activeThrough != null || card.signup.termsUrl != null) {
+            requireOfficialUrl(card.signup.termsUrl, `${signupPath}.termsUrl`, card.issuer);
+          }
           requireNumber(card.signup.minSpend, `${signupPath}.minSpend`);
           requireNumber(card.signup.windowDays, `${signupPath}.windowDays`, {
             min: 1,

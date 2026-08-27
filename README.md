@@ -30,6 +30,7 @@ CardFitSG encodes that decision logic client-side with a dated card catalog (`da
 - Amex acceptance toggle
 - Ranked estimates + concrete next-step plan
 - Style-aware side-by-side card comparison with official issuer links
+- Direct official promotion terms beside dated top recommendations
 - Local restore of the last spend scenario (no account or server)
 - Copyable scenario URLs restore spend, flags, held cards, and recent issuers
 - Full disclaimer: rates change; not financial advice
@@ -55,7 +56,7 @@ node --check js/*.js
 
 ## Updating rates
 
-Verify each changed fact against the issuer's official product page, then edit `data/cards.json`, update `meta.sources`, `meta.asOf`, and `meta.reviewBy`, bump `js/version.js`, and re-run the full suite. Set `reviewBy` before the earliest dated offer ends; daily CI fails on that date so a stale snapshot cannot age silently. Do not use comparison or affiliate sites as catalog sources.
+Verify each changed fact against the issuer's official product page and terms, then edit `data/cards.json`, update `meta.sources`, dated `signup.termsUrl` values, `meta.asOf`, and `meta.reviewBy`, bump `js/version.js`, and re-run the full suite. Set `reviewBy` before the earliest dated offer ends; daily CI fails on that date so a stale snapshot cannot age silently. Do not use comparison or affiliate sites as catalog sources.
 
 ## License
 

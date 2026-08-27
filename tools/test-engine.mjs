@@ -48,10 +48,10 @@ console.log("CardFitSG engine tests\n");
   );
 }
 
-// Official issuer audit snapshot (2026-08-25)
+// Official issuer audit snapshot (2026-08-28)
 {
   const byId = Object.fromEntries(db.cards.map((card) => [card.id, card]));
-  assert(db.meta.asOf === "2026-08-25", "catalog audit date is current");
+  assert(db.meta.asOf === "2026-08-28", "catalog audit date is current");
   assert(db.meta.reviewBy === "2026-08-30", "catalog review precedes the earliest offer end");
   assert(
     db.meta.sources.length === 6 && db.meta.sources.every((source) => /ocbc\.com|uob\.com\.sg|americanexpress\.com|sc\.com/.test(source)),
@@ -95,8 +95,18 @@ console.log("CardFitSG engine tests\n");
     /1%.*marketing.*no minimum.*no cap/i.test(byId["ocbc-365"].exclusionsNote),
     "OCBC 365 discloses its independent marketing-expense rate without misapplying category caps"
   );
+  assert(
+    /0\.5%.*advertising instalments/i.test(byId["ocbc-365"].exclusionsNote),
+    "OCBC 365 discloses the 0.5% advertising-instalment marketing rate"
+  );
   assert(byId["ocbc-365"].feeWaiverYears === 2, "OCBC 365 has a two-year fee waiver");
   assert(byId["ocbc-365"].signup.cashReward === 180, "OCBC 365 active cash reward is represented");
+  assert(
+    ["ocbc-infinity", "uob-absolute", "sc-simply", "uob-one", "ocbc-365"].every(
+      (id) => /^https:\/\//.test(byId[id].signup.termsUrl)
+    ),
+    "every dated signup offer cites its official terms"
+  );
   assert(
     /not modeled.*partner.*grocery.*utilities/i.test(byId["uob-one"].exclusionsNote),
     "UOB One discloses category cashback omitted from the generic-spend estimate"
@@ -200,6 +210,24 @@ assert(db.cards.length >= 5, "has card catalog");
       !unsafeOverrideResult.valid &&
         unsafeOverrideResult.errors.some((error) => /cards\[0\]\.officialUrl.*HTTPS/i.test(error)),
       "per-card official URL overrides share the safe-link contract"
+    );
+
+    const unsafeTerms = JSON.parse(JSON.stringify(db));
+    unsafeTerms.cards[0].signup.termsUrl = "https://example.com/lookalike-terms";
+    const unsafeTermsResult = E.validateCatalog(unsafeTerms);
+    assert(
+      !unsafeTermsResult.valid &&
+        unsafeTermsResult.errors.some((error) => /signup\.termsUrl.*official OCBC/i.test(error)),
+      "offer terms must use the card issuer's official domain"
+    );
+
+    const missingTerms = JSON.parse(JSON.stringify(db));
+    delete missingTerms.cards[0].signup.termsUrl;
+    const missingTermsResult = E.validateCatalog(missingTerms);
+    assert(
+      !missingTermsResult.valid &&
+        missingTermsResult.errors.some((error) => /signup\.termsUrl.*HTTPS/i.test(error)),
+      "dated signup offers require a terms URL"
     );
 
     const duplicate = JSON.parse(JSON.stringify(db));

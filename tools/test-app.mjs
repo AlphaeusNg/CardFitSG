@@ -334,6 +334,11 @@ async function boot(
   );
   assert.match(result.elements.primary.innerHTML, /Top fit for your inputs/, "primary recommendation renders");
   assert.match(result.elements.primary.innerHTML, /Official product page/, "top fit links to the official issuer page");
+  assert.match(
+    result.elements.primary.innerHTML,
+    /href="https:\/\/www\.ocbc\.com\/[^\"]+welcome-gift-promotion\.pdf"[^>]*>Offer terms<\/a>/,
+    "top fit links directly to the issuer's acquisition terms"
+  );
   assert.match(result.elements["compare-a"].innerHTML, /ocbc-infinity/, "compare lists catalog cards");
   assert.match(result.elements["compare-out"].innerHTML, /Official page/, "compare surfaces official product links");
   assert.match(result.elements["compare-out"].innerHTML, /1\.6% flat/, "flat comparison labels the flat rate");
@@ -614,4 +619,4 @@ async function boot(
   assert.equal(parsed.recentIssuers, undefined, "unknown issuers are dropped");
 }
 
-console.log("test-app.mjs: 85 startup, event, persistence, compare, preset, dock, share-link, and render assertions passed");
+console.log("test-app.mjs: 86 startup, event, persistence, compare, preset, dock, share-link, and render assertions passed");
