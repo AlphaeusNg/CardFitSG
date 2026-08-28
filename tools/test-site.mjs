@@ -58,6 +58,8 @@ assert.match(manifest.theme_color, /^#[0-9a-f]{6}$/i, "manifest theme_color must
 
 const index = readFileSync(resolve(root, "index.html"), "utf8");
 assert.match(index, /id="asof-label"/, "as-of date label remains for the catalog stamp");
+assert.match(index, /id="review-by-label"/, "review-by date sits next to the as-of stamp");
+assert.match(index, /id="catalog-review-banner"/, "overdue catalog review banner exists");
 assert.doesNotMatch(index, /Most SG card blogs/, "hero no longer carries the manifesto lede");
 assert.match(
   index,
