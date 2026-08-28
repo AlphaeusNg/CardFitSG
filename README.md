@@ -8,7 +8,7 @@ The live site *is* the demo. Type a spend mix, get a ranked list. Not financial 
 
 ## Why it exists
 
-SG card content is mostly miles maximisers. Many people want cashback, no monthly-minimum drama, a clear answer for a large near-term purchase, and honesty when a category card is the wrong tool. CardFitSG encodes that client-side from `data/cards.json`.
+SG card content is mostly miles maximisers. Many people want cashback, no monthly-minimum drama, a clear answer for a large near-term purchase, and honesty when a category card is the wrong tool.
 
 ## Try it
 
@@ -19,19 +19,6 @@ SG card content is mostly miles maximisers. Many people want cashback, no monthl
 
 Last scenario restores locally. Copyable URLs restore spend, flags, held cards, and recent issuers. No account, no server.
 
-## Develop
-
-Zero-build HTML/CSS/JS. No backend.
-
-```bash
-python3 -m http.server 8092
-# http://127.0.0.1:8092/
-
-node tools/test-engine.mjs
-node tools/test-site.mjs
-node tools/test-app.mjs
-```
-
-To update rates: verify each fact on the issuer's official product page, edit `data/cards.json`, update `meta.sources`, dated `signup.termsUrl` values, `meta.asOf`, and `meta.reviewBy`, bump `js/version.js`, and re-run the suite. Do not use comparison or affiliate sites as catalog sources.
+Working in this repo? See **[AGENTS.md](AGENTS.md)** for the scoring engine, catalog update rules, and tests.
 
 MIT © 2026 Alphaeus Ng
