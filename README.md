@@ -1,63 +1,37 @@
 # CardFitSG
 
-**Singapore cashback card fit calculator** — rank fuss-free flat cashback cards for real spend scenarios (honeymoon tickets, monthly burn, “I already have bank X”).
+Singapore **fuss-free cashback card** fit calculator. Rank flat cashback cards for a real spend scenario (a big trip, monthly burn, or "I already have bank X").
 
-**Live (after GitHub Pages):** https://alphaeusng.github.io/CardFitSG/  
-**Author:** [Alphaeus Ng](https://alphaeusng.github.io/)
+**[Open CardFitSG](https://alphaeusng.github.io/CardFitSG/)** · [Alphaeus Ng](https://alphaeusng.github.io/)
 
-## Why this exists
+The live site *is* the demo. Type a spend mix, get a ranked list. Not financial advice. Rates change; check the issuer.
 
-SG card content is dominated by miles maximisers and category optimisers. Many people want:
+## Why it exists
 
-- cashback, not miles  
-- no monthly minimum drama  
-- a clear answer for a **large near-term purchase**  
-- honesty when a category card is the *wrong* tool  
+SG card content is mostly miles maximisers. Many people want cashback, no monthly-minimum drama, a clear answer for a large near-term purchase, and honesty when a category card is the wrong tool. CardFitSG encodes that client-side from `data/cards.json`.
 
-CardFitSG encodes that decision logic client-side with a dated card catalog (`data/cards.json`).
+## Try it
 
-## Features
+1. Open **[CardFitSG](https://alphaeusng.github.io/CardFitSG/)**.
+2. Enter a one-off (for example honeymoon flights) plus a monthly burn, and pick a 12-month horizon.
+3. Mark cards you already hold, and whether Amex is accepted where you shop.
+4. Read the ranked estimates and the next-step plan. Open the official issuer terms beside the top picks before you apply.
 
-- One-off + monthly spend horizon (6 / 12 / 24 months)
-- Existing cards, issuer overlap, and official new-to-issuer signup lookbacks
-- Current or recent principal-card history by issuer for unlisted and cancelled cards
-- Fuss-free preference vs optimizer mode
-- New-member intro rates bounded by their declared month/spend caps
-- Signup cash and gifts excluded for known same-issuer holdings when official
-  new-to-issuer rules apply, including issuer-level recent-card history
-- Singapore-market date boundaries for expiring offers, independent of device timezone
-- Selected-tier fixed awards, spend/transaction conditions, and complete-quarter reward modeling
-- Amex acceptance toggle
-- Ranked estimates + concrete next-step plan
-- Style-aware side-by-side card comparison with official issuer links
-- Direct official promotion terms beside dated top recommendations
-- Local restore of the last spend scenario (no account or server)
-- Copyable scenario URLs restore spend, flags, held cards, and recent issuers
-- Full disclaimer: rates change; not financial advice
+Last scenario restores locally. Copyable URLs restore spend, flags, held cards, and recent issuers. No account, no server.
 
-## Stack
+## Develop
 
-Zero-build static HTML / CSS / JS. No backend.
-
-## Local
+Zero-build HTML/CSS/JS. No backend.
 
 ```bash
-cd /home/alph/projects/CardFitSG
 python3 -m http.server 8092
 # http://127.0.0.1:8092/
 
 node tools/test-engine.mjs
-node tools/test-catalog-freshness.mjs
-node tools/catalog-freshness.mjs
 node tools/test-site.mjs
 node tools/test-app.mjs
-node --check js/*.js
 ```
 
-## Updating rates
-
-Verify each changed fact against the issuer's official product page and terms, then edit `data/cards.json`, update `meta.sources`, dated `signup.termsUrl` values, `meta.asOf`, and `meta.reviewBy`, bump `js/version.js`, and re-run the full suite. Set `reviewBy` before the earliest dated offer ends; daily CI fails on that date so a stale snapshot cannot age silently. Do not use comparison or affiliate sites as catalog sources.
-
-## License
+To update rates: verify each fact on the issuer's official product page, edit `data/cards.json`, update `meta.sources`, dated `signup.termsUrl` values, `meta.asOf`, and `meta.reviewBy`, bump `js/version.js`, and re-run the suite. Do not use comparison or affiliate sites as catalog sources.
 
 MIT © 2026 Alphaeus Ng
