@@ -11,6 +11,54 @@
   let lastResult = null;
   const SCENARIO_KEY = "cardfitsg-last-scenario-v1";
 
+  function marketTodayYmd() {
+    if (typeof CardFitEngine !== "undefined" && typeof CardFitEngine.todayYmd === "function") {
+      return CardFitEngine.todayYmd();
+    }
+    try {
+      const parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Singapore",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).formatToParts(new Date());
+      const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+      return `${values.year}-${values.month}-${values.day}`;
+    } catch {
+      return "";
+    }
+  }
+
+  function isYmd(value) {
+    return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
+  }
+
+  function renderCatalogDates() {
+    const asOf = db?.meta?.asOf || "";
+    const reviewBy = db?.meta?.reviewBy || "";
+    const today = marketTodayYmd();
+    const asofEl = $("#asof-label");
+    if (asofEl) asofEl.textContent = asOf;
+
+    const reviewLine = $("#review-by-line");
+    const reviewLabel = $("#review-by-label");
+    const banner = $("#catalog-review-banner");
+    if (reviewLabel) reviewLabel.textContent = reviewBy;
+
+    const overdue = isYmd(today) && isYmd(reviewBy) && today >= reviewBy;
+    if (banner) {
+      if (overdue) {
+        banner.hidden = false;
+        banner.textContent =
+          `Rates last verified ${asOf}. The catalog review date (${reviewBy}) has passed — check issuer pages before applying.`;
+      } else {
+        banner.hidden = true;
+        banner.textContent = "";
+      }
+    }
+    if (reviewLine) reviewLine.hidden = overdue || !isYmd(reviewBy);
+  }
+
   function syncTopbarOffset() {
     const header = $(".topbar");
     const root = document.documentElement;
@@ -63,7 +111,7 @@
       return;
     }
 
-    $("#asof-label").textContent = db.meta.asOf;
+    renderCatalogDates();
     $("#disclaimer").textContent = db.meta.disclaimer;
     if (db.meta.ratesNote && $("#rates-note")) {
       $("#rates-note").textContent = db.meta.ratesNote;
@@ -540,7 +588,6 @@
         <p class="issuer">Estimates need at least some card spend to rank cash value.</p>
         <p class="muted">Tip: try a large booking (e.g. S$3,500) plus typical monthly burn. Fuss-free mode still ranks simple flat cards when spend is blank, but numbers will be S$0.</p>
       `;
-      // Still show ranking for curiosity
     } else {
       const c = p.card;
       const expiry = signupExpiryLine(c, result.scenario.asOf);

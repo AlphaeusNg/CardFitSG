@@ -65,6 +65,9 @@ function makeDocument(existingCardIds = [], recentIssuers = []) {
     [
       "fatal",
       "asof-label",
+      "review-by-label",
+      "review-by-line",
+      "catalog-review-banner",
       "disclaimer",
       "rates-note",
       "existing-cards",
@@ -88,6 +91,7 @@ function makeDocument(existingCardIds = [], recentIssuers = []) {
     ].map((id) => [id, makeElement()])
   );
   elements.fatal.hidden = true;
+  elements["catalog-review-banner"].hidden = true;
   elements["top-fit-dock"].hidden = true;
   elements["top-fit-dock"].textContent = "Top fit";
   elements.oneOff.value = "3500";
@@ -181,7 +185,7 @@ function makeStorage(initialValue) {
 
 async function boot(
   response,
-  { existingCardIds = [], recentIssuers = [], savedScenario, search = "" } = {}
+  { existingCardIds = [], recentIssuers = [], savedScenario, search = "", todayYmd } = {}
 ) {
   const { document, elements } = makeDocument(existingCardIds, recentIssuers);
   const errors = [];
@@ -234,6 +238,10 @@ async function boot(
   vm.createContext(sandbox);
   vm.runInContext(engineSource, sandbox, { filename: "js/engine.js" });
   sandbox.CardFitEngine = sandbox.window.CardFitEngine;
+  if (todayYmd) {
+    sandbox.CardFitEngine.todayYmd = () => todayYmd;
+    sandbox.window.CardFitEngine.todayYmd = sandbox.CardFitEngine.todayYmd;
+  }
   const recommend = sandbox.CardFitEngine.recommend;
   sandbox.CardFitEngine.recommend = (database, scenario) => {
     scenarios.push({ ...scenario });
@@ -619,4 +627,99 @@ async function boot(
   assert.equal(parsed.recentIssuers, undefined, "unknown issuers are dropped");
 }
 
-console.log("test-app.mjs: 86 startup, event, persistence, compare, preset, dock, share-link, and render assertions passed");
+{
+  const result = await boot(
+    {
+      ok: true,
+      status: 200,
+      async json() {
+        return JSON.parse(JSON.stringify(catalog));
+      },
+    },
+    { todayYmd: "2026-08-29" }
+  );
+  assert.equal(result.elements["asof-label"].textContent, catalog.meta.asOf, "audit date still renders before reviewBy");
+  assert.equal(
+    result.elements["review-by-label"].textContent,
+    catalog.meta.reviewBy,
+    "quiet review-by label uses catalog meta.reviewBy"
+  );
+  assert.equal(
+    result.elements["review-by-line"].hidden,
+    false,
+    "quiet Review by line is visible before the Singapore review date"
+  );
+  assert.equal(
+    result.elements["catalog-review-banner"].hidden,
+    true,
+    "overdue banner stays hidden before reviewBy"
+  );
+  assert.equal(
+    result.elements["catalog-review-banner"].textContent,
+    "",
+    "overdue banner has no copy before reviewBy"
+  );
+}
+
+{
+  const result = await boot(
+    {
+      ok: true,
+      status: 200,
+      async json() {
+        return JSON.parse(JSON.stringify(catalog));
+      },
+    },
+    { todayYmd: "2026-08-30" }
+  );
+  assert.equal(
+    result.elements["catalog-review-banner"].hidden,
+    false,
+    "overdue banner is visible on the Singapore review date"
+  );
+  assert.match(
+    result.elements["catalog-review-banner"].textContent,
+    /Rates last verified 2026-08-28/,
+    "overdue banner names the asOf verification date"
+  );
+  assert.match(
+    result.elements["catalog-review-banner"].textContent,
+    /review date \(2026-08-30\) has passed/i,
+    "overdue banner states that the review date has passed"
+  );
+  assert.match(
+    result.elements["catalog-review-banner"].textContent,
+    /check issuer pages before applying/i,
+    "overdue banner tells visitors to check issuer pages"
+  );
+  assert.equal(
+    result.elements["review-by-line"].hidden,
+    true,
+    "quiet Review by line yields to the banner on the review date"
+  );
+}
+
+{
+  const result = await boot(
+    {
+      ok: true,
+      status: 200,
+      async json() {
+        return JSON.parse(JSON.stringify(catalog));
+      },
+    },
+    { todayYmd: "2026-08-31" }
+  );
+  assert.equal(
+    result.elements["catalog-review-banner"].hidden,
+    false,
+    "overdue banner remains visible after the Singapore review date"
+  );
+  assert.equal(
+    result.elements["review-by-line"].hidden,
+    true,
+    "quiet Review by line stays hidden after reviewBy"
+  );
+}
+
+console.log("test-app.mjs: 98 startup, event, persistence, compare, preset, dock, share-link, reviewBy, and render assertions passed");
