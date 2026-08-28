@@ -65,3 +65,64 @@
     if (!header || !root || !root.style || typeof root.style.setProperty !== "function") return;
     root.style.setProperty("--topbar-h", `${header.offsetHeight}px`);
   }
+
+  function bindAutoHideHeader() {
+    const header = $(".topbar");
+    if (!header) return;
+    let lastY = Math.max(0, window.scrollY);
+    let ticking = false;
+    syncTopbarOffset();
+
+    function update() {
+      const y = Math.max(0, window.scrollY);
+      const delta = y - lastY;
+      if (y <= 16 || delta < 0 || header.matches(":focus-within")) {
+        header.classList.remove("is-scroll-hidden");
+      } else if (delta > 0 && y > header.offsetHeight) {
+        header.classList.add("is-scroll-hidden");
+      }
+      lastY = y;
+      ticking = false;
+    }
+
+    header.addEventListener("focusin", () => header.classList.remove("is-scroll-hidden"));
+    window.addEventListener("scroll", () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(update);
+    }, { passive: true });
+    window.addEventListener("resize", syncTopbarOffset, { passive: true });
+  }
+
+  async function init() {
+    bindAutoHideHeader();
+    try {
+      const res = await fetch("data/cards.json", { cache: "no-cache" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      db = await res.json();
+      const validation = CardFitEngine.validateCatalog(db);
+      if (!validation.valid) {
+        throw new Error(`invalid catalog: ${validation.errors.join("; ")}`);
+      }
+    } catch (error) {
+      console.error("CardFitSG initialization failed", error);
+      $("#fatal").hidden = false;
+      $("#fatal").textContent = "Could not load card database.";
+      return;
+    }
+
+    renderCatalogDates();
+    $("#disclaimer").textContent = db.meta.disclaimer;
+    if (db.meta.ratesNote && $("#rates-note")) {
+      $("#rates-note").textContent = db.meta.ratesNote;
+    }
+    renderExistingOptions();
+    renderIssuerHistoryOptions();
+    populateCompareSelects();
+    bind();
+    restoreScenario();
+    run();
+    if (typeof SITE_VERSION !== "undefined") {
+      $("#site-version").textContent = SITE_VERSION.id;
+    }
+  }
