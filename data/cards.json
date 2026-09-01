@@ -2,9 +2,9 @@
   "meta": {
     "currency": "SGD",
     "market": "Singapore",
-    "asOf": "2026-08-28",
-    "reviewBy": "2026-08-30",
-    "ratesNote": "Rates, fees, card networks and public offers verified against official issuer pages and promotion terms on 2026-08-28. Base earn rates, 6/12-month issuer lookbacks, UOB One fixed quarterly awards, AMEX 6-month intro window, and current OCBC/SC/UOB signup windows are unchanged. OCBC 365 still advertises 1% on marketing expenses (0.5% on advertising instalments) without its usual minimum or cap; generic-spend rankings do not assume that category. Promo windows are date-checked at runtime — expired or known-ineligible signup value is not counted.",
+    "asOf": "2026-09-01",
+    "reviewBy": "2026-09-25",
+    "ratesNote": "Rates, fees, card networks and public offers verified against official issuer pages and promotion terms on 2026-09-01. Base earn rates, 6/12-month issuer lookbacks, UOB One fixed quarterly awards, and the AMEX 6-month intro window are unchanged. The OCBC and Standard Chartered signup offers are extended through 30 September 2026, matching UOB's current acquisition window. OCBC 365 still advertises 1% on marketing expenses (0.5% on advertising instalments) without its usual minimum or cap; generic-spend rankings do not assume that category. Promo windows are date-checked at runtime — expired or known-ineligible signup value is not counted.",
     "disclaimer": "Rates, promos, and fees change. Always verify on the issuer's official page before applying. This tool is educational, not financial advice.",
     "sources": [
       "https://www.ocbc.com/personal-banking/cards/infinity-unlimited-cashback-card.page",
@@ -31,7 +31,7 @@
       "fussFreeScore": 95,
       "acceptanceScore": 92,
       "signup": {
-        "activeThrough": "2026-08-31",
+        "activeThrough": "2026-09-30",
         "minSpend": 600,
         "windowDays": 30,
         "newToIssuerMonths": 12,
@@ -118,7 +118,7 @@
       "fussFreeScore": 94,
       "acceptanceScore": 92,
       "signup": {
-        "activeThrough": "2026-08-31",
+        "activeThrough": "2026-09-30",
         "minSpend": 800,
         "windowDays": 60,
         "newToIssuerMonths": 12,
@@ -196,7 +196,7 @@
       "fussFreeScore": 40,
       "acceptanceScore": 92,
       "signup": {
-        "activeThrough": "2026-08-31",
+        "activeThrough": "2026-09-30",
         "minSpend": 600,
         "windowDays": 30,
         "newToIssuerMonths": 12,

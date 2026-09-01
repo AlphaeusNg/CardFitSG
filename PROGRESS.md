@@ -1,21 +1,21 @@
 # CardFitSG continuous improvement log
 
-Last updated: 2026-08-28 (CardFitSG Cycle 55)
+Last updated: 2026-09-01 (CardFitSG Cycle 56)
 
 ## Current state
 
 - Branch: `main`; continuous-improvement commits are published to `origin/main` after verification.
 - Runtime: zero-build static HTML/CSS/JavaScript.
 - Verification: workflow policy (14 assertions), `node tools/test-engine.mjs`
-  (128 assertions), `node
-  tools/test-catalog-freshness.mjs` (17 assertions), the live catalog-deadline
+  (130 assertions), `node
+  tools/test-catalog-freshness.mjs` (19 assertions), the live catalog-deadline
   check, `node tools/test-site.mjs` (13 references/fragments), `node
-  tools/test-app.mjs` (86 assertions), recursive JavaScript syntax checks, JSON
+  tools/test-app.mjs` (98 assertions), recursive JavaScript syntax checks, JSON
   catalog JSON parsing, and repository CI on Node 24 LTS.
 - Catalog snapshot: all six cards and the current OCBC/UOB/SC promotion terms
-  were rechecked from official sources on 2026-08-28; `data/cards.json`
-  declares `asOf` 2026-08-28 and `reviewBy` 2026-08-30 (before the earliest
-  2026-08-31 offer ends).
+  were rechecked from official sources on 2026-09-01; `data/cards.json`
+  declares `asOf` 2026-09-01 and `reviewBy` 2026-09-25 (before the earliest
+  2026-09-30 offer ends).
 - UOB One's optimizer condition was reverified against UOB's product page, full
   terms, and FAQ on 2026-08-10; the official product page reconfirmed its
   fixed S$60/S$100/S$200 quarterly award structure on 2026-08-11.
@@ -25,11 +25,31 @@ Last updated: 2026-08-28 (CardFitSG Cycle 55)
 - Current OCBC, UOB, and Standard Chartered promotion terms reconfirmed on
   2026-08-11 that their modeled signup offers require respectively 12, 6, and
   12 months without the issuer's principal credit cards.
-- Catalog review policy: recheck by 2026-08-30, one day before the earliest
-  dated offers end on 2026-08-31; daily CI enforces the boundary.
-- Deployment version: `2026.08.28.1`.
+- Catalog review policy: recheck by 2026-09-25, five days before the dated
+  offers end on 2026-09-30; daily CI enforces the boundary.
+- Deployment version: `2026.09.01.1`.
 
-## Latest cycle: bind dated offers to official terms (2026-08-28)
+## Latest cycle: restore current September signup windows (2026-09-01)
+
+### Why this was selected
+
+The enforced 30 August review date had passed, and the catalog still ended the
+OCBC and Standard Chartered welcome offers on 31 August. Their official product
+pages now show the same modeled offers extended through 30 September, so the
+live calculator was excluding valid signup value from September scenarios.
+
+### Changes
+
+- Rechecked all six official product pages and the governing OCBC/UOB/SC terms.
+- Extended both OCBC card offers and Standard Chartered Simply Cash through
+  30 September without changing their spend, cash, gift, or issuer-lookback
+  mechanics.
+- Advanced the catalog snapshot to 1 September and its enforced review date to
+  25 September.
+- Added regression assertions for all three renewed windows and bumped the site
+  to `2026.09.01.1`.
+
+## Previous cycle: bind dated offers to official terms (2026-08-28)
 
 ### Why this was selected
 
@@ -959,7 +979,7 @@ Fuss-free and optimizer checkboxes are intentionally mutually exclusive, but the
 
 | Priority | Opportunity | Category | Impact | Effort / risk | Evidence / dependency | Status |
 |---|---|---|---|---|---|---|
-| 1 | Recheck expiring OCBC and SC offers by 2026-08-30 | Process / data | High | Small / low | Full audit passed 2026-08-28; daily CI still enforces the final pre-expiry check because both offers end 2026-08-31 | Pending final check — due 2026-08-30 |
+| — | Recheck and extend the OCBC and SC offers into September | Process / data | High | Small / low | Official pages now end all three offers on 2026-09-30; freshness, engine, app, site, and workflow checks pass on the 2026-09-01 snapshot | Completed in Cycle 56 |
 | — | Bind each dated offer to its issuer's official acquisition terms | Correctness / security / UX | High | Small / low | Engine 128 and app 86 cover required issuer-bound URLs and the top-fit action; all three distinct links returned HTTP 200 | Completed in Cycle 55 |
 | — | Add ref-scoped stale/duplicate CI cancellation | Process / efficiency | Medium | Small / low | Controlled dispatch 32775252976 cancelled; replacement 32775256228 passed | Completed in Cycle 52 |
 | — | Validate official URLs against each card issuer | Correctness / security | High | Small / low | Engine 124 and app 68 reject schemes, lookalikes, mismatches, and unsafe overrides | Completed in Cycle 51 |
@@ -974,5 +994,5 @@ Fuss-free and optimizer checkboxes are intentionally mutually exclusive, but the
 
 ## Next cycle
 
-Local next: recheck the expiring OCBC and Standard Chartered offers on
-2026-08-30. Workspace next: rotate until the enforced financial-data deadline.
+Local next: recheck all dated offers by 2026-09-25. Workspace next: rotate
+until the next enforced financial-data deadline.

@@ -48,17 +48,17 @@ console.log("CardFitSG engine tests\n");
   );
 }
 
-// Official issuer audit snapshot (2026-08-28)
+// Official issuer audit snapshot (2026-09-01)
 {
   const byId = Object.fromEntries(db.cards.map((card) => [card.id, card]));
-  assert(db.meta.asOf === "2026-08-28", "catalog audit date is current");
-  assert(db.meta.reviewBy === "2026-08-30", "catalog review precedes the earliest offer end");
+  assert(db.meta.asOf === "2026-09-01", "catalog audit date is current");
+  assert(db.meta.reviewBy === "2026-09-25", "catalog review precedes the earliest offer end");
   assert(
     db.meta.sources.length === 6 && db.meta.sources.every((source) => /ocbc\.com|uob\.com\.sg|americanexpress\.com|sc\.com/.test(source)),
     "catalog cites one official issuer page per card"
   );
   assert(byId["ocbc-infinity"].network === "Mastercard", "Infinity uses the official Mastercard network");
-  assert(byId["ocbc-infinity"].signup.activeThrough === "2026-08-31", "Infinity signup window is current");
+  assert(byId["ocbc-infinity"].signup.activeThrough === "2026-09-30", "Infinity signup window is current");
   assert(
     byId["ocbc-infinity"].signup.newToIssuerMonths === 12 &&
       byId["ocbc-365"].signup.newToIssuerMonths === 12,
@@ -73,6 +73,7 @@ console.log("CardFitSG engine tests\n");
   );
   assert(byId["amex-true"].introMonths === 6, "True Cashback's welcome rate lasts six months");
   assert(byId["sc-simply"].signup.cashReward === 100, "Simply Cash active cash reward is represented");
+  assert(byId["sc-simply"].signup.activeThrough === "2026-09-30", "Simply Cash signup window is current");
   assert(
     byId["sc-simply"].signup.newToIssuerMonths === 12,
     "Simply Cash signup value requires twelve months without an SC card"
@@ -101,6 +102,7 @@ console.log("CardFitSG engine tests\n");
   );
   assert(byId["ocbc-365"].feeWaiverYears === 2, "OCBC 365 has a two-year fee waiver");
   assert(byId["ocbc-365"].signup.cashReward === 180, "OCBC 365 active cash reward is represented");
+  assert(byId["ocbc-365"].signup.activeThrough === "2026-09-30", "OCBC 365 signup window is current");
   assert(
     ["ocbc-infinity", "uob-absolute", "sc-simply", "uob-one", "ocbc-365"].every(
       (id) => /^https:\/\//.test(byId[id].signup.termsUrl)
@@ -892,7 +894,7 @@ assert(db.cards.length >= 5, "has card catalog");
     monthly: 800,
     months: 12,
     existingCardIds: [],
-    asOf: "2026-09-01",
+    asOf: "2026-10-01",
   });
   assert(s.signupCash === 0, "expired Infinity promo yields 0 signup");
   assert(s.warnings.some((w) => /ended/i.test(w)), "warns about ended promo window");
