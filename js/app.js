@@ -1,7 +1,7 @@
 (function () {
   "use strict";
   var texts = [];
-  for (var i = 0; i < 10; i++) {
+  for (var i = 0; i < 15; i++) {
     var xhr = new XMLHttpRequest();
     xhr.open("GET", "js/app.part" + i + ".txt", false);
     xhr.send(null);
