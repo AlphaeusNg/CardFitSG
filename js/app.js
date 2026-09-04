@@ -1,1 +1,1 @@
-PLACEHOLDER_LOAD_FROM_WORKSPACE
+file:///workspace/CardFitSG/js/app.js
