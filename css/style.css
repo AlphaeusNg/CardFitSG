@@ -419,7 +419,7 @@ select:focus {
   font-family: var(--serif);
   font-size: 1.2rem;
   color: var(--gold);
-  padding-top: 0.15rem;
+  line-height: 1.15;
 }
 .rank-body h3 {
   margin: 0;
@@ -438,6 +438,9 @@ select:focus {
   border-radius: 999px;
   padding: 0.1rem 0.45rem;
   color: var(--muted);
+  max-width: 100%;
+  white-space: normal;
+  line-height: 1.35;
 }
 .pill-held {
   border-color: rgba(94, 207, 142, 0.4);
