@@ -1,14 +1,4 @@
 (function () {
   "use strict";
-  var texts = [];
-  for (var i = 0; i < 15; i++) {
-    var xhr = new XMLHttpRequest();
-    xhr.open("GET", "js/app.part" + i + ".txt", false);
-    xhr.send(null);
-    if (xhr.status !== 200 && xhr.status !== 0) {
-      throw new Error("CardFitSG failed to load js/app.part" + i + ".txt (HTTP " + xhr.status + ")");
-    }
-    texts.push(xhr.responseText);
-  }
-  (0, eval)(texts.join(""));
+  throw new Error("CardFitSG: js/app.js pending full MCP upload — see PR follow-up /workspace/CardFitSG/js/app.js sha256 b7024e4f8af0488acd615e6e7d772f56bc09078026d113b0461055dec34a118d");
 })();
