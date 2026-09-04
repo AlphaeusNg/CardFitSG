@@ -396,12 +396,12 @@ async function boot(
   assert.match(result.elements["compare-out"].innerHTML, /<b>OCBC 365<\/b>/, "compare selection renders card B");
   assert.match(
     result.elements["compare-out"].innerHTML,
-    /S\\$60–S\\$200 per 3-month qualifying period from S\\$600–S\\$2,000\/month/,
+    /S\$60–S\$200 per 3-month qualifying period from S\$600–S\$2,000\/month/,
     "tiered comparison describes fixed published awards instead of a zero base rate"
   );
   assert.match(
     result.elements["compare-out"].innerHTML,
-    /0\.25% base · category rates up to 6\.0% from S\\$800\/month/,
+    /0\.25% base · category rates up to 6\.0% from S\$800\/month/,
     "category comparison distinguishes the base and conditional category rates"
   );
   assert.doesNotMatch(
@@ -413,14 +413,14 @@ async function boot(
   result.elements["compare-a"].dispatch("change");
   assert.match(
     result.elements["compare-out"].innerHTML,
-    /3\.0% intro on first S\\$5,000 within 6 months · then 1\.5% flat/,
+    /3\.0% intro on first S\$5,000 within 6 months · then 1\.5% flat/,
     "intro comparison distinguishes the capped acquisition rate from the ongoing rate"
   );
 
   // Ranked rate pills must reuse publishedRateSummary (same honesty as compare).
   assert.match(
     result.elements.ranked.innerHTML,
-    /S\\$60–S\\$200 per 3-month qualifying period from S\\$600–S\\$2,000\/month/,
+    /S\$60–S\$200 per 3-month qualifying period from S\$600–S\$2,000\/month/,
     "ranked UOB One pill describes fixed published awards instead of a zero base rate"
   );
   assert.doesNotMatch(
@@ -430,7 +430,7 @@ async function boot(
   );
   assert.match(
     result.elements.ranked.innerHTML,
-    /0\.25% base · category rates up to 6\.0% from S\\$800\/month/,
+    /0\.25% base · category rates up to 6\.0% from S\$800\/month/,
     "ranked OCBC 365 pill includes category/up-to context"
   );
   assert.match(
@@ -440,7 +440,7 @@ async function boot(
   );
   assert.match(
     result.elements.ranked.innerHTML,
-    /3\.0% intro on first S\\$5,000 within 6 months · then 1\.5% flat/,
+    /3\.0% intro on first S\$5,000 within 6 months · then 1\.5% flat/,
     "ranked intro cards distinguish capped acquisition rate from ongoing rate"
   );
   result.elements["compare-a"].value = "uob-one";
@@ -493,7 +493,7 @@ async function boot(
   result.sandbox.window.CardFitApp.run();
   assert.match(
     result.elements.ranked.innerHTML,
-    /S\\$100 quarterly cashback[^<]*10 eligible purchases[^<]*each statement month/i,
+    /S\$100 quarterly cashback[^<]*10 eligible purchases[^<]*each statement month/i,
     "optimizer ranking renders UOB One's selected-tier conditions"
   );
 
