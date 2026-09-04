@@ -626,7 +626,6 @@
     list.innerHTML = result.ranked
       .map((r, i) => {
         const card = r.card;
-        const basePct = ((card.flatRate || 0) * 100).toFixed(1);
         const barPct = maxNet > 0 ? Math.min(100, Math.max(0, (Number(r.net) / maxNet) * 100)) : 0;
         const reasons = Array.isArray(r.rankReasons) ? r.rankReasons : [];
         const whyItems = [
@@ -640,7 +639,7 @@
           <div class="rank-body">
             <header>
               <h3>${escapeHtml(card.name)}</h3>
-              <span class="pill">${basePct}% base</span>
+              <span class="pill">${escapeHtml(publishedRateSummary(card))}</span>
               ${r.alreadyHold ? '<span class="pill pill-held">In wallet</span>' : ""}
               ${r === p ? '<span class="pill pill-top">Top fit</span>' : ""}
             </header>

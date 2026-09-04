@@ -417,6 +417,59 @@ async function boot(
     "intro comparison distinguishes the capped acquisition rate from the ongoing rate"
   );
 
+  // Ranked rate pills must reuse publishedRateSummary (same honesty as compare).
+  assert.match(
+    result.elements.ranked.innerHTML,
+    /S\$60–S\$200 per 3-month qualifying period from S\$600–S\$2,000\/month/,
+    "ranked UOB One pill describes fixed published awards instead of a zero base rate"
+  );
+  assert.doesNotMatch(
+    result.elements.ranked.innerHTML,
+    /UOB One[\s\S]*?>0\.0% base</,
+    "ranked UOB One pill must not show 0.0% base"
+  );
+  assert.match(
+    result.elements.ranked.innerHTML,
+    /0\.25% base · category rates up to 6\.0% from S\$800\/month/,
+    "ranked OCBC 365 pill includes category/up-to context"
+  );
+  assert.match(
+    result.elements.ranked.innerHTML,
+    /1\.6% flat/,
+    "ranked flat cards still show a clear flat summary"
+  );
+  assert.match(
+    result.elements.ranked.innerHTML,
+    /3\.0% intro on first S\$5,000 within 6 months · then 1\.5% flat/,
+    "ranked intro cards distinguish capped acquisition rate from ongoing rate"
+  );
+  result.elements["compare-a"].value = "uob-one";
+  result.elements["compare-a"].dispatch("change");
+  result.elements["compare-b"].value = "ocbc-365";
+  result.elements["compare-b"].dispatch("change");
+  {
+    const rankedHtml = result.elements.ranked.innerHTML;
+    const compareHtml = result.elements["compare-out"].innerHTML;
+    const summaries = [
+      "S$60–S$200 per 3-month qualifying period from S$600–S$2,000/month",
+      "0.25% base · category rates up to 6.0% from S$800/month",
+      "1.6% flat",
+    ];
+    // Flat summary lives on ranked Infinity; re-check compare with a flat peer.
+    result.elements["compare-b"].value = "ocbc-infinity";
+    result.elements["compare-b"].dispatch("change");
+    const compareFlat = result.elements["compare-out"].innerHTML;
+    for (const summary of summaries) {
+      const inRanked = rankedHtml.includes(summary);
+      const inCompare =
+        compareHtml.includes(summary) || compareFlat.includes(summary);
+      assert(
+        inRanked && inCompare,
+        `compare and ranked pills agree for published summary: ${summary}`
+      );
+    }
+  }
+
   const startupRuns = result.scenarios.length;
   result.elements.optimizer.checked = true;
   result.elements.optimizer.dispatch("change");
@@ -722,4 +775,4 @@ async function boot(
   );
 }
 
-console.log("test-app.mjs: 98 startup, event, persistence, compare, preset, dock, share-link, reviewBy, and render assertions passed");
+console.log("test-app.mjs: 104 startup, event, persistence, compare, ranked-rate, preset, dock, share-link, reviewBy, and render assertions passed");
