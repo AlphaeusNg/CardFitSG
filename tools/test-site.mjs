@@ -82,13 +82,26 @@ for (const script of runtimeScripts) {
 }
 
 const app = readFileSync(resolve(root, "js/app.js"), "utf8");
-const catalogPath = /fetch\(["']([^"']+cards\.json)["']/.exec(app)?.[1];
-assert(catalogPath, "app.js must fetch the card catalog");
-assertLocalTarget("js/app.js", catalogPath, "index.html");
+const preloadTag = /<link\b[^>]*\bid=["']catalog-preload["'][^>]*>/i.exec(index)?.[0];
+assert(preloadTag, "the card catalog has a dedicated preload");
+const catalogPath = /\bhref=["']([^"']+)["']/.exec(preloadTag)?.[1];
+assert(catalogPath, "catalog preload must have an href");
+assertLocalTarget("index.html", catalogPath);
+assert.match(preloadTag, /\brel=["']preload["']/i, "catalog hint is a preload");
+assert.match(preloadTag, /\bas=["']fetch["']/i, "catalog preload has fetch semantics");
+const versionSource = readFileSync(resolve(root, "js/version.js"), "utf8");
+const siteVersion = /\bid:\s*["']([^"']+)["']/.exec(versionSource)?.[1];
+assert(siteVersion, "version.js must declare a site version");
+assert.equal(
+  new URL(catalogPath, "https://example.test/").searchParams.get("v"),
+  siteVersion,
+  "catalog preload query matches the deploy version"
+);
+assert.match(app, /catalog-preload[\s\S]*getAttribute\(["']href["']\)/, "fetch reuses the exact preload URL");
 assert.doesNotMatch(app, /cache:\s*["']no-cache["']/, "catalog fetch may reuse HTTP cache between deploys");
 assert.match(app, /function paintRankedAndPlan/, "ranking is split from the top-fit panel");
 assert.match(app, /rankPaintToken/, "stale ranking paints are dropped after a newer fit");
-assert.match(index, /rel="preload"[^>]*href="data\/cards\.json"/, "catalog is preloaded for first paint");
+assert.match(app, /nextFrame\(\(\) => \{[\s\S]*nextFrame\(\(\) => \{/, "secondary results wait across a paint boundary");
 
 console.log(
   `test-site.mjs: ${referenceCount} local references and ${fragmentCount} fragments verified`

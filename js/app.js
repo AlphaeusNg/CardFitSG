@@ -98,11 +98,8 @@
   async function init() {
     bindAutoHideHeader();
     try {
-      const catalogQuery =
-        typeof SITE_VERSION !== "undefined" && SITE_VERSION.id
-          ? `?v=${encodeURIComponent(SITE_VERSION.id)}`
-          : "";
-      const res = await fetch("data/cards.json" + catalogQuery);
+      const catalogUrl = $("#catalog-preload")?.getAttribute("href") || "data/cards.json";
+      const res = await fetch(catalogUrl);
       if (!res.ok) throw new Error("HTTP " + res.status);
       db = await res.json();
       const validation = CardFitEngine.validateCatalog(db);
@@ -179,8 +176,9 @@
     $$("#form input, #form select").forEach((el) => {
       el.addEventListener("change", run);
     });
-    $("#oneOff").addEventListener("input", debounce(run, 200));
-    $("#monthly").addEventListener("input", debounce(run, 200));
+    const rerankAmounts = debounce(run, 120);
+    $("#oneOff").addEventListener("input", rerankAmounts);
+    $("#monthly").addEventListener("input", rerankAmounts);
 
     $$("[data-preset]").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -483,7 +481,6 @@
         .join("");
       if (db.cards[i]) el.value = db.cards[i].id;
     });
-    renderCompare();
   }
 
   function publishedRateSummary(card) {
@@ -555,7 +552,6 @@
     const result = CardFitEngine.recommend(db, scenario);
     lastResult = result;
     renderResult(result);
-    renderCompare();
   }
 
   function updateTopFitDock(result) {
@@ -630,11 +626,18 @@
     updateTopFitDock(result);
 
     const token = ++rankPaintToken;
-    const yieldPaint =
-      typeof requestAnimationFrame === "function" ? requestAnimationFrame : (fn) => fn();
-    yieldPaint(() => {
+    $("#plan").innerHTML = "";
+    $("#ranked").innerHTML = "";
+    $("#compare-out").innerHTML = "";
+    const nextFrame =
+      typeof requestAnimationFrame === "function" ? requestAnimationFrame : (fn) => setTimeout(fn, 0);
+    nextFrame(() => {
       if (token !== rankPaintToken) return;
-      paintRankedAndPlan(result, p);
+      nextFrame(() => {
+        if (token !== rankPaintToken) return;
+        paintRankedAndPlan(result, p);
+        renderCompare();
+      });
     });
   }
 

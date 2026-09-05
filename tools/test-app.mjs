@@ -88,6 +88,7 @@ function makeDocument(existingCardIds = [], recentIssuers = []) {
       "compare-a",
       "compare-b",
       "compare-out",
+      "catalog-preload",
     ].map((id) => [id, makeElement()])
   );
   elements.fatal.hidden = true;
@@ -99,6 +100,8 @@ function makeDocument(existingCardIds = [], recentIssuers = []) {
   elements.months.value = "12";
   elements.goal.value = "acquire";
   elements.fussFree.checked = true;
+  elements["catalog-preload"].getAttribute = (name) =>
+    name === "href" ? "data/cards.json?v=test-version" : null;
 
   const topbar = makeElement();
   const formControls = [
@@ -185,13 +188,15 @@ function makeStorage(initialValue) {
 
 async function boot(
   response,
-  { existingCardIds = [], recentIssuers = [], savedScenario, search = "", todayYmd } = {}
+  { existingCardIds = [], recentIssuers = [], savedScenario, search = "", todayYmd, controlledFrames = false } = {}
 ) {
   const { document, elements } = makeDocument(existingCardIds, recentIssuers);
   const errors = [];
   const scenarios = [];
   const recommendations = [];
   const replacedUrls = [];
+  const fetchedUrls = [];
+  const animationFrames = [];
   const localStorage = makeStorage(savedScenario);
   const location = {
     href: `https://alphaeusng.github.io/CardFitSG/${search}`,
@@ -216,7 +221,10 @@ async function boot(
       },
     },
     document,
-    fetch: async () => response,
+    fetch: async (url) => {
+      fetchedUrls.push(String(url));
+      return response;
+    },
     console: {
       log() {},
       warn() {},
@@ -225,7 +233,8 @@ async function boot(
       },
     },
     requestAnimationFrame(callback) {
-      callback();
+      if (controlledFrames) animationFrames.push(callback);
+      else callback();
     },
     URL,
     URLSearchParams,
@@ -251,7 +260,19 @@ async function boot(
   };
   vm.runInContext(appSource, sandbox, { filename: "js/app.js" });
   await new Promise((resolvePromise) => setImmediate(resolvePromise));
-  return { elements, errors, localStorage, sandbox, scenarios, recommendations, replacedUrls };
+  const flushNextFrame = () => animationFrames.shift()?.();
+  return {
+    elements,
+    errors,
+    fetchedUrls,
+    flushNextFrame,
+    animationFrames,
+    localStorage,
+    sandbox,
+    scenarios,
+    recommendations,
+    replacedUrls,
+  };
 }
 
 {
@@ -333,6 +354,11 @@ async function boot(
   });
   assert.equal(result.elements.fatal.hidden, true, "valid startup keeps fatal state hidden");
   assert.equal(result.errors.length, 0, "valid startup logs no errors");
+  assert.deepEqual(
+    result.fetchedUrls,
+    ["data/cards.json?v=test-version"],
+    "startup fetch reuses the exact versioned preload URL"
+  );
   assert.equal(result.elements["asof-label"].textContent, catalog.meta.asOf, "audit date renders");
   assert.match(result.elements["existing-cards"].innerHTML, /ocbc-infinity/, "wallet options render");
   assert.match(
@@ -387,6 +413,16 @@ async function boot(
   result.elements.presets[2].dispatch("click");
   assert.equal(result.elements.oneOff.value, "8000", "big-trip preset sets the one-off amount");
   assert.equal(result.scenarios.at(-1).oneOff, 8000, "big-trip ranking uses the one-off amount");
+
+  const amountInputRuns = result.scenarios.length;
+  result.elements.oneOff.value = "3600";
+  result.elements.oneOff.dispatch("input");
+  result.elements.monthly.value = "1300";
+  result.elements.monthly.dispatch("input");
+  await new Promise((resolvePromise) => setTimeout(resolvePromise, 180));
+  assert.equal(result.scenarios.length, amountInputRuns + 1, "rapid amount edits coalesce into one rerank");
+  assert.equal(result.scenarios.at(-1).oneOff, 3600, "coalesced rerank uses the latest one-off amount");
+  assert.equal(result.scenarios.at(-1).monthly, 1300, "coalesced rerank uses the latest monthly amount");
 
   result.elements["compare-a"].value = "uob-one";
   result.elements["compare-a"].dispatch("change");
@@ -501,6 +537,51 @@ async function boot(
   result.elements.monthly.value = "0";
   result.sandbox.window.CardFitApp.run();
   assert.equal(result.elements["top-fit-dock"].hidden, true, "dock hides when spend is empty");
+}
+
+{
+  const result = await boot(
+    {
+      ok: true,
+      status: 200,
+      async json() {
+        return JSON.parse(JSON.stringify(catalog));
+      },
+    },
+    { controlledFrames: true }
+  );
+  assert.match(result.elements.primary.innerHTML, /Top fit for your inputs/, "top fit renders synchronously");
+  assert.equal(result.elements.ranked.innerHTML, "", "ranking waits while the top fit reaches first paint");
+  assert.equal(result.elements.plan.innerHTML, "", "plan waits while the top fit reaches first paint");
+  assert.equal(result.elements["compare-out"].innerHTML, "", "comparison waits while the top fit reaches first paint");
+  assert.equal(result.animationFrames.length, 1, "secondary rendering schedules the first frame boundary");
+
+  result.flushNextFrame();
+  assert.equal(result.elements.ranked.innerHTML, "", "ranking remains deferred through the first frame");
+  assert.equal(result.animationFrames.length, 1, "secondary rendering schedules beyond the first paint");
+  result.flushNextFrame();
+  assert.match(result.elements.ranked.innerHTML, /<article/, "ranking renders after the top-fit paint");
+  assert.match(result.elements.plan.innerHTML, /plan-steps/, "plan renders with the ranking");
+  assert.match(result.elements["compare-out"].innerHTML, /Official page/, "comparison renders with secondary results");
+
+  result.elements.oneOff.value = "0";
+  result.elements.monthly.value = "0";
+  result.sandbox.window.CardFitApp.run();
+  result.elements.oneOff.value = "8000";
+  result.sandbox.window.CardFitApp.run();
+  assert.equal(result.elements.ranked.innerHTML, "", "a rerank clears the previous ranking immediately");
+  result.flushNextFrame();
+  assert.equal(result.elements.ranked.innerHTML, "", "an obsolete first-frame callback cannot paint stale ranking");
+  result.flushNextFrame();
+  assert.equal(result.elements.ranked.innerHTML, "", "the latest rerank still waits for its paint boundary");
+  result.flushNextFrame();
+  const expectedTop = result.recommendations.at(-1).primary.card.name;
+  const topCardStart = result.elements.ranked.innerHTML.indexOf('class="rank-card is-top');
+  assert(topCardStart >= 0, "latest ranking marks a top card");
+  assert(
+    result.elements.ranked.innerHTML.slice(topCardStart, topCardStart + 500).includes(`<h3>${expectedTop}</h3>`),
+    "only the latest queued ranking paints"
+  );
 }
 
 {
@@ -775,4 +856,4 @@ async function boot(
   );
 }
 
-console.log("test-app.mjs: 104 startup, event, persistence, compare, ranked-rate, preset, dock, share-link, reviewBy, and render assertions passed");
+console.log("test-app.mjs: startup, event, paint scheduling, persistence, compare, ranked-rate, preset, dock, share-link, reviewBy, and render assertions passed");

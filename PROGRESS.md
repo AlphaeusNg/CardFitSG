@@ -2,9 +2,9 @@
 
 Last updated: 2026-09-06 (CardFitSG Cycle 57)
 
-## Latest cycle: faster first paint of the top fit
+## Latest cycle: faster first paint and amount edits
 
-Catalog fetch may reuse HTTP cache (version-query bust on deploy), `data/cards.json` is preloaded, and the ranking/plan HTML yields a frame so the top-fit panel can paint first.
+The versioned catalog preload now exactly matches the fetch, and ranking, plan, and comparison rendering wait across a paint boundary so the top-fit panel appears first without stale secondary results. Amount edits also share a shorter debounce for quicker, coalesced recalculation.
 
 ## Current state
 
