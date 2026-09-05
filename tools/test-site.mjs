@@ -85,6 +85,10 @@ const app = readFileSync(resolve(root, "js/app.js"), "utf8");
 const catalogPath = /fetch\(["']([^"']+cards\.json)["']/.exec(app)?.[1];
 assert(catalogPath, "app.js must fetch the card catalog");
 assertLocalTarget("js/app.js", catalogPath, "index.html");
+assert.doesNotMatch(app, /cache:\s*["']no-cache["']/, "catalog fetch may reuse HTTP cache between deploys");
+assert.match(app, /function paintRankedAndPlan/, "ranking is split from the top-fit panel");
+assert.match(app, /rankPaintToken/, "stale ranking paints are dropped after a newer fit");
+assert.match(index, /rel="preload"[^>]*href="data\/cards\.json"/, "catalog is preloaded for first paint");
 
 console.log(
   `test-site.mjs: ${referenceCount} local references and ${fragmentCount} fragments verified`

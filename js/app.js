@@ -9,6 +9,7 @@
 
   let db = null;
   let lastResult = null;
+  let rankPaintToken = 0;
   const SCENARIO_KEY = "cardfitsg-last-scenario-v1";
 
   function marketTodayYmd() {
@@ -97,7 +98,11 @@
   async function init() {
     bindAutoHideHeader();
     try {
-      const res = await fetch("data/cards.json", { cache: "no-cache" });
+      const catalogQuery =
+        typeof SITE_VERSION !== "undefined" && SITE_VERSION.id
+          ? `?v=${encodeURIComponent(SITE_VERSION.id)}`
+          : "";
+      const res = await fetch("data/cards.json" + catalogQuery);
       if (!res.ok) throw new Error("HTTP " + res.status);
       db = await res.json();
       const validation = CardFitEngine.validateCatalog(db);
@@ -574,6 +579,7 @@
     const primary = $("#primary");
     markActivePreset();
     if (!p) {
+      rankPaintToken += 1;
       primary.innerHTML = "<p>No recommendation.</p>";
       $("#plan").innerHTML = "";
       $("#ranked").innerHTML = "";
@@ -621,6 +627,18 @@
     `;
     }
 
+    updateTopFitDock(result);
+
+    const token = ++rankPaintToken;
+    const yieldPaint =
+      typeof requestAnimationFrame === "function" ? requestAnimationFrame : (fn) => fn();
+    yieldPaint(() => {
+      if (token !== rankPaintToken) return;
+      paintRankedAndPlan(result, p);
+    });
+  }
+
+  function paintRankedAndPlan(result, p) {
     const list = $("#ranked");
     const maxNet = Math.max(0, ...result.ranked.map((r) => Number(r.net) || 0));
     list.innerHTML = result.ranked
@@ -655,8 +673,6 @@
         </article>`;
       })
       .join("");
-
-    updateTopFitDock(result);
 
     $("#plan").innerHTML = result.zeroSpend
       ? `<p class="muted">Enter one-off and/or monthly spend, then recalculate for a concrete action plan.</p>`

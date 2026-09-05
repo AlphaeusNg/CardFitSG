@@ -1,6 +1,10 @@
 # CardFitSG continuous improvement log
 
-Last updated: 2026-09-01 (CardFitSG Cycle 56)
+Last updated: 2026-09-06 (CardFitSG Cycle 57)
+
+## Latest cycle: faster first paint of the top fit
+
+Catalog fetch may reuse HTTP cache (version-query bust on deploy), `data/cards.json` is preloaded, and the ranking/plan HTML yields a frame so the top-fit panel can paint first.
 
 ## Current state
 
