@@ -97,7 +97,7 @@
   async function init() {
     bindAutoHideHeader();
     try {
-      const res = await fetch("data/cards.json", { cache: "no-cache" });
+      const res = await fetch("data/cards.json?v=" + SITE_VERSION.id);
       if (!res.ok) throw new Error("HTTP " + res.status);
       db = await res.json();
       const validation = CardFitEngine.validateCatalog(db);

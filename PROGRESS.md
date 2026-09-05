@@ -1,6 +1,6 @@
 # CardFitSG continuous improvement log
 
-Last updated: 2026-09-01 (CardFitSG Cycle 56)
+Last updated: 2026-09-06 (CardFitSG Cycle 58)
 
 ## Current state
 
@@ -10,7 +10,7 @@ Last updated: 2026-09-01 (CardFitSG Cycle 56)
   (130 assertions), `node
   tools/test-catalog-freshness.mjs` (19 assertions), the live catalog-deadline
   check, `node tools/test-site.mjs` (13 references/fragments), `node
-  tools/test-app.mjs` (98 assertions), recursive JavaScript syntax checks, JSON
+  tools/test-app.mjs` (104 assertions), recursive JavaScript syntax checks, JSON
   catalog JSON parsing, and repository CI on Node 24 LTS.
 - Catalog snapshot: all six cards and the current OCBC/UOB/SC promotion terms
   were rechecked from official sources on 2026-09-01; `data/cards.json`
@@ -27,9 +27,45 @@ Last updated: 2026-09-01 (CardFitSG Cycle 56)
   12 months without the issuer's principal credit cards.
 - Catalog review policy: recheck by 2026-09-25, five days before the dated
   offers end on 2026-09-30; daily CI enforces the boundary.
-- Deployment version: `2026.09.01.1`.
+- Deployment version: `2026.09.06.1` (pending PR: non-blocking fonts + versioned catalog).
 
-## Latest cycle: restore current September signup windows (2026-09-01)
+
+## Latest cycle: non-blocking fonts + versioned catalog (2026-09-06)
+
+### Why this was selected
+
+Google Fonts still blocked first paint, and `fetch("data/cards.json", { cache: "no-cache" })`
+forced revalidation on every visit before rankings could paint. Version bumps already exist
+for deploys; the catalog URL should ride that stamp instead of bypassing HTTP cache.
+
+### Changes
+
+- Loaded Google Fonts with `media="print" onload="this.media='all'"` plus a `<noscript>` fallback
+  in `index.html` so the form can paint with system fonts first.
+- Fetched the catalog as `data/cards.json?v=` + `SITE_VERSION.id` with default cache behaviour
+  (removed `cache: "no-cache"`).
+- Left ranked `publishedRateSummary` pills, `renderResult`, and catalog `reviewBy` stacking alone.
+- Extended `tools/test-app.mjs` and `tools/test-site.mjs` for the versioned fetch URL, absent
+  no-cache option, and non-blocking font link pattern.
+- Bumped site version to `2026.09.06.1`.
+
+## Previous cycle: honest ranked rate pills (2026-09-04)
+
+### Why this was selected
+
+Ranked-list rate pills still rendered raw `flatRate × 100` as "% base", so UOB One
+showed `0.0% base` and OCBC 365 showed only its tiny base while compare already used
+`publishedRateSummary()`. Visitors saw conflicting rate honesty between the two panels.
+
+### Changes
+
+- Reused `publishedRateSummary(card)` (escaped) for ranked pills in `js/app.js`.
+- Allowed pill text to wrap with a tiny CSS tweak.
+- Extended `tools/test-app.mjs` so `#ranked` pills match compare honesty for UOB One,
+  OCBC 365, flat, and intro cards.
+- Bumped site version to `2026.09.04.1`.
+
+## Previous cycle: restore current September signup windows (2026-09-01)
 
 ### Why this was selected
 

@@ -82,9 +82,32 @@ for (const script of runtimeScripts) {
 }
 
 const app = readFileSync(resolve(root, "js/app.js"), "utf8");
-const catalogPath = /fetch\(["']([^"']+cards\.json)["']/.exec(app)?.[1];
-assert(catalogPath, "app.js must fetch the card catalog");
+const catalogFetch = /fetch\(["']([^"']*cards\.json[^"']*)["']/.exec(app);
+assert(catalogFetch, "app.js must fetch the card catalog");
+const catalogPath = catalogFetch[1];
+assert.match(catalogPath, /\?v=/, "catalog fetch path must include a version query");
 assertLocalTarget("js/app.js", catalogPath, "index.html");
+assert.match(
+  app,
+  /fetch\(["']data\/cards\.json\?v=["']\s*\+\s*SITE_VERSION\.id\)/,
+  "catalog fetch must version the URL with SITE_VERSION.id"
+);
+assert.doesNotMatch(
+  app,
+  /cache:\s*["']no-cache["']/,
+  "catalog fetch must not force no-cache revalidation"
+);
+
+assert.match(
+  index,
+  /fonts\.googleapis\.com[^>]*\bmedia=["']print["'][^>]*\bonload=["']this\.media=['"]all['"]["']/,
+  "Google Fonts stylesheet must load non-blocking via media=print onload"
+);
+assert.match(
+  index,
+  /<noscript>\s*<link href="https:\/\/fonts\.googleapis\.com\/css2\?[^"]+" rel="stylesheet" \/>\s*<\/noscript>/,
+  "Google Fonts must keep a noscript stylesheet fallback"
+);
 
 console.log(
   `test-site.mjs: ${referenceCount} local references and ${fragmentCount} fragments verified`

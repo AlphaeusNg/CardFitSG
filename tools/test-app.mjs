@@ -192,6 +192,7 @@ async function boot(
   const scenarios = [];
   const recommendations = [];
   const replacedUrls = [];
+  const fetchCalls = [];
   const localStorage = makeStorage(savedScenario);
   const location = {
     href: `https://alphaeusng.github.io/CardFitSG/${search}`,
@@ -216,7 +217,10 @@ async function boot(
       },
     },
     document,
-    fetch: async () => response,
+    fetch: async (url, options) => {
+      fetchCalls.push({ url: String(url), options });
+      return response;
+    },
     console: {
       log() {},
       warn() {},
@@ -251,7 +255,7 @@ async function boot(
   };
   vm.runInContext(appSource, sandbox, { filename: "js/app.js" });
   await new Promise((resolvePromise) => setImmediate(resolvePromise));
-  return { elements, errors, localStorage, sandbox, scenarios, recommendations, replacedUrls };
+  return { elements, errors, localStorage, sandbox, scenarios, recommendations, replacedUrls, fetchCalls };
 }
 
 {
@@ -775,4 +779,38 @@ async function boot(
   );
 }
 
-console.log("test-app.mjs: 104 startup, event, persistence, compare, ranked-rate, preset, dock, share-link, reviewBy, and render assertions passed");
+{
+  assert.match(
+    appSource,
+    /fetch\(["']data\/cards\.json\?v=["']\s*\+\s*SITE_VERSION\.id\)/,
+    "catalog fetch must append SITE_VERSION.id as ?v="
+  );
+  assert.doesNotMatch(
+    appSource,
+    /cache:\s*["']no-cache["']/,
+    "catalog fetch must not force no-cache revalidation"
+  );
+}
+
+{
+  const result = await boot({
+    ok: true,
+    status: 200,
+    async json() {
+      return JSON.parse(JSON.stringify(catalog));
+    },
+  });
+  assert.equal(result.fetchCalls.length, 1, "startup performs one catalog fetch");
+  assert.equal(
+    result.fetchCalls[0].url,
+    "data/cards.json?v=test-version",
+    "catalog fetch URL includes the site version query"
+  );
+  assert.equal(
+    result.fetchCalls[0].options,
+    undefined,
+    "catalog fetch uses default browser cache behaviour"
+  );
+}
+
+console.log("test-app.mjs: 108 startup, event, persistence, compare, ranked-rate, preset, dock, share-link, reviewBy, versioned-catalog, and render assertions passed");
