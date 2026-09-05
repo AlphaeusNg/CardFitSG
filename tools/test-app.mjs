@@ -185,13 +185,14 @@ function makeStorage(initialValue) {
 
 async function boot(
   response,
-  { existingCardIds = [], recentIssuers = [], savedScenario, search = "", todayYmd } = {}
+  { existingCardIds = [], recentIssuers = [], savedScenario, search = "", todayYmd, deferRaf = false } = {}
 ) {
   const { document, elements } = makeDocument(existingCardIds, recentIssuers);
   const errors = [];
   const scenarios = [];
   const recommendations = [];
   const replacedUrls = [];
+  const rafQueue = [];
   const localStorage = makeStorage(savedScenario);
   const location = {
     href: `https://alphaeusng.github.io/CardFitSG/${search}`,
@@ -224,8 +225,17 @@ async function boot(
         errors.push(args.map(String).join(" "));
       },
     },
+    cancelAnimationFrame(id) {
+      if (!id) return;
+      rafQueue[id - 1] = null;
+    },
     requestAnimationFrame(callback) {
+      if (deferRaf) {
+        rafQueue.push(callback);
+        return rafQueue.length;
+      }
       callback();
+      return 0;
     },
     URL,
     URLSearchParams,
@@ -251,7 +261,13 @@ async function boot(
   };
   vm.runInContext(appSource, sandbox, { filename: "js/app.js" });
   await new Promise((resolvePromise) => setImmediate(resolvePromise));
-  return { elements, errors, localStorage, sandbox, scenarios, recommendations, replacedUrls };
+  function flushRaf() {
+    while (rafQueue.length) {
+      const callbacks = rafQueue.splice(0, rafQueue.length).filter(Boolean);
+      for (const callback of callbacks) callback();
+    }
+  }
+  return { elements, errors, localStorage, sandbox, scenarios, recommendations, replacedUrls, flushRaf, rafQueue };
 }
 
 {
@@ -775,4 +791,36 @@ async function boot(
   );
 }
 
-console.log("test-app.mjs: 104 startup, event, persistence, compare, ranked-rate, preset, dock, share-link, reviewBy, and render assertions passed");
+
+{
+  const result = await boot(
+    {
+      ok: true,
+      status: 200,
+      async json() {
+        return JSON.parse(JSON.stringify(catalog));
+      },
+    },
+    { deferRaf: true }
+  );
+  assert.match(
+    result.elements.primary.innerHTML,
+    /Est\. net value/,
+    "top-fit metrics paint before the ranked list frame"
+  );
+  assert.equal(
+    (result.elements.ranked.innerHTML.match(/<article/g) || []).length,
+    0,
+    "ranked articles wait for requestAnimationFrame"
+  );
+  assert.equal(result.rafQueue.length > 0, true, "ranked paint is scheduled on rAF");
+  result.flushRaf();
+  assert.equal(
+    (result.elements.ranked.innerHTML.match(/<article/g) || []).length,
+    catalog.cards.length,
+    "ranked articles fill on the next animation frame"
+  );
+}
+
+console.log("test-app.mjs: 108 startup, event, persistence, compare, ranked-rate, two-phase render, preset, dock, share-link, reviewBy, and render assertions passed");
+
