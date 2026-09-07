@@ -1,6 +1,14 @@
 # CardFitSG continuous improvement log
 
-Last updated: 2026-09-06 (CardFitSG Cycle 57)
+Last updated: 2026-09-08 (CardFitSG Cycle 58)
+
+## Latest cycle: reverify September issuer offers
+
+The official OCBC, UOB, Standard Chartered, and American Express product pages
+and acquisition terms were rechecked on 8 September. The six modeled cards,
+cashback rates, annual fees, issuer lookbacks, and signup mechanics remain
+unchanged. The catalog snapshot advances to `2026-09-08`; its enforced
+`2026-09-25` review remains five days ahead of the earliest dated offers.
 
 ## Latest cycle: faster first paint and amount edits
 
@@ -17,8 +25,8 @@ The versioned catalog preload now exactly matches the fetch, and ranking, plan, 
   tools/test-app.mjs` (98 assertions), recursive JavaScript syntax checks, JSON
   catalog JSON parsing, and repository CI on Node 24 LTS.
 - Catalog snapshot: all six cards and the current OCBC/UOB/SC promotion terms
-  were rechecked from official sources on 2026-09-01; `data/cards.json`
-  declares `asOf` 2026-09-01 and `reviewBy` 2026-09-25 (before the earliest
+  were rechecked from official sources on 2026-09-08; `data/cards.json`
+  declares `asOf` 2026-09-08 and `reviewBy` 2026-09-25 (before the earliest
   2026-09-30 offer ends).
 - UOB One's optimizer condition was reverified against UOB's product page, full
   terms, and FAQ on 2026-08-10; the official product page reconfirmed its
@@ -31,7 +39,7 @@ The versioned catalog preload now exactly matches the fetch, and ranking, plan, 
   12 months without the issuer's principal credit cards.
 - Catalog review policy: recheck by 2026-09-25, five days before the dated
   offers end on 2026-09-30; daily CI enforces the boundary.
-- Deployment version: `2026.09.01.1`.
+- Deployment version: `2026.09.08.1`.
 
 ## Latest cycle: restore current September signup windows (2026-09-01)
 

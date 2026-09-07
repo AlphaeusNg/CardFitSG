@@ -813,7 +813,7 @@ async function boot(
   );
   assert.match(
     result.elements["catalog-review-banner"].textContent,
-    /Rates last verified 2026-09-01/,
+    /Rates last verified 2026-09-08/,
     "overdue banner names the asOf verification date"
   );
   assert.match(
