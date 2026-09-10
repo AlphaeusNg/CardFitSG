@@ -1,29 +1,51 @@
 # CardFitSG continuous improvement log
 
-Last updated: 2026-09-08 (CardFitSG Cycle 58)
+Last updated: 2026-09-11 (CardFitSG Cycle 59)
+
+## Latest cycle: keep restored, shared, and scored spend in agreement
+
+Scenario precedence now begins only when a recognized scenario query parameter
+is present, so tracking-only links no longer replace a saved scenario with
+synthetic zeroes. Explicit zero remains distinct from a missing amount.
+
+One shared spend boundary now normalizes negative values to zero and finite
+over-cap values to S$100,000,000, while rejecting missing, malformed, and
+non-finite values. The visible inputs expose that same cap, and each run writes
+the normalized amounts back to the form before persistence, URL encoding, and
+engine scoring. Decimal amounts also survive share-link encoding without the
+previous silent rounding.
+
+The DOM-composed app harness covers tracking-only URLs, explicit URL zeroes,
+recognized-but-invalid queries, saved-state repair, raw form input, exact share
+encoding, persistence, and engine agreement. Static checks bind both input
+maximums and the app parser to the engine's spend boundary.
 
 ## Latest cycle: reverify September issuer offers
 
 The official OCBC, UOB, Standard Chartered, and American Express product pages
 and acquisition terms were rechecked on 8 September. The six modeled cards,
 cashback rates, annual fees, issuer lookbacks, and signup mechanics remain
-unchanged. The catalog snapshot advances to `2026-09-08`; its enforced
-`2026-09-25` review remains five days ahead of the earliest dated offers.
+unchanged. The catalog snapshot advanced to `2026-09-08`; its enforced
+`2026-09-25` review remains ahead of the earliest dated offers.
 
 ## Latest cycle: faster first paint and amount edits
 
-The versioned catalog preload now exactly matches the fetch, and ranking, plan, and comparison rendering wait across a paint boundary so the top-fit panel appears first without stale secondary results. Amount edits also share a shorter debounce for quicker, coalesced recalculation.
+The versioned catalog preload now exactly matches the fetch. The top-fit panel,
+plan, and comparison paint immediately while the full ranking waits one frame;
+stale ranked paints are cancelled. Amount edits share a shorter debounce for
+quicker, coalesced recalculation.
 
 ## Current state
 
 - Branch: `main`; continuous-improvement commits are published to `origin/main` after verification.
 - Runtime: zero-build static HTML/CSS/JavaScript.
 - Verification: workflow policy (14 assertions), `node tools/test-engine.mjs`
-  (130 assertions), `node
+  (134 assertions), `node
   tools/test-catalog-freshness.mjs` (19 assertions), the live catalog-deadline
-  check, `node tools/test-site.mjs` (13 references/fragments), `node
-  tools/test-app.mjs` (98 assertions), recursive JavaScript syntax checks, JSON
-  catalog JSON parsing, and repository CI on Node 24 LTS.
+  check, `node tools/test-site.mjs` (10 local references, 4 fragments, input
+  bounds, and render architecture), focused scenario-boundary coverage in
+  `node tools/test-app.mjs`, recursive JavaScript syntax checks, catalog JSON
+  parsing, and repository CI on Node 24 LTS.
 - Catalog snapshot: all six cards and the current OCBC/UOB/SC promotion terms
   were rechecked from official sources on 2026-09-08; `data/cards.json`
   declares `asOf` 2026-09-08 and `reviewBy` 2026-09-25 (before the earliest
@@ -39,7 +61,7 @@ The versioned catalog preload now exactly matches the fetch, and ranking, plan, 
   12 months without the issuer's principal credit cards.
 - Catalog review policy: recheck by 2026-09-25, five days before the dated
   offers end on 2026-09-30; daily CI enforces the boundary.
-- Deployment version: `2026.09.08.1`.
+- Deployment version: `2026.09.11.2`.
 
 ## Latest cycle: restore current September signup windows (2026-09-01)
 

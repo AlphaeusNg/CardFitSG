@@ -11,6 +11,17 @@
   let lastResult = null;
   let rankedPaintFrame = 0;
   const SCENARIO_KEY = "cardfitsg-last-scenario-v1";
+  const SCENARIO_PARAM_KEYS = new Set([
+    "oneOff",
+    "monthly",
+    "months",
+    "goal",
+    "fuss",
+    "opt",
+    "amex",
+    "hold",
+    "issuers",
+  ]);
 
   function marketTodayYmd() {
     if (typeof CardFitEngine !== "undefined" && typeof CardFitEngine.todayYmd === "function") {
@@ -200,8 +211,18 @@
   }
 
   function parseFiniteAmount(value) {
+    if (typeof value !== "number" && typeof value !== "string") return null;
+    if (value == null || (typeof value === "string" && value.trim() === "")) return null;
     const n = Number(value);
-    return Number.isFinite(n) && n >= 0 ? n : null;
+    if (!Number.isFinite(n)) return null;
+    return CardFitEngine.clampSpend(n);
+  }
+
+  function amountFromInput(input) {
+    const amount = parseFiniteAmount(input?.value);
+    const normalized = amount == null ? 0 : amount;
+    if (input) input.value = String(normalized);
+    return normalized;
   }
 
   function csvList(value) {
@@ -228,7 +249,7 @@
   function scenarioFromSearch(search) {
     if (!search || typeof search !== "string") return null;
     const params = new URLSearchParams(search[0] === "?" ? search.slice(1) : search);
-    if (![...params.keys()].length) return null;
+    if (![...params.keys()].some((key) => SCENARIO_PARAM_KEYS.has(key))) return null;
     const record = {};
     const oneOff = parseFiniteAmount(params.get("oneOff"));
     const monthly = parseFiniteAmount(params.get("monthly"));
@@ -251,13 +272,13 @@
     if (hold.length) record.existingCardIds = hold;
     const issuers = allowedList(csvList(params.get("issuers")), knownIssuers());
     if (issuers.length) record.recentIssuers = issuers;
-    return Object.keys(record).length ? record : null;
+    return record;
   }
 
   function scenarioSearch(scenario) {
     const params = new URLSearchParams();
-    params.set("oneOff", String(Math.round(Number(scenario.oneOff) || 0)));
-    params.set("monthly", String(Math.round(Number(scenario.monthly) || 0)));
+    params.set("oneOff", String(parseFiniteAmount(scenario.oneOff) ?? 0));
+    params.set("monthly", String(parseFiniteAmount(scenario.monthly) ?? 0));
     params.set("months", String(scenario.months === 6 || scenario.months === 24 ? scenario.months : 12));
     params.set("goal", scenario.intent === "long_term" || scenario.intent === "keep" ? scenario.intent : "acquire");
     params.set("fuss", scenario.preferFussFree ? "1" : "0");
@@ -297,8 +318,10 @@
 
   function applyScenarioRecord(saved) {
     if (!saved || typeof saved !== "object") return;
-    if (Number.isFinite(saved.oneOff) && $("#oneOff")) $("#oneOff").value = saved.oneOff;
-    if (Number.isFinite(saved.monthly) && $("#monthly")) $("#monthly").value = saved.monthly;
+    const oneOff = parseFiniteAmount(saved.oneOff);
+    const monthly = parseFiniteAmount(saved.monthly);
+    if (oneOff !== null && $("#oneOff")) $("#oneOff").value = oneOff;
+    if (monthly !== null && $("#monthly")) $("#monthly").value = monthly;
     if (Number.isFinite(saved.months) && $("#months")) $("#months").value = String(saved.months);
     if ($("#goal")) {
       if (saved.intent === "long_term") $("#goal").value = "long_term";
@@ -412,8 +435,8 @@
         ? CardFitEngine.todayYmd()
         : null) || db.meta.asOf;
     return {
-      oneOff: Number($("#oneOff").value) || 0,
-      monthly: Number($("#monthly").value) || 0,
+      oneOff: amountFromInput($("#oneOff")),
+      monthly: amountFromInput($("#monthly")),
       months: Number($("#months").value) || 12,
       existingCardIds: existing,
       recentIssuers,
@@ -755,7 +778,14 @@
     };
   }
 
-  window.CardFitApp = { run, scenarioFromForm, scenarioSearch, scenarioFromSearch, scenarioPageUrl };
+  window.CardFitApp = {
+    run,
+    parseFiniteAmount,
+    scenarioFromForm,
+    scenarioSearch,
+    scenarioFromSearch,
+    scenarioPageUrl,
+  };
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init);

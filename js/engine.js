@@ -661,6 +661,7 @@
   }
 
   global.CardFitEngine = {
+    MAX_SPEND,
     scoreCard,
     recommend,
     validateCatalog,

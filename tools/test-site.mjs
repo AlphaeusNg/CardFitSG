@@ -103,6 +103,23 @@ assert.match(app, /function paintRankedList/, "ranking is split from the top-fit
 assert.match(app, /function cancelRankedPaint/, "stale ranked paints cancel on newer runs");
 assert.match(app, /rankedPaintFrame = requestAnimationFrame/, "ranked list waits one animation frame");
 assert.match(app, /\$\(["']#plan["']\)\.innerHTML = result\.zeroSpend/, "plan paints with primary before ranked frame");
+const engine = readFileSync(resolve(root, "js/engine.js"), "utf8");
+const maxSpend = /const MAX_SPEND\s*=\s*([\deE+.-]+)/.exec(engine)?.[1];
+assert(maxSpend, "engine declares a maximum supported spend");
+assert.match(
+  app,
+  /function parseFiniteAmount[\s\S]*?CardFitEngine\.clampSpend\(n\)/,
+  "URL, saved-state, and form amounts reuse the engine spend boundary"
+);
+for (const inputId of ["oneOff", "monthly"]) {
+  const input = new RegExp(`<input\\b[^>]*\\bid=["']${inputId}["'][^>]*>`, "i").exec(index)?.[0];
+  assert(input, `${inputId} amount input exists`);
+  assert.equal(
+    /\bmax=["']([^"']+)["']/i.exec(input)?.[1],
+    String(Number(maxSpend)),
+    `${inputId} exposes the same maximum enforced by the engine`
+  );
+}
 
 console.log(
   `test-site.mjs: ${referenceCount} local references and ${fragmentCount} fragments verified`

@@ -621,14 +621,178 @@ async function boot(
     },
     { savedScenario: saved }
   );
-  assert.equal(result.elements.oneOff.value, 900, "saved one-off spend is restored");
-  assert.equal(result.elements.monthly.value, 1800, "saved monthly spend is restored");
+  assert.equal(result.elements.oneOff.value, "900", "saved one-off spend is restored");
+  assert.equal(result.elements.monthly.value, "1800", "saved monthly spend is restored");
   assert.equal(result.elements.months.value, "24", "saved horizon is restored");
   assert.equal(result.elements.goal.value, "long_term", "saved goal is restored");
   assert.equal(result.elements.fussFree.checked, true, "saved fuss-free preference is restored");
   assert.equal(result.elements.optimizer.checked, false, "conflicting saved modes recover to fuss-free");
   assert.equal(result.elements.amexOk.checked, true, "saved Amex preference is restored");
   assert.equal(result.scenarios.at(-1).monthly, 1800, "first ranking uses the recovered scenario");
+}
+
+{
+  const result = await boot(
+    {
+      ok: true,
+      status: 200,
+      async json() {
+        return JSON.parse(JSON.stringify(catalog));
+      },
+    },
+    {
+      savedScenario: JSON.stringify({
+        oneOff: -50,
+        monthly: 100000001,
+        months: 12,
+      }),
+    }
+  );
+  assert.equal(result.elements.oneOff.value, "0", "negative saved spend normalizes at the visible field");
+  assert.equal(result.elements.monthly.value, "100000000", "over-cap saved spend normalizes at the visible field");
+  assert.equal(result.scenarios.at(-1).oneOff, 0, "normalized saved minimum reaches the engine");
+  assert.equal(result.scenarios.at(-1).monthly, 100000000, "normalized saved maximum reaches the engine");
+  const persisted = JSON.parse(result.localStorage.getItem("cardfitsg-last-scenario-v1"));
+  assert.equal(persisted.oneOff, 0, "saved-state repair is persisted canonically");
+  assert.equal(persisted.monthly, 100000000, "saved cap repair is persisted canonically");
+}
+
+{
+  const result = await boot(
+    {
+      ok: true,
+      status: 200,
+      async json() {
+        return JSON.parse(JSON.stringify(catalog));
+      },
+    },
+    {
+      savedScenario: JSON.stringify({
+        oneOff: 900,
+        monthly: 1800,
+        months: 24,
+        intent: "long_term",
+        preferFussFree: false,
+        optimizerMode: true,
+        amexOk: true,
+      }),
+      search: "?utm_source=portfolio&utm_campaign=project-card",
+    }
+  );
+  assert.equal(result.elements.oneOff.value, "900", "tracking-only URLs do not replace saved spend");
+  assert.equal(result.elements.monthly.value, "1800", "tracking-only URLs preserve the complete saved scenario");
+  assert.equal(result.elements.months.value, "24", "tracking-only URLs do not replace the saved horizon");
+  assert.equal(result.elements.goal.value, "long_term", "tracking-only URLs do not replace the saved goal");
+  assert.equal(result.scenarios.at(-1).optimizerMode, true, "tracking-only URLs preserve saved mode flags");
+}
+
+{
+  const result = await boot(
+    {
+      ok: true,
+      status: 200,
+      async json() {
+        return JSON.parse(JSON.stringify(catalog));
+      },
+    },
+    {
+      savedScenario: JSON.stringify({ oneOff: 900, monthly: 1800, months: 24 }),
+      search: "?oneOff=0&monthly=0",
+    }
+  );
+  assert.equal(result.elements.oneOff.value, "0", "an explicit URL one-off zero overrides saved spend");
+  assert.equal(result.elements.monthly.value, "0", "an explicit URL monthly zero overrides saved spend");
+  assert.equal(result.scenarios.at(-1).oneOff, 0, "explicit URL zero reaches the ranking engine");
+  assert.equal(result.scenarios.at(-1).monthly, 0, "both explicit URL zeros survive form parsing");
+}
+
+{
+  const result = await boot(
+    {
+      ok: true,
+      status: 200,
+      async json() {
+        return JSON.parse(JSON.stringify(catalog));
+      },
+    },
+    {
+      savedScenario: JSON.stringify({ oneOff: 900, monthly: 1800 }),
+      search: "?oneOff=-50&monthly=100000001",
+    }
+  );
+  assert.equal(result.elements.oneOff.value, "0", "negative URL spend is normalized at the visible field");
+  assert.equal(result.elements.monthly.value, "100000000", "over-cap URL spend is normalized at the visible field");
+  assert.equal(result.scenarios.at(-1).oneOff, 0, "normalized negative spend reaches the engine");
+  assert.equal(result.scenarios.at(-1).monthly, 100000000, "normalized capped spend reaches the engine");
+  const persisted = JSON.parse(result.localStorage.getItem("cardfitsg-last-scenario-v1"));
+  assert.equal(persisted.oneOff, 0, "normalized negative spend is what persistence stores");
+  assert.equal(persisted.monthly, 100000000, "normalized capped spend is what persistence stores");
+  assert(
+    result.replacedUrls.some((url) => /oneOff=0/.test(url) && /monthly=100000000/.test(url)),
+    "the canonical URL agrees with the normalized fields and engine"
+  );
+}
+
+{
+  const result = await boot(
+    {
+      ok: true,
+      status: 200,
+      async json() {
+        return JSON.parse(JSON.stringify(catalog));
+      },
+    },
+    {
+      savedScenario: JSON.stringify({ oneOff: 900, monthly: 1800 }),
+      search: "?oneOff=not-a-number",
+    }
+  );
+  assert.equal(result.elements.oneOff.value, "3500", "non-finite URL spend is rejected to the visible default");
+  assert.equal(result.elements.monthly.value, "1200", "a recognized scenario query still takes precedence over saved state");
+  assert.equal(result.scenarios.at(-1).oneOff, 3500, "the visible default, not invalid URL data, reaches the engine");
+  assert.equal(
+    result.sandbox.window.CardFitApp.parseFiniteAmount(null),
+    null,
+    "an absent amount never synthesizes an explicit zero"
+  );
+  assert.equal(
+    result.sandbox.window.CardFitApp.parseFiniteAmount(false),
+    null,
+    "a malformed boolean amount never synthesizes an explicit zero"
+  );
+  assert.equal(result.sandbox.window.CardFitApp.parseFiniteAmount("0"), 0, "an explicit zero remains distinguishable");
+  assert.equal(result.sandbox.window.CardFitApp.parseFiniteAmount("Infinity"), null, "non-finite text is rejected");
+  assert.equal(
+    new URLSearchParams(
+      result.sandbox.window.CardFitApp.scenarioSearch({ oneOff: 12.5, monthly: 34.75 })
+    ).get("monthly"),
+    "34.75",
+    "share URLs preserve the exact finite amount scored and persisted"
+  );
+}
+
+{
+  const result = await boot({
+    ok: true,
+    status: 200,
+    async json() {
+      return JSON.parse(JSON.stringify(catalog));
+    },
+  });
+  result.elements.oneOff.value = "-1";
+  result.elements.monthly.value = "100000001";
+  result.sandbox.window.CardFitApp.run();
+  assert.equal(result.elements.oneOff.value, "0", "raw negative form spend normalizes visibly");
+  assert.equal(result.elements.monthly.value, "100000000", "raw over-cap form spend normalizes visibly");
+  assert.equal(result.scenarios.at(-1).oneOff, 0, "normalized form minimum reaches the engine");
+  assert.equal(result.scenarios.at(-1).monthly, 100000000, "normalized form maximum reaches the engine");
+
+  result.elements.oneOff.value = "Infinity";
+  result.sandbox.window.CardFitApp.run();
+  assert.equal(result.elements.oneOff.value, "0", "raw non-finite form spend is rejected visibly");
+  assert.equal(result.scenarios.at(-1).oneOff, 0, "rejected form spend reaches the engine as the visible fallback");
+  const persisted = JSON.parse(result.localStorage.getItem("cardfitsg-last-scenario-v1"));
+  assert.equal(persisted.oneOff, 0, "persistence agrees with the rejected form value");
 }
 
 {
@@ -693,8 +857,8 @@ async function boot(
       search: "?oneOff=8000&monthly=0&months=6",
     }
   );
-  assert.equal(result.elements.oneOff.value, 8000, "shared URL one-off overrides saved scenario");
-  assert.equal(result.elements.monthly.value, 0, "shared URL monthly overrides saved scenario");
+  assert.equal(result.elements.oneOff.value, "8000", "shared URL one-off overrides saved scenario");
+  assert.equal(result.elements.monthly.value, "0", "shared URL monthly overrides saved scenario");
   assert.equal(result.elements.months.value, "6", "shared URL horizon overrides saved scenario");
   assert.equal(result.elements.goal.value, "acquire", "shared URL goal overrides saved scenario");
   assert.equal(result.elements.amexOk.checked, false, "shared URL Amex flag overrides saved scenario");
@@ -830,7 +994,7 @@ async function boot(
   );
   assert.match(
     result.elements["catalog-review-banner"].textContent,
-    /Rates last verified 2026-09-08/,
+    new RegExp(`Rates last verified ${catalog.meta.asOf}`),
     "overdue banner names the asOf verification date"
   );
   assert.match(
@@ -873,4 +1037,4 @@ async function boot(
   );
 }
 
-console.log("test-app.mjs: startup, event, persistence, compare, ranked-rate, two-phase render, preset, dock, share-link, reviewBy, and render assertions passed");
+console.log("test-app.mjs: startup, event, persistence, scenario-boundary, compare, ranked-rate, two-phase render, preset, dock, share-link, reviewBy, and render assertions passed");

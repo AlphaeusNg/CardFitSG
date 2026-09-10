@@ -31,6 +31,15 @@ function assert(cond, msg) {
 
 console.log("CardFitSG engine tests\n");
 
+// Public spend bounds let the form, persistence, URL, and engine share one
+// normalization contract.
+{
+  assert(E.MAX_SPEND === 1e8, "engine exposes the canonical spend maximum");
+  assert(E.clampSpend(-1) === 0, "negative spend normalizes to zero");
+  assert(E.clampSpend(1e8 + 1) === E.MAX_SPEND, "finite over-cap spend normalizes to the maximum");
+  assert(E.clampSpend(Infinity) === 0, "non-finite spend fails closed");
+}
+
 // Runtime offer dates follow the catalog's Singapore market day, regardless of
 // the browser or test process timezone.
 {
