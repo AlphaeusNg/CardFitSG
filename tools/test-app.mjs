@@ -188,7 +188,7 @@ function makeStorage(initialValue) {
 
 async function boot(
   response,
-  { existingCardIds = [], recentIssuers = [], savedScenario, search = "", todayYmd, controlledFrames = false } = {}
+  { existingCardIds = [], recentIssuers = [], savedScenario, search = "", todayYmd, deferRaf = false } = {}
 ) {
   const { document, elements } = makeDocument(existingCardIds, recentIssuers);
   const errors = [];
@@ -196,7 +196,7 @@ async function boot(
   const recommendations = [];
   const replacedUrls = [];
   const fetchedUrls = [];
-  const animationFrames = [];
+  const rafQueue = [];
   const localStorage = makeStorage(savedScenario);
   const location = {
     href: `https://alphaeusng.github.io/CardFitSG/${search}`,
@@ -232,9 +232,17 @@ async function boot(
         errors.push(args.map(String).join(" "));
       },
     },
+    cancelAnimationFrame(id) {
+      if (!id) return;
+      rafQueue[id - 1] = null;
+    },
     requestAnimationFrame(callback) {
-      if (controlledFrames) animationFrames.push(callback);
-      else callback();
+      if (deferRaf) {
+        rafQueue.push(callback);
+        return rafQueue.length;
+      }
+      callback();
+      return 0;
     },
     URL,
     URLSearchParams,
@@ -260,13 +268,18 @@ async function boot(
   };
   vm.runInContext(appSource, sandbox, { filename: "js/app.js" });
   await new Promise((resolvePromise) => setImmediate(resolvePromise));
-  const flushNextFrame = () => animationFrames.shift()?.();
+  function flushRaf() {
+    while (rafQueue.length) {
+      const callbacks = rafQueue.splice(0, rafQueue.length).filter(Boolean);
+      for (const callback of callbacks) callback();
+    }
+  }
   return {
     elements,
     errors,
     fetchedUrls,
-    flushNextFrame,
-    animationFrames,
+    flushRaf,
+    rafQueue,
     localStorage,
     sandbox,
     scenarios,
@@ -548,33 +561,37 @@ async function boot(
         return JSON.parse(JSON.stringify(catalog));
       },
     },
-    { controlledFrames: true }
+    { deferRaf: true }
   );
-  assert.match(result.elements.primary.innerHTML, /Top fit for your inputs/, "top fit renders synchronously");
-  assert.equal(result.elements.ranked.innerHTML, "", "ranking waits while the top fit reaches first paint");
-  assert.equal(result.elements.plan.innerHTML, "", "plan waits while the top fit reaches first paint");
-  assert.equal(result.elements["compare-out"].innerHTML, "", "comparison waits while the top fit reaches first paint");
-  assert.equal(result.animationFrames.length, 1, "secondary rendering schedules the first frame boundary");
-
-  result.flushNextFrame();
-  assert.equal(result.elements.ranked.innerHTML, "", "ranking remains deferred through the first frame");
-  assert.equal(result.animationFrames.length, 1, "secondary rendering schedules beyond the first paint");
-  result.flushNextFrame();
-  assert.match(result.elements.ranked.innerHTML, /<article/, "ranking renders after the top-fit paint");
-  assert.match(result.elements.plan.innerHTML, /plan-steps/, "plan renders with the ranking");
-  assert.match(result.elements["compare-out"].innerHTML, /Official page/, "comparison renders with secondary results");
+  assert.match(
+    result.elements.primary.innerHTML,
+    /Est\. net value/,
+    "top-fit metrics paint before the ranked list frame"
+  );
+  assert.match(result.elements.plan.innerHTML, /plan-steps/, "plan paints with primary before ranked frame");
+  assert.equal(
+    (result.elements.ranked.innerHTML.match(/<article/g) || []).length,
+    0,
+    "ranked articles wait for requestAnimationFrame"
+  );
+  assert.equal(result.rafQueue.length > 0, true, "ranked paint is scheduled on rAF");
+  result.flushRaf();
+  assert.equal(
+    (result.elements.ranked.innerHTML.match(/<article/g) || []).length,
+    catalog.cards.length,
+    "ranked articles fill on the next animation frame"
+  );
 
   result.elements.oneOff.value = "0";
   result.elements.monthly.value = "0";
   result.sandbox.window.CardFitApp.run();
+  assert.equal(result.elements.ranked.innerHTML, "", "a rerank clears the previous ranking immediately");
+  assert.equal(result.rafQueue.filter(Boolean).length, 1, "rerank schedules a fresh ranked paint frame");
   result.elements.oneOff.value = "8000";
   result.sandbox.window.CardFitApp.run();
-  assert.equal(result.elements.ranked.innerHTML, "", "a rerank clears the previous ranking immediately");
-  result.flushNextFrame();
-  assert.equal(result.elements.ranked.innerHTML, "", "an obsolete first-frame callback cannot paint stale ranking");
-  result.flushNextFrame();
-  assert.equal(result.elements.ranked.innerHTML, "", "the latest rerank still waits for its paint boundary");
-  result.flushNextFrame();
+  assert.equal(result.elements.ranked.innerHTML, "", "newer run keeps ranked empty until its frame");
+  assert.equal(result.rafQueue.filter(Boolean).length, 1, "cancelRankedPaint drops the obsolete frame");
+  result.flushRaf();
   const expectedTop = result.recommendations.at(-1).primary.card.name;
   const topCardStart = result.elements.ranked.innerHTML.indexOf('class="rank-card is-top');
   assert(topCardStart >= 0, "latest ranking marks a top card");
@@ -856,4 +873,4 @@ async function boot(
   );
 }
 
-console.log("test-app.mjs: startup, event, paint scheduling, persistence, compare, ranked-rate, preset, dock, share-link, reviewBy, and render assertions passed");
+console.log("test-app.mjs: startup, event, persistence, compare, ranked-rate, two-phase render, preset, dock, share-link, reviewBy, and render assertions passed");

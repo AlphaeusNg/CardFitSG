@@ -9,7 +9,7 @@
 
   let db = null;
   let lastResult = null;
-  let rankPaintToken = 0;
+  let rankedPaintFrame = 0;
   const SCENARIO_KEY = "cardfitsg-last-scenario-v1";
 
   function marketTodayYmd() {
@@ -544,14 +544,22 @@
       </div>`;
   }
 
+  function cancelRankedPaint() {
+    if (!rankedPaintFrame) return;
+    cancelAnimationFrame(rankedPaintFrame);
+    rankedPaintFrame = 0;
+  }
+
   function run() {
     if (!db) return;
+    cancelRankedPaint();
     const scenario = scenarioFromForm();
     persistScenario(scenario);
     writeScenarioLink(scenario);
     const result = CardFitEngine.recommend(db, scenario);
     lastResult = result;
     renderResult(result);
+    renderCompare();
   }
 
   function updateTopFitDock(result) {
@@ -570,12 +578,51 @@
     if (typeof dock.setAttribute === "function") dock.setAttribute("aria-label", `Jump to top fit: ${p.card.name}`);
   }
 
+  function paintRankedList(result) {
+    const p = result.primary;
+    const list = $("#ranked");
+    if (!list || !p) return;
+    const maxNet = Math.max(0, ...result.ranked.map((r) => Number(r.net) || 0));
+    list.innerHTML = result.ranked
+      .map((r, i) => {
+        const card = r.card;
+        const barPct = maxNet > 0 ? Math.min(100, Math.max(0, (Number(r.net) / maxNet) * 100)) : 0;
+        const reasons = Array.isArray(r.rankReasons) ? r.rankReasons : [];
+        const whyItems = [
+          ...reasons.map((reason) => `<li>${escapeHtml(reason)}</li>`),
+          `<li>Signup S$${fmt(r.signupCash)}</li>`,
+          `<li>Rate cash S$${fmt(r.cashFromRate)}</li>`,
+        ].join("");
+        return `
+        <article class="rank-card ${r === p ? "is-top" : ""} ${r.alreadyHold ? "is-held" : ""}">
+          <div class="rank-num">${i + 1}</div>
+          <div class="rank-body">
+            <header>
+              <h3>${escapeHtml(card.name)}</h3>
+              <span class="pill">${escapeHtml(publishedRateSummary(card))}</span>
+              ${r.alreadyHold ? '<span class="pill pill-held">In wallet</span>' : ""}
+              ${r === p ? '<span class="pill pill-top">Top fit</span>' : ""}
+            </header>
+            <p class="rank-hero"><strong>S$${fmt(r.net)}</strong> est. net</p>
+            <div class="rank-bar" aria-hidden="true"><span class="rank-bar-fill" style="width:${barPct.toFixed(1)}%"></span></div>
+            <p class="rank-meta">${escapeHtml(card.issuer)} · fuss ${card.fussFreeScore} · accept ${card.acceptanceScore}</p>
+            <details class="rank-why">
+              <summary>Why this rank</summary>
+              <ul>${whyItems}</ul>
+            </details>
+            ${r.warnings.length ? `<p class="warn-inline">${escapeHtml(r.warnings[0])}</p>` : ""}
+          </div>
+        </article>`;
+      })
+      .join("");
+  }
+
   function renderResult(result) {
+    cancelRankedPaint();
     const p = result.primary;
     const primary = $("#primary");
     markActivePreset();
     if (!p) {
-      rankPaintToken += 1;
       primary.innerHTML = "<p>No recommendation.</p>";
       $("#plan").innerHTML = "";
       $("#ranked").innerHTML = "";
@@ -623,63 +670,18 @@
     `;
     }
 
+    // Primary, plan, and dock paint this turn; ranked list waits one frame.
     updateTopFitDock(result);
-
-    const token = ++rankPaintToken;
-    $("#plan").innerHTML = "";
-    $("#ranked").innerHTML = "";
-    $("#compare-out").innerHTML = "";
-    const nextFrame =
-      typeof requestAnimationFrame === "function" ? requestAnimationFrame : (fn) => setTimeout(fn, 0);
-    nextFrame(() => {
-      if (token !== rankPaintToken) return;
-      nextFrame(() => {
-        if (token !== rankPaintToken) return;
-        paintRankedAndPlan(result, p);
-        renderCompare();
-      });
-    });
-  }
-
-  function paintRankedAndPlan(result, p) {
-    const list = $("#ranked");
-    const maxNet = Math.max(0, ...result.ranked.map((r) => Number(r.net) || 0));
-    list.innerHTML = result.ranked
-      .map((r, i) => {
-        const card = r.card;
-        const barPct = maxNet > 0 ? Math.min(100, Math.max(0, (Number(r.net) / maxNet) * 100)) : 0;
-        const reasons = Array.isArray(r.rankReasons) ? r.rankReasons : [];
-        const whyItems = [
-          ...reasons.map((reason) => `<li>${escapeHtml(reason)}</li>`),
-          `<li>Signup S$${fmt(r.signupCash)}</li>`,
-          `<li>Rate cash S$${fmt(r.cashFromRate)}</li>`,
-        ].join("");
-        return `
-        <article class="rank-card ${r === p ? "is-top" : ""} ${r.alreadyHold ? "is-held" : ""}">
-          <div class="rank-num">${i + 1}</div>
-          <div class="rank-body">
-            <header>
-              <h3>${escapeHtml(card.name)}</h3>
-              <span class="pill">${escapeHtml(publishedRateSummary(card))}</span>
-              ${r.alreadyHold ? '<span class="pill pill-held">In wallet</span>' : ""}
-              ${r === p ? '<span class="pill pill-top">Top fit</span>' : ""}
-            </header>
-            <p class="rank-hero"><strong>S$${fmt(r.net)}</strong> est. net</p>
-            <div class="rank-bar" aria-hidden="true"><span class="rank-bar-fill" style="width:${barPct.toFixed(1)}%"></span></div>
-            <p class="rank-meta">${escapeHtml(card.issuer)} · fuss ${card.fussFreeScore} · accept ${card.acceptanceScore}</p>
-            <details class="rank-why">
-              <summary>Why this rank</summary>
-              <ul>${whyItems}</ul>
-            </details>
-            ${r.warnings.length ? `<p class="warn-inline">${escapeHtml(r.warnings[0])}</p>` : ""}
-          </div>
-        </article>`;
-      })
-      .join("");
-
     $("#plan").innerHTML = result.zeroSpend
       ? `<p class="muted">Enter one-off and/or monthly spend, then recalculate for a concrete action plan.</p>`
       : buildPlan(p, result.scenario, result);
+
+    const list = $("#ranked");
+    if (list) list.innerHTML = "";
+    rankedPaintFrame = requestAnimationFrame(() => {
+      rankedPaintFrame = 0;
+      paintRankedList(result);
+    });
   }
 
   function buildPlan(p, scenario, result) {
