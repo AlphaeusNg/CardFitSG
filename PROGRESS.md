@@ -2,6 +2,12 @@
 
 Last updated: 2026-09-11 (CardFitSG Cycle 59)
 
+## Latest cycle: 11 September issuer recheck and shared spend bounds
+
+Official OCBC INFINITY and Standard Chartered Simply Cash product pages still
+date the modeled welcome promotions through 30 September 2026. Snapshot `asOf`
+is 2026-09-11; `reviewBy` remains 2026-09-25. Version `2026.09.11.2`.
+
 ## Latest cycle: keep restored, shared, and scored spend in agreement
 
 Scenario precedence now begins only when a recognized scenario query parameter

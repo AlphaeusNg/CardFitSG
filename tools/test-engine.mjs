@@ -57,10 +57,10 @@ console.log("CardFitSG engine tests\n");
   );
 }
 
-// Official issuer audit snapshot (2026-09-08)
+// Official issuer audit snapshot (2026-09-11)
 {
   const byId = Object.fromEntries(db.cards.map((card) => [card.id, card]));
-  assert(db.meta.asOf === "2026-09-08", "catalog audit date is current");
+  assert(db.meta.asOf === "2026-09-11", "catalog audit date is current");
   assert(db.meta.reviewBy === "2026-09-25", "catalog review precedes the earliest offer end");
   assert(
     db.meta.sources.length === 6 && db.meta.sources.every((source) => /ocbc\.com|uob\.com\.sg|americanexpress\.com|sc\.com/.test(source)),
