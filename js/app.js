@@ -10,6 +10,7 @@
   let db = null;
   let lastResult = null;
   let rankedPaintFrame = 0;
+  let pendingSpendCapNotice = false;
   const SCENARIO_KEY = "cardfitsg-last-scenario-v1";
   const SCENARIO_PARAM_KEYS = new Set([
     "oneOff",
@@ -215,7 +216,22 @@
     if (value == null || (typeof value === "string" && value.trim() === "")) return null;
     const n = Number(value);
     if (!Number.isFinite(n)) return null;
+    if (n > CardFitEngine.MAX_SPEND) pendingSpendCapNotice = true;
     return CardFitEngine.clampSpend(n);
+  }
+
+  function spendCapStatusNode() {
+    return $("#spend-status");
+  }
+
+  function flushSpendCapNotice() {
+    const status = spendCapStatusNode();
+    if (status) {
+      status.textContent = pendingSpendCapNotice
+        ? `Amounts above S$${fmt(CardFitEngine.MAX_SPEND)} are capped at S$${fmt(CardFitEngine.MAX_SPEND)}.`
+        : "";
+    }
+    pendingSpendCapNotice = false;
   }
 
   function amountFromInput(input) {
@@ -577,6 +593,7 @@
     if (!db) return;
     cancelRankedPaint();
     const scenario = scenarioFromForm();
+    flushSpendCapNotice();
     persistScenario(scenario);
     writeScenarioLink(scenario);
     const result = CardFitEngine.recommend(db, scenario);

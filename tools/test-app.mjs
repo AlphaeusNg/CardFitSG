@@ -75,6 +75,7 @@ function makeDocument(existingCardIds = [], recentIssuers = []) {
       "form",
       "oneOff",
       "monthly",
+      "spend-status",
       "months",
       "goal",
       "fussFree",
@@ -97,6 +98,7 @@ function makeDocument(existingCardIds = [], recentIssuers = []) {
   elements["top-fit-dock"].textContent = "Top fit";
   elements.oneOff.value = "3500";
   elements.monthly.value = "1200";
+  elements["spend-status"].textContent = "";
   elements.months.value = "12";
   elements.goal.value = "acquire";
   elements.fussFree.checked = true;
@@ -406,6 +408,7 @@ async function boot(
   );
   assert.match(result.elements.plan.innerHTML, /plan-steps/, "action plan renders");
   assert.equal(result.elements["site-version"].textContent, "test-version", "version renders");
+  assert.equal(result.elements["spend-status"].textContent, "", "in-range spend stays quiet");
   assert.equal(typeof result.sandbox.window.CardFitApp.run, "function", "app API is exposed");
   assert.equal(
     result.elements.presets[0].classList.contains("is-active"),
@@ -436,6 +439,7 @@ async function boot(
   assert.equal(result.scenarios.length, amountInputRuns + 1, "rapid amount edits coalesce into one rerank");
   assert.equal(result.scenarios.at(-1).oneOff, 3600, "coalesced rerank uses the latest one-off amount");
   assert.equal(result.scenarios.at(-1).monthly, 1300, "coalesced rerank uses the latest monthly amount");
+  assert.equal(result.elements["spend-status"].textContent, "", "in-range amount edits stay quiet");
 
   result.elements["compare-a"].value = "uob-one";
   result.elements["compare-a"].dispatch("change");
@@ -724,6 +728,11 @@ async function boot(
   assert.equal(result.elements.monthly.value, "100000000", "over-cap URL spend is normalized at the visible field");
   assert.equal(result.scenarios.at(-1).oneOff, 0, "normalized negative spend reaches the engine");
   assert.equal(result.scenarios.at(-1).monthly, 100000000, "normalized capped spend reaches the engine");
+  assert.match(
+    result.elements["spend-status"].textContent,
+    /capped at S\$100,000,000/,
+    "over-cap URL spend announces the cap"
+  );
   const persisted = JSON.parse(result.localStorage.getItem("cardfitsg-last-scenario-v1"));
   assert.equal(persisted.oneOff, 0, "normalized negative spend is what persistence stores");
   assert.equal(persisted.monthly, 100000000, "normalized capped spend is what persistence stores");
@@ -786,6 +795,16 @@ async function boot(
   assert.equal(result.elements.monthly.value, "100000000", "raw over-cap form spend normalizes visibly");
   assert.equal(result.scenarios.at(-1).oneOff, 0, "normalized form minimum reaches the engine");
   assert.equal(result.scenarios.at(-1).monthly, 100000000, "normalized form maximum reaches the engine");
+  assert.match(
+    result.elements["spend-status"].textContent,
+    /capped at S\$100,000,000/,
+    "raw over-cap form spend announces the cap"
+  );
+
+  result.elements.oneOff.value = "3500";
+  result.elements.monthly.value = "1200";
+  result.sandbox.window.CardFitApp.run();
+  assert.equal(result.elements["spend-status"].textContent, "", "in-range form spend stays quiet after a prior cap");
 
   result.elements.oneOff.value = "Infinity";
   result.sandbox.window.CardFitApp.run();
@@ -859,6 +878,7 @@ async function boot(
   );
   assert.equal(result.elements.oneOff.value, "8000", "shared URL one-off overrides saved scenario");
   assert.equal(result.elements.monthly.value, "0", "shared URL monthly overrides saved scenario");
+  assert.equal(result.elements["spend-status"].textContent, "", "in-range shared URL spend stays quiet");
   assert.equal(result.elements.months.value, "6", "shared URL horizon overrides saved scenario");
   assert.equal(result.elements.goal.value, "acquire", "shared URL goal overrides saved scenario");
   assert.equal(result.elements.amexOk.checked, false, "shared URL Amex flag overrides saved scenario");
@@ -1037,4 +1057,4 @@ async function boot(
   );
 }
 
-console.log("test-app.mjs: startup, event, persistence, scenario-boundary, compare, ranked-rate, two-phase render, preset, dock, share-link, reviewBy, and render assertions passed");
+console.log("test-app.mjs: startup, event, persistence, scenario-boundary, spend-cap, compare, ranked-rate, two-phase render, preset, dock, share-link, reviewBy, and render assertions passed");

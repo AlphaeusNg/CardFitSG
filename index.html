@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600&display=swap" rel="stylesheet" />
-  <link id="catalog-preload" rel="preload" href="data/cards.json?v=2026.09.11.2" as="fetch" crossorigin />
+  <link id="catalog-preload" rel="preload" href="data/cards.json?v=2026.09.11.3" as="fetch" crossorigin />
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
@@ -67,6 +67,7 @@
           <span>Typical monthly card spend (SGD)</span>
           <input type="number" id="monthly" name="monthly" min="0" max="100000000" step="50" value="1200" inputmode="decimal" />
         </label>
+        <p id="spend-status" class="muted tiny" role="status" aria-live="polite"></p>
 
         <label class="field">
           <span>Horizon</span>

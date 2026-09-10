@@ -1,6 +1,12 @@
 # CardFitSG continuous improvement log
 
-Last updated: 2026-09-11 (CardFitSG Cycle 59)
+Last updated: 2026-09-11 (CardFitSG Cycle 60)
+
+## Latest cycle: announce when spend is capped
+
+Huge URL, saved, and typed amounts still normalize to S$100,000,000, but the
+form now tells visitors through an aria-live status that names the cap.
+In-range amounts stay quiet. Engine math is unchanged. Version `2026.09.11.3`.
 
 ## Latest cycle: 11 September issuer recheck and shared spend bounds
 
@@ -53,8 +59,8 @@ quicker, coalesced recalculation.
   `node tools/test-app.mjs`, recursive JavaScript syntax checks, catalog JSON
   parsing, and repository CI on Node 24 LTS.
 - Catalog snapshot: all six cards and the current OCBC/UOB/SC promotion terms
-  were rechecked from official sources on 2026-09-08; `data/cards.json`
-  declares `asOf` 2026-09-08 and `reviewBy` 2026-09-25 (before the earliest
+  were rechecked from official sources on 2026-09-11; `data/cards.json`
+  declares `asOf` 2026-09-11 and `reviewBy` 2026-09-25 (before the earliest
   2026-09-30 offer ends).
 - UOB One's optimizer condition was reverified against UOB's product page, full
   terms, and FAQ on 2026-08-10; the official product page reconfirmed its
@@ -67,7 +73,7 @@ quicker, coalesced recalculation.
   12 months without the issuer's principal credit cards.
 - Catalog review policy: recheck by 2026-09-25, five days before the dated
   offers end on 2026-09-30; daily CI enforces the boundary.
-- Deployment version: `2026.09.11.2`.
+- Deployment version: `2026.09.11.3`.
 
 ## Latest cycle: restore current September signup windows (2026-09-01)
 
