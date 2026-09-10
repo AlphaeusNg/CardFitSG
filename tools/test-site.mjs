@@ -99,9 +99,10 @@ assert.equal(
 );
 assert.match(app, /catalog-preload[\s\S]*getAttribute\(["']href["']\)/, "fetch reuses the exact preload URL");
 assert.doesNotMatch(app, /cache:\s*["']no-cache["']/, "catalog fetch may reuse HTTP cache between deploys");
-assert.match(app, /function paintRankedAndPlan/, "ranking is split from the top-fit panel");
-assert.match(app, /rankPaintToken/, "stale ranking paints are dropped after a newer fit");
-assert.match(app, /nextFrame\(\(\) => \{[\s\S]*nextFrame\(\(\) => \{/, "secondary results wait across a paint boundary");
+assert.match(app, /function paintRankedList/, "ranking is split from the top-fit panel");
+assert.match(app, /function cancelRankedPaint/, "stale ranked paints cancel on newer runs");
+assert.match(app, /rankedPaintFrame = requestAnimationFrame/, "ranked list waits one animation frame");
+assert.match(app, /\$\(["']#plan["']\)\.innerHTML = result\.zeroSpend/, "plan paints with primary before ranked frame");
 
 console.log(
   `test-site.mjs: ${referenceCount} local references and ${fragmentCount} fragments verified`
