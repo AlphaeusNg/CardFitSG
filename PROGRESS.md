@@ -1,6 +1,16 @@
 # CardFitSG continuous improvement log
 
-Last updated: 2026-09-11 (CardFitSG Cycle 60)
+Last updated: 2026-09-12 (CardFitSG Cycle 61)
+
+## Latest cycle: correct Simply Cash's card network
+
+A complete six-card recheck against the official product pages and the current
+OCBC, UOB, and Standard Chartered acquisition terms found one factual mismatch:
+Standard Chartered's current Simply Cash card art is a World Mastercard, not a
+Visa. The catalog now displays Mastercard and an engine assertion protects that
+public card-detail contract. Rates, fees, reward mechanics, dated offers, and
+the issuers' 6/12-month principal-card lookbacks remain unchanged. Snapshot
+`asOf` is 2026-09-12; `reviewBy` remains 2026-09-25. Version `2026.09.12.1`.
 
 ## Latest cycle: announce when spend is capped
 
@@ -59,8 +69,8 @@ quicker, coalesced recalculation.
   `node tools/test-app.mjs`, recursive JavaScript syntax checks, catalog JSON
   parsing, and repository CI on Node 24 LTS.
 - Catalog snapshot: all six cards and the current OCBC/UOB/SC promotion terms
-  were rechecked from official sources on 2026-09-11; `data/cards.json`
-  declares `asOf` 2026-09-11 and `reviewBy` 2026-09-25 (before the earliest
+  were rechecked from official sources on 2026-09-12; `data/cards.json`
+  declares `asOf` 2026-09-12 and `reviewBy` 2026-09-25 (before the earliest
   2026-09-30 offer ends).
 - UOB One's optimizer condition was reverified against UOB's product page, full
   terms, and FAQ on 2026-08-10; the official product page reconfirmed its
@@ -73,7 +83,7 @@ quicker, coalesced recalculation.
   12 months without the issuer's principal credit cards.
 - Catalog review policy: recheck by 2026-09-25, five days before the dated
   offers end on 2026-09-30; daily CI enforces the boundary.
-- Deployment version: `2026.09.11.3`.
+- Deployment version: `2026.09.12.1`.
 
 ## Latest cycle: restore current September signup windows (2026-09-01)
 

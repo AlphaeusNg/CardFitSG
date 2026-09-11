@@ -57,10 +57,10 @@ console.log("CardFitSG engine tests\n");
   );
 }
 
-// Official issuer audit snapshot (2026-09-11)
+// Official issuer audit snapshot (2026-09-12)
 {
   const byId = Object.fromEntries(db.cards.map((card) => [card.id, card]));
-  assert(db.meta.asOf === "2026-09-11", "catalog audit date is current");
+  assert(db.meta.asOf === "2026-09-12", "catalog audit date is current");
   assert(db.meta.reviewBy === "2026-09-25", "catalog review precedes the earliest offer end");
   assert(
     db.meta.sources.length === 6 && db.meta.sources.every((source) => /ocbc\.com|uob\.com\.sg|americanexpress\.com|sc\.com/.test(source)),
@@ -82,6 +82,7 @@ console.log("CardFitSG engine tests\n");
   );
   assert(byId["amex-true"].introMonths === 6, "True Cashback's welcome rate lasts six months");
   assert(byId["sc-simply"].signup.cashReward === 100, "Simply Cash active cash reward is represented");
+  assert(byId["sc-simply"].network === "Mastercard", "Simply Cash uses the official Mastercard network");
   assert(byId["sc-simply"].signup.activeThrough === "2026-09-30", "Simply Cash signup window is current");
   assert(
     byId["sc-simply"].signup.newToIssuerMonths === 12,
