@@ -716,8 +716,8 @@
       ? `<p class="muted">Enter one-off and/or monthly spend, then recalculate for a concrete action plan.</p>`
       : buildPlan(p, result.scenario, result);
 
-    const list = $("#ranked");
-    if (list) list.innerHTML = "";
+    // Keep any prior ranked HTML visible until the next frame paints the new list
+    // so amount edits do not flash an empty ranking. First paint stays empty until rAF.
     rankedPaintFrame = requestAnimationFrame(() => {
       rankedPaintFrame = 0;
       paintRankedList(result);
