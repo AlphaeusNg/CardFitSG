@@ -586,15 +586,43 @@ async function boot(
     "ranked articles fill on the next animation frame"
   );
 
+  const priorRanked = result.elements.ranked.innerHTML;
+  assert.equal(
+    (priorRanked.match(/<article/g) || []).length,
+    catalog.cards.length,
+    "prior ranked content exists before a spend edit"
+  );
+
   result.elements.oneOff.value = "0";
   result.elements.monthly.value = "0";
   result.sandbox.window.CardFitApp.run();
-  assert.equal(result.elements.ranked.innerHTML, "", "a rerank clears the previous ranking immediately");
+  assert.equal(
+    result.elements.ranked.innerHTML,
+    priorRanked,
+    "after a prior result, a second run does not blank ranked before rAF"
+  );
+  assert.match(
+    result.elements.primary.innerHTML,
+    /Enter a spend scenario/,
+    "primary still paints immediately on the second run"
+  );
   assert.equal(result.rafQueue.filter(Boolean).length, 1, "rerank schedules a fresh ranked paint frame");
+
   result.elements.oneOff.value = "8000";
   result.sandbox.window.CardFitApp.run();
-  assert.equal(result.elements.ranked.innerHTML, "", "newer run keeps ranked empty until its frame");
+  assert.equal(
+    result.elements.ranked.innerHTML,
+    priorRanked,
+    "newer run keeps prior ranked visible until its frame"
+  );
   assert.equal(result.rafQueue.filter(Boolean).length, 1, "cancelRankedPaint drops the obsolete frame");
+  assert.match(
+    result.elements.primary.innerHTML,
+    /Est\. net value/,
+    "primary still paints same-turn before ranked flush"
+  );
+  assert.match(result.elements.plan.innerHTML, /plan-steps/, "plan still paints same-turn before ranked flush");
+
   result.flushRaf();
   const expectedTop = result.recommendations.at(-1).primary.card.name;
   const topCardStart = result.elements.ranked.innerHTML.indexOf('class="rank-card is-top');
@@ -602,6 +630,11 @@ async function boot(
   assert(
     result.elements.ranked.innerHTML.slice(topCardStart, topCardStart + 500).includes(`<h3>${expectedTop}</h3>`),
     "only the latest queued ranking paints"
+  );
+  assert.equal(
+    (result.elements.ranked.innerHTML.match(/<article/g) || []).length,
+    catalog.cards.length,
+    "after flush, ranked matches the new result"
   );
 }
 
