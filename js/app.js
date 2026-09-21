@@ -46,6 +46,16 @@
     return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
   }
 
+  function earliestSignupActiveThrough(cards) {
+    let earliest = null;
+    for (const card of cards || []) {
+      const end = card?.signup?.activeThrough;
+      if (!isYmd(end)) continue;
+      if (earliest == null || end < earliest) earliest = end;
+    }
+    return earliest;
+  }
+
   function renderCatalogDates() {
     const asOf = db?.meta?.asOf || "";
     const reviewBy = db?.meta?.reviewBy || "";
@@ -59,17 +69,35 @@
     if (reviewLabel) reviewLabel.textContent = reviewBy;
 
     const overdue = isYmd(today) && isYmd(reviewBy) && today >= reviewBy;
+    let softEndingSoon = false;
+    let softCopy = "";
+    if (!overdue && isYmd(today) && Array.isArray(db?.cards)) {
+      const earliestEnd = earliestSignupActiveThrough(db.cards);
+      if (earliestEnd && typeof CardFitEngine !== "undefined" && CardFitEngine.daysUntil) {
+        const daysLeft = CardFitEngine.daysUntil(earliestEnd, today);
+        if (daysLeft != null && daysLeft >= 0 && daysLeft <= 10) {
+          softEndingSoon = true;
+          const dayWord = daysLeft === 1 ? "day" : "days";
+          softCopy =
+            `Some listed signup windows end soon (earliest ${earliestEnd} SGT · ${daysLeft} ${dayWord} left). ` +
+            `Rates were last verified ${asOf} — confirm issuer pages if you plan to apply.`;
+        }
+      }
+    }
     if (banner) {
       if (overdue) {
         banner.hidden = false;
         banner.textContent =
           `Rates last verified ${asOf}. The catalog review date (${reviewBy}) has passed — check issuer pages before applying.`;
+      } else if (softEndingSoon) {
+        banner.hidden = false;
+        banner.textContent = softCopy;
       } else {
         banner.hidden = true;
         banner.textContent = "";
       }
     }
-    if (reviewLine) reviewLine.hidden = overdue || !isYmd(reviewBy);
+    if (reviewLine) reviewLine.hidden = overdue || softEndingSoon || !isYmd(reviewBy);
   }
 
   function syncTopbarOffset() {
