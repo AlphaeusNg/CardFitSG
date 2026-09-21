@@ -1004,7 +1004,7 @@ async function boot(
         return JSON.parse(JSON.stringify(catalog));
       },
     },
-    { todayYmd: "2026-09-28" }
+    { todayYmd: "2026-09-15" }
   );
   assert.equal(result.elements["asof-label"].textContent, catalog.meta.asOf, "audit date still renders before reviewBy");
   assert.equal(
@@ -1015,17 +1015,60 @@ async function boot(
   assert.equal(
     result.elements["review-by-line"].hidden,
     false,
-    "quiet Review by line is visible before the Singapore review date"
+    "quiet Review by line is visible before the soft signup-ending window"
   );
   assert.equal(
     result.elements["catalog-review-banner"].hidden,
     true,
-    "overdue banner stays hidden before reviewBy"
+    "catalog banner stays hidden before soft window and reviewBy"
   );
   assert.equal(
     result.elements["catalog-review-banner"].textContent,
     "",
-    "overdue banner has no copy before reviewBy"
+    "catalog banner has no copy before soft window and reviewBy"
+  );
+}
+
+{
+  const result = await boot(
+    {
+      ok: true,
+      status: 200,
+      async json() {
+        return JSON.parse(JSON.stringify(catalog));
+      },
+    },
+    { todayYmd: "2026-09-21" }
+  );
+  assert.equal(
+    result.elements["catalog-review-banner"].hidden,
+    false,
+    "soft signup-ending banner is visible with 9 days left to earliest activeThrough"
+  );
+  assert.match(
+    result.elements["catalog-review-banner"].textContent,
+    /signup windows end soon/i,
+    "soft banner mentions signup windows ending soon"
+  );
+  assert.match(
+    result.elements["catalog-review-banner"].textContent,
+    /earliest 2026-09-30 SGT · 9 days left/,
+    "soft banner names earliest signup end and days left"
+  );
+  assert.match(
+    result.elements["catalog-review-banner"].textContent,
+    new RegExp(`Rates were last verified ${catalog.meta.asOf}`),
+    "soft banner still names the asOf verification date"
+  );
+  assert.doesNotMatch(
+    result.elements["catalog-review-banner"].textContent,
+    /review date .* has passed/i,
+    "soft banner does not use overdue copy before reviewBy"
+  );
+  assert.equal(
+    result.elements["review-by-line"].hidden,
+    true,
+    "quiet Review by line yields to the soft banner"
   );
 }
 
@@ -1090,4 +1133,4 @@ async function boot(
   );
 }
 
-console.log("test-app.mjs: startup, event, persistence, scenario-boundary, spend-cap, compare, ranked-rate, two-phase render, preset, dock, share-link, reviewBy, and render assertions passed");
+console.log("test-app.mjs: startup, event, persistence, scenario-boundary, spend-cap, compare, ranked-rate, two-phase render, preset, dock, share-link, reviewBy, soft-signup-ending, and render assertions passed");
