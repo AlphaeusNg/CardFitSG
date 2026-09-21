@@ -1004,7 +1004,7 @@ async function boot(
         return JSON.parse(JSON.stringify(catalog));
       },
     },
-    { todayYmd: "2026-09-24" }
+    { todayYmd: "2026-09-28" }
   );
   assert.equal(result.elements["asof-label"].textContent, catalog.meta.asOf, "audit date still renders before reviewBy");
   assert.equal(
@@ -1038,7 +1038,7 @@ async function boot(
         return JSON.parse(JSON.stringify(catalog));
       },
     },
-    { todayYmd: "2026-09-25" }
+    { todayYmd: "2026-09-29" }
   );
   assert.equal(
     result.elements["catalog-review-banner"].hidden,
@@ -1052,7 +1052,7 @@ async function boot(
   );
   assert.match(
     result.elements["catalog-review-banner"].textContent,
-    /review date \(2026-09-25\) has passed/i,
+    /review date \(2026-09-29\) has passed/i,
     "overdue banner states that the review date has passed"
   );
   assert.match(
@@ -1076,7 +1076,7 @@ async function boot(
         return JSON.parse(JSON.stringify(catalog));
       },
     },
-    { todayYmd: "2026-09-26" }
+    { todayYmd: "2026-09-30" }
   );
   assert.equal(
     result.elements["catalog-review-banner"].hidden,

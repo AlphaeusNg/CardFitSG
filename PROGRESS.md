@@ -1,8 +1,19 @@
 # CardFitSG continuous improvement log
 
-Last updated: 2026-09-12 (CardFitSG Cycle 61)
+Last updated: 2026-09-15 (CardFitSG Cycle 62)
+
+## Latest cycle: 15 September issuer catalog recheck
+
+Official OCBC, UOB, Standard Chartered, and American Express product pages plus
+the current OCBC welcome-gift PDF, UOB July–September 2026 acquisition PDF, and
+SC new-to-card promotion T&Cs were rechecked on 2026-09-15 (SGT). No material
+drift: rates, fees, networks, lookbacks, welcome/gift windows, UOB One fixed
+quarterly awards, and the AMEX intro window match the prior snapshot. Catalog
+`asOf` is 2026-09-15; `reviewBy` advances to 2026-09-29 (still before the
+earliest dated offer end on 2026-09-30). Version `2026.09.15.1`.
 
 ## Latest cycle: correct Simply Cash's card network
+
 
 A complete six-card recheck against the official product pages and the current
 OCBC, UOB, and Standard Chartered acquisition terms found one factual mismatch:
@@ -69,8 +80,8 @@ quicker, coalesced recalculation.
   `node tools/test-app.mjs`, recursive JavaScript syntax checks, catalog JSON
   parsing, and repository CI on Node 24 LTS.
 - Catalog snapshot: all six cards and the current OCBC/UOB/SC promotion terms
-  were rechecked from official sources on 2026-09-12; `data/cards.json`
-  declares `asOf` 2026-09-12 and `reviewBy` 2026-09-25 (before the earliest
+  were rechecked from official sources on 2026-09-15; `data/cards.json`
+  declares `asOf` 2026-09-15 and `reviewBy` 2026-09-29 (before the earliest
   2026-09-30 offer ends).
 - UOB One's optimizer condition was reverified against UOB's product page, full
   terms, and FAQ on 2026-08-10; the official product page reconfirmed its
