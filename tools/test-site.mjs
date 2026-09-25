@@ -72,7 +72,7 @@ assert.match(
   /<a href="#disclaimer-block">Disclaimer<\/a>/,
   "Disclaimer remains reachable from the footer"
 );
-const runtimeScripts = ["js/version.js", "js/engine.js", "js/app.js"];
+const runtimeScripts = ["js/version.js", "js/engine.js", "js/scenario.js", "js/app.js"];
 let previousScriptIndex = -1;
 for (const script of runtimeScripts) {
   const scriptIndex = index.indexOf(`src="${script}"`);
@@ -104,12 +104,18 @@ assert.match(app, /function cancelRankedPaint/, "stale ranked paints cancel on n
 assert.match(app, /rankedPaintFrame = requestAnimationFrame/, "ranked list waits one animation frame");
 assert.match(app, /\$\(["']#plan["']\)\.innerHTML = result\.zeroSpend/, "plan paints with primary before ranked frame");
 const engine = readFileSync(resolve(root, "js/engine.js"), "utf8");
+const scenario = readFileSync(resolve(root, "js/scenario.js"), "utf8");
 const maxSpend = /const MAX_SPEND\s*=\s*([\deE+.-]+)/.exec(engine)?.[1];
 assert(maxSpend, "engine declares a maximum supported spend");
 assert.match(
+  scenario,
+  /function parseFiniteAmount[\s\S]*?return clampSpend\(n\)/,
+  "URL and saved amounts normalize through the shared spend boundary"
+);
+assert.match(
   app,
-  /function parseFiniteAmount[\s\S]*?CardFitEngine\.clampSpend\(n\)/,
-  "URL, saved-state, and form amounts reuse the engine spend boundary"
+  /CardFitEngine\.clampSpend/,
+  "scenario parsing is wired to the engine spend boundary"
 );
 for (const inputId of ["oneOff", "monthly"]) {
   const input = new RegExp(`<input\\b[^>]*\\bid=["']${inputId}["'][^>]*>`, "i").exec(index)?.[0];

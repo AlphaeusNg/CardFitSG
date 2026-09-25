@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600&display=swap" rel="stylesheet" />
-  <link id="catalog-preload" rel="preload" href="data/cards.json?v=2026.09.21.1" as="fetch" crossorigin />
+  <link id="catalog-preload" rel="preload" href="data/cards.json?v=2026.09.25.1" as="fetch" crossorigin />
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
@@ -112,6 +112,18 @@
           </label>
         </div>
 
+        <p class="eyebrow" style="margin-top:0.5rem">Named scenarios</p>
+        <p class="muted tiny" style="margin:0 0 0.35rem">
+          Save spending assumptions on this device. The share link still follows the scenario on screen.
+        </p>
+        <label class="field">
+          <span>Scenario name</span>
+          <input type="text" id="scenario-name" name="scenario-name" maxlength="40" autocomplete="off" placeholder="Honeymoon" />
+        </label>
+        <button type="button" class="btn" id="save-named-scenario">Save scenario</button>
+        <p id="named-scenario-status" class="muted tiny" role="status"></p>
+        <ul id="named-scenario-list" class="named-list"></ul>
+
         <button type="submit" class="btn">Recalculate fit</button>
       </form>
 
@@ -139,6 +151,24 @@
           <div id="compare-out"></div>
         </section>
 
+        <section style="margin-top:1rem" aria-label="Compare two spending assumptions">
+          <p class="eyebrow">Compare spending assumptions</p>
+          <p class="muted tiny" style="margin:0.15rem 0 0.5rem">
+            Side-by-side spend scenarios, not a second card comparison. This does not change the share link.
+          </p>
+          <div class="compare-row">
+            <label class="field">
+              <span>Assumption A</span>
+              <select id="assumption-a" aria-label="Compare spending assumption A"></select>
+            </label>
+            <label class="field">
+              <span>Assumption B</span>
+              <select id="assumption-b" aria-label="Compare spending assumption B"></select>
+            </label>
+          </div>
+          <div id="assumption-out"></div>
+        </section>
+
         <section style="margin-top:1rem" aria-label="Full ranking">
           <p class="eyebrow">Full ranking</p>
           <div id="ranked" class="rank-list"></div>
@@ -156,6 +186,8 @@
         <li>Excludes declared new-to-issuer value when your selected wallet or current/recent issuer history includes that bank; other overlaps retain a soft penalty.</li>
         <li>Unlisted and cancelled principal cards can be marked by issuer so the 6/12-month lookback is decided in the tool.</li>
         <li>Does <em>not</em> model FX fees, 0% instalments, or insurance perks — keep those separate.</li>
+        <li>The optional month-by-month view splits base cashback, intro effects, signup cash, quarterly awards, and fees. Those lines add up to the ranked net. Non-cash gifts stay outside that total.</li>
+        <li>Named scenarios stay in this browser. Comparing two of them explains rank changes and leaves the active share link on the scenario in the form.</li>
       </ul>
       <p class="muted tiny">
         Rates researched as of <strong id="asof-label">—</strong>.
@@ -189,6 +221,7 @@
   <script src="https://alphaeusng.github.io/js/kofi-support.js?v=2026.07.24.10" data-auto-footer defer></script>
   <script src="js/version.js"></script>
   <script src="js/engine.js"></script>
+  <script src="js/scenario.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

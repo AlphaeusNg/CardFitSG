@@ -301,9 +301,14 @@
     let signupCash = 0;
     let notes = [];
     let warnings = [];
+    let cashPlan = { kind: "flat", rate: card.flatRate || 0 };
+    let separateGift = 0;
+    let signupStatus = "No signup cash is modeled for this card.";
+    let signupMonthIndex = 0;
 
     if (card.style === "flat") {
       cashFromRate = totalSpend * (card.flatRate || 0);
+      cashPlan = { kind: "flat", rate: card.flatRate || 0 };
     } else if (card.style === "intro_then_flat") {
       const validIntroMonths =
         Number.isInteger(card.introMonths) &&
@@ -311,9 +316,11 @@
         card.introMonths <= MAX_HORIZON_MONTHS;
       if (alreadyHold) {
         cashFromRate = totalSpend * (card.flatRate || 0);
+        cashPlan = { kind: "flat", rate: card.flatRate || 0 };
         notes.push("Existing card: new-member intro rate excluded from the estimate.");
       } else if (!validIntroMonths) {
         cashFromRate = totalSpend * (card.flatRate || 0);
+        cashPlan = { kind: "flat", rate: card.flatRate || 0 };
         warnings.push("Intro window metadata is invalid — modeled at the standard rate.");
       } else {
         const introWindowMonths = Math.min(months, card.introMonths);
@@ -325,6 +332,13 @@
         );
         const rest = Math.max(0, totalSpend - introSpend);
         cashFromRate = introCash + rest * (card.flatRate || 0);
+        cashPlan = {
+          kind: "intro",
+          rate: card.flatRate || 0,
+          introSpend,
+          introCash,
+          introWindowMonths,
+        };
         notes.push(
           `Intro ${((card.introRate || 0) * 100).toFixed(1)}% up to S$${card.introCapCash} ` +
           `on first S$${card.introCapSpend} during the first ${card.introMonths} months.`
@@ -362,11 +376,19 @@
         const oneOffCashback = oneOff * (card.flatRate ?? 0.003);
         if (validFixedPeriodCashback) {
           cashFromRate = selectedTier.periodCashback * completePeriods + oneOffCashback;
+          cashPlan = {
+            kind: "quarterly",
+            award: selectedTier.periodCashback,
+            period: qualifyingPeriodMonths,
+            periods: completePeriods,
+            oneOffRate: card.flatRate ?? 0.003,
+          };
           notes.push(
             "Optimizer mode: fixed tier cashback on complete qualifying periods; one-off at base rate."
           );
         } else if (invalidFixedPeriodCashback) {
           cashFromRate = oneOffCashback;
+          cashPlan = { kind: "oneOff", rate: card.flatRate ?? 0.003 };
           notes.push("Optimizer mode: invalid fixed tier metadata; one-off at base rate only.");
         } else {
           // Apply the eligible spend-tier cap, or the card-wide monthly cap.
@@ -374,6 +396,12 @@
           const monthlyCap = earnCapFor(card, monthly);
           if (monthlyCap != null) monthlyEarn = Math.min(monthlyEarn, monthlyCap);
           cashFromRate = monthlyEarn * qualifyingMonths + oneOffCashback;
+          cashPlan = {
+            kind: "category",
+            monthlyEarn,
+            qualifyingMonths,
+            oneOffRate: card.flatRate ?? 0.003,
+          };
           notes.push(
             "Optimizer mode: optimistic category rates on monthly spend only; one-off at base rate."
           );
@@ -381,6 +409,7 @@
         if (card.minMonthlySpend && monthly < card.minMonthlySpend) {
           warnings.push(`Needs ~S$${card.minMonthlySpend}/mo minimum spend — you entered S$${monthly}.`);
           cashFromRate = totalSpend * (card.flatRate ?? 0.003);
+          cashPlan = { kind: "flat", rate: card.flatRate ?? 0.003 };
         } else {
           if (qualifyingMonths < months) {
             warnings.push(
@@ -396,11 +425,13 @@
         }
       } else {
         cashFromRate = totalSpend * (card.flatRate ?? 0.003);
+        cashPlan = { kind: "flat", rate: card.flatRate ?? 0.003 };
         notes.push("Category cards scored at base rate in fuss-free mode (not optimised).");
         warnings.push("Category optimisation requires monthly tracking — poor fuss-free fit.");
       }
     } else {
       cashFromRate = totalSpend * (card.flatRate || 0);
+      cashPlan = { kind: "flat", rate: card.flatRate || 0 };
     }
 
     // Signup cash if not already holding
@@ -423,8 +454,12 @@
       const knownIssuerSignupExclusion =
         validIssuerLookback && knownSameIssuerHolder;
       if (invalidIssuerLookback && hasSignupValue) {
+        signupStatus = "Issuer eligibility metadata is invalid — no signup value modeled.";
         warnings.push("Issuer eligibility metadata is invalid — no signup value modeled.");
       } else if (knownIssuerSignupExclusion && hasSignupValue) {
+        signupStatus =
+          `Signup excluded: a current or recent ${card.issuer} principal card fails the ` +
+          `${su.newToIssuerMonths}-month new-to-issuer rule.`;
         warnings.push(
           `New-to-${card.issuer} signup requires no ${card.issuer} principal card now or ` +
           `in the previous ${su.newToIssuerMonths} months — signup value excluded because ` +
@@ -436,9 +471,18 @@
         if (qualifyingSpend >= need) {
           if (su.cashReward > 0) {
             signupCash = su.cashReward;
+            if (longTerm) {
+              signupStatus = "Long-term mode: signup cash is shown separately and is not in the ranked net.";
+            } else {
+              signupStatus = "Signup cash qualifies and is included in the ranked net.";
+              signupMonthIndex = signupAwardMonthIndex(oneOff, monthly, months, su.windowDays, need);
+            }
             notes.push(`Signup cash ~S$${su.cashReward} (if promo still valid).`);
+          } else {
+            signupStatus = "No signup cash; any qualifying gift stays outside the ranked net.";
           }
           if (su.giftValueEst) {
+            separateGift = su.giftValueEst;
             notes.push(`Possible non-cash gift (est. ~S$${su.giftValueEst} retail; actual value varies).`);
           }
           if (validIssuerLookback) {
@@ -448,11 +492,14 @@
             );
           }
         } else {
+          signupStatus = `Signup needs at least S$${need} qualifying spend within the offer window.`;
           warnings.push(`Signup needs ≥ S$${need} qualifying spend within the offer window.`);
         }
       } else if (invalidPromoWindow && hasSignupValue) {
+        signupStatus = "Listed signup window could not be validated — verify live offers.";
         warnings.push("Listed signup window could not be validated — verify live offers.");
       } else if (!promoOk && hasSignupValue) {
+        signupStatus = `Listed signup window ended ${su.activeThrough}.`;
         warnings.push(`Listed signup window ended ${su.activeThrough} — verify live offers.`);
       }
     }
@@ -460,6 +507,8 @@
     if (alreadyHold) {
       notes.push("You already hold this card — scored as keep/use, not new acquisition.");
       signupCash = 0;
+      separateGift = 0;
+      signupStatus = "Already held — scored as keep/use, with no new-card signup.";
     }
 
     // Each started card year beyond the waiver incurs a fee. For cards without
@@ -509,6 +558,25 @@
     const net = gross - feeDrag;
     // Full first-year-style value still reported for transparency
     const netWithSignup = cashFromRate + signupCash - feeDrag;
+    const signupInNet = longTerm ? 0 : signupCash;
+    const breakdown = buildBreakdown({
+      months,
+      oneOff,
+      monthly,
+      cashPlan,
+      cashFromRate,
+      signupInNet,
+      signupCash,
+      feeDrag,
+      annualFee: card.annualFee || 0,
+      feeWaiverYears,
+      includeFirstYear: !!(scenario.includeFeeYear1 && feeWaiverYears === 0),
+      separateGift,
+      signupStatus,
+      signupMonthIndex,
+      longTerm,
+      calculatedOn: asOf,
+    });
     const score =
       net * 1.0 +
       card.fussFreeScore * 0.35 +
@@ -530,6 +598,7 @@
       alreadyHold,
       notes,
       warnings,
+      breakdown,
       rankReasons: buildReasons(card, {
         cashFromRate,
         signupCash,
@@ -570,6 +639,153 @@
     const offerMonths =
       Number.isFinite(windowDays) && windowDays > 0 ? Math.max(1, windowDays / 30) : 1;
     return oneOff + monthly * Math.min(months, offerMonths);
+  }
+
+  function zeros(count) {
+    return Array.from({ length: count }, () => 0);
+  }
+
+  function spendInMonth(oneOff, monthly, index) {
+    return (index === 0 ? oneOff : 0) + monthly;
+  }
+
+  function allocateCash(plan, oneOff, monthly, months) {
+    const base = zeros(months);
+    const intro = zeros(months);
+    const category = zeros(months);
+    const quarterly = zeros(months);
+    if (plan.kind === "flat") {
+      for (let i = 0; i < months; i++) base[i] = spendInMonth(oneOff, monthly, i) * plan.rate;
+    } else if (plan.kind === "intro") {
+      let leftSpend = plan.introSpend;
+      let leftCash = plan.introCash;
+      for (let i = 0; i < months; i++) {
+        const spend = spendInMonth(oneOff, monthly, i);
+        const take = i < plan.introWindowMonths ? Math.min(spend, Math.max(0, leftSpend)) : 0;
+        let introPart = 0;
+        if (take > 0) {
+          if (leftSpend - take <= 1e-9) introPart = leftCash;
+          else introPart = plan.introSpend > 0 ? plan.introCash * (take / plan.introSpend) : 0;
+          leftSpend -= take;
+          leftCash -= introPart;
+        }
+        base[i] = spend * plan.rate;
+        intro[i] = introPart - take * plan.rate;
+      }
+    } else if (plan.kind === "oneOff") {
+      base[0] = oneOff * plan.rate;
+    } else if (plan.kind === "quarterly") {
+      base[0] = oneOff * plan.oneOffRate;
+      for (let period = 1; period <= plan.periods; period++) {
+        const idx = period * plan.period - 1;
+        if (idx >= 0 && idx < months) quarterly[idx] += plan.award;
+      }
+    } else if (plan.kind === "category") {
+      base[0] = oneOff * plan.oneOffRate;
+      const qualified = Math.min(months, plan.qualifyingMonths);
+      for (let i = 0; i < qualified; i++) category[i] += plan.monthlyEarn;
+    }
+    return { base, intro, category, quarterly };
+  }
+
+  function feeByMonth(months, annualFee, feeWaiverYears, includeFirstYear) {
+    const fees = zeros(months);
+    const yearsStarted = Math.ceil(months / 12);
+    const waiver = Number.isInteger(feeWaiverYears) ? feeWaiverYears : 0;
+    const firstWaivedThrough = Math.max(1, waiver);
+    for (let year = 1; year <= yearsStarted; year++) {
+      const charge = year === 1 ? includeFirstYear && waiver === 0 : year > firstWaivedThrough;
+      if (!charge) continue;
+      fees[Math.min(months - 1, (year - 1) * 12)] += annualFee || 0;
+    }
+    return fees;
+  }
+
+  function signupAwardMonthIndex(oneOff, monthly, months, windowDays, need) {
+    const offerMonths =
+      Number.isFinite(windowDays) && windowDays > 0 ? Math.max(1, windowDays / 30) : 1;
+    const windowMonths = Math.min(months, offerMonths);
+    let cumulative = 0;
+    const whole = Math.floor(windowMonths);
+    const frac = windowMonths - whole;
+    for (let i = 0; i < whole; i++) {
+      cumulative += spendInMonth(oneOff, monthly, i);
+      if (cumulative + 1e-9 >= need) return i;
+    }
+    if (frac > 1e-9) {
+      const index = Math.min(months - 1, whole);
+      cumulative += (whole === 0 ? oneOff : 0) + monthly * frac;
+      if (cumulative + 1e-9 >= need) return index;
+    }
+    return 0;
+  }
+
+  function buildBreakdown(input) {
+    const months = input.months;
+    let base;
+    let intro;
+    let category;
+    let quarterly;
+    let fees;
+    let signup;
+    if (months < 1) {
+      base = [input.cashFromRate];
+      intro = [0];
+      category = [0];
+      quarterly = [0];
+      fees = [input.feeDrag];
+      signup = [input.signupInNet];
+    } else {
+      const allocated = allocateCash(input.cashPlan, input.oneOff, input.monthly, months);
+      base = allocated.base;
+      intro = allocated.intro;
+      category = allocated.category;
+      quarterly = allocated.quarterly;
+      fees = feeByMonth(months, input.annualFee, input.feeWaiverYears, input.includeFirstYear);
+      signup = zeros(months);
+      if (input.signupInNet) {
+        const idx = Math.min(months - 1, Math.max(0, input.signupMonthIndex || 0));
+        signup[idx] = input.signupInNet;
+      }
+      const cashSum = base.reduce((sum, value, index) => sum + value + intro[index] + category[index] + quarterly[index], 0);
+      base[base.length - 1] += input.cashFromRate - cashSum;
+      const feeSum = fees.reduce((sum, value) => sum + value, 0);
+      fees[fees.length - 1] += input.feeDrag - feeSum;
+      const signupSum = signup.reduce((sum, value) => sum + value, 0);
+      signup[signup.length - 1] += input.signupInNet - signupSum;
+    }
+
+    const cent = (value) => Math.round(value * 100);
+    const rows = base.map((_, index) => ({
+      month: index + 1,
+      base: cent(base[index] || 0),
+      intro: cent(intro[index] || 0),
+      category: cent(category[index] || 0),
+      quarterly: cent(quarterly[index] || 0),
+      signup: cent(signup[index] || 0),
+      fee: cent(fees[index] || 0),
+    }));
+    const netCents = cent(input.cashFromRate + input.signupInNet - input.feeDrag);
+    const signed = (row) => row.base + row.intro + row.category + row.quarterly + row.signup - row.fee;
+    const drift = netCents - rows.reduce((sum, row) => sum + signed(row), 0);
+    rows[rows.length - 1].base += drift;
+    const totals = { base: 0, intro: 0, category: 0, quarterly: 0, signup: 0, fee: 0, net: netCents };
+    for (const row of rows) {
+      totals.base += row.base;
+      totals.intro += row.intro;
+      totals.category += row.category;
+      totals.quarterly += row.quarterly;
+      totals.signup += row.signup;
+      totals.fee += row.fee;
+    }
+    return {
+      months: rows,
+      totals,
+      giftValueEst: input.separateGift > 0 ? input.separateGift : 0,
+      signupAside: input.longTerm ? input.signupCash : 0,
+      signupStatus: input.signupStatus,
+      calculatedOn: input.calculatedOn,
+    };
   }
 
   function buildReasons(card, ctx) {

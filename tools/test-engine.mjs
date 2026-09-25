@@ -57,11 +57,11 @@ console.log("CardFitSG engine tests\n");
   );
 }
 
-// Official issuer audit snapshot (2026-09-15)
+// Official issuer audit snapshot (2026-09-25)
 {
   const byId = Object.fromEntries(db.cards.map((card) => [card.id, card]));
-  assert(db.meta.asOf === "2026-09-15", "catalog audit date is current");
-  assert(db.meta.reviewBy === "2026-09-29", "catalog review precedes the earliest offer end");
+  assert(db.meta.asOf === "2026-09-25", "catalog audit date is current");
+  assert(db.meta.reviewBy === "2026-09-28", "catalog review precedes the earliest offer end");
   assert(
     db.meta.sources.length === 6 && db.meta.sources.every((source) => /ocbc\.com|uob\.com\.sg|americanexpress\.com|sc\.com/.test(source)),
     "catalog cites one official issuer page per card"
@@ -928,6 +928,101 @@ assert(db.cards.length >= 5, "has card catalog");
   assert(active.notes.some((note) => /non-cash gift/i.test(note)), "active non-cash offer is disclosed");
   assert(!expired.notes.some((note) => /non-cash gift/i.test(note)), "expired non-cash offer is removed");
   assert(expired.warnings.some((warning) => /ended/i.test(warning)), "expired non-cash offer is explained");
+}
+
+function breakdownCents(score) {
+  return score.breakdown.months.reduce(
+    (sum, row) => sum + row.base + row.intro + row.category + row.quarterly + row.signup - row.fee,
+    0
+  );
+}
+
+function assertReconciled(score, msg) {
+  assert(score.breakdown, `${msg} has a breakdown`);
+  assert(breakdownCents(score) === score.breakdown.totals.net, `${msg} components sum to the breakdown net`);
+  assert(score.breakdown.totals.net === Math.round(score.net * 100), `${msg} breakdown matches the ranked net`);
+  const giftCents = Math.round((score.breakdown.giftValueEst || 0) * 100);
+  assert(giftCents === 0 || !score.breakdown.months.some((row) => row.gift), `${msg} does not put the gift on a month row`);
+}
+
+// Month components reconcile to the ranked net, with gifts and excluded signup kept out.
+{
+  const scenario = { oneOff: 3500, monthly: 1200, months: 12, asOf: "2026-09-25" };
+  for (const card of db.cards) {
+    assertReconciled(E.scoreCard(card, scenario), card.id);
+  }
+  const ranked = E.recommend(db, scenario);
+  for (const score of ranked.ranked) assertReconciled(score, `ranked ${score.card.id}`);
+
+  const intro = E.scoreCard(db.cards.find((card) => card.id === "amex-true"), {
+    oneOff: 0,
+    monthly: 500,
+    months: 12,
+    asOf: "2026-09-25",
+  });
+  assertReconciled(intro, "intro window");
+  assert(intro.breakdown.totals.intro === 4500, "intro effect is the extra over the base rate");
+  assert(intro.breakdown.totals.base === 9000, "intro base cashback covers every month at the standard rate");
+  assert(intro.breakdown.months.slice(0, 6).every((row) => row.intro > 0), "intro effect stays inside the six-month window");
+  assert(intro.breakdown.months.slice(6).every((row) => row.intro === 0), "later months have no intro effect");
+
+  const quarterly = E.scoreCard(db.cards.find((card) => card.id === "uob-one"), {
+    oneOff: 0,
+    monthly: 800,
+    months: 12,
+    optimizerMode: true,
+    preferFussFree: false,
+    asOf: "2026-09-25",
+  });
+  assertReconciled(quarterly, "quarterly award");
+  assert(
+    quarterly.breakdown.months.map((row) => row.quarterly).join(",") === "0,0,6000,0,0,6000,0,0,6000,0,0,6000",
+    "fixed awards land on complete quarter-end months"
+  );
+  assert(quarterly.breakdown.giftValueEst === 0, "UOB One gift stays out when the spend hurdle is missed");
+
+  const gifted = E.scoreCard(db.cards.find((card) => card.id === "uob-absolute"), {
+    oneOff: 1000,
+    monthly: 0,
+    months: 12,
+    asOf: "2026-09-30",
+  });
+  assertReconciled(gifted, "separate gift");
+  assert(gifted.breakdown.giftValueEst === 100, "eligible non-cash gift is reported beside the net");
+  assert(gifted.breakdown.totals.net === Math.round(gifted.net * 100), "gift value is not inside the ranked net");
+
+  const longTerm = E.scoreCard(db.cards.find((card) => card.id === "ocbc-infinity"), {
+    oneOff: 3500,
+    monthly: 0,
+    months: 12,
+    intent: "long_term",
+    weightLongTerm: true,
+    asOf: "2026-09-25",
+  });
+  assertReconciled(longTerm, "long-term signup");
+  assert(longTerm.signupCash === 180, "long-term mode still reports signup cash");
+  assert(longTerm.breakdown.signupAside === 180, "long-term signup is visibly separate");
+  assert(longTerm.breakdown.totals.signup === 0, "long-term signup is not a ranked-net component");
+  assert(longTerm.breakdown.totals.net === Math.round(longTerm.cashFromRate * 100), "long-term net is rate cash only");
+
+  const renewal = E.scoreCard(db.cards.find((card) => card.id === "ocbc-infinity"), {
+    oneOff: 0,
+    monthly: 100,
+    months: 24,
+    asOf: "2026-09-25",
+  });
+  assertReconciled(renewal, "renewal fee");
+  assert(renewal.breakdown.months[12].fee === 19620, "the second-year fee lands in month 13");
+  assert(renewal.breakdown.months.filter((row) => row.fee > 0).length === 1, "a 24-month waiver charges one renewal");
+
+  const simply = E.scoreCard(db.cards.find((card) => card.id === "sc-simply"), {
+    oneOff: 0,
+    monthly: 400,
+    months: 12,
+    asOf: "2026-09-25",
+  });
+  assert(simply.breakdown.months[1].signup === 10000, "a 60-day signup award waits until the second month");
+  assertReconciled(simply, "signup month");
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

@@ -15,11 +15,11 @@ function check(condition, message) {
   assertions += 1;
 }
 
-const beforeDeadline = evaluateCatalogFreshness(catalog, "2026-09-28");
+const beforeDeadline = evaluateCatalogFreshness(catalog, "2026-09-27");
 check(beforeDeadline.ok, "catalog remains current before its review deadline");
 check(beforeDeadline.earliestOfferEnd === "2026-09-30", "earliest dated offer is reported");
 
-const onDeadline = evaluateCatalogFreshness(catalog, "2026-09-29");
+const onDeadline = evaluateCatalogFreshness(catalog, "2026-09-28");
 check(!onDeadline.ok, "catalog audit becomes due on the review date");
 check(onDeadline.errors.some((error) => /review is due/i.test(error)), "due-date failure is actionable");
 

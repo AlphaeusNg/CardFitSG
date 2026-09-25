@@ -10,19 +10,11 @@
   let db = null;
   let lastResult = null;
   let rankedPaintFrame = 0;
-  let pendingSpendCapNotice = false;
-  const SCENARIO_KEY = "cardfitsg-last-scenario-v1";
-  const SCENARIO_PARAM_KEYS = new Set([
-    "oneOff",
-    "monthly",
-    "months",
-    "goal",
-    "fuss",
-    "opt",
-    "amex",
-    "hold",
-    "issuers",
-  ]);
+  let scoredMarketYmd = "";
+  const store = CardFitScenario.create({
+    clampSpend: (n) => CardFitEngine.clampSpend(n),
+    maxSpend: CardFitEngine.MAX_SPEND,
+  });
 
   function marketTodayYmd() {
     if (typeof CardFitEngine !== "undefined" && typeof CardFitEngine.todayYmd === "function") {
@@ -164,6 +156,7 @@
     bind();
     restoreScenario();
     run();
+    armMarketDateWatch();
     if (typeof SITE_VERSION !== "undefined") {
       $("#site-version").textContent = SITE_VERSION.id;
     }
@@ -214,6 +207,7 @@
     });
 
     $$("#form input, #form select").forEach((el) => {
+      if (el.id === "scenario-name") return;
       el.addEventListener("change", run);
     });
     const rerankAmounts = debounce(run, 120);
@@ -227,6 +221,11 @@
     });
     $("#compare-a")?.addEventListener("change", renderCompare);
     $("#compare-b")?.addEventListener("change", renderCompare);
+    $("#assumption-a")?.addEventListener("change", renderAssumptionComparison);
+    $("#assumption-b")?.addEventListener("change", renderAssumptionComparison);
+    $("#save-named-scenario")?.addEventListener("click", () => {
+      saveNamedScenario($("#scenario-name")?.value);
+    });
     document.addEventListener("click", (event) => {
       const copyResult = event.target && event.target.closest && event.target.closest("#copy-result");
       if (copyResult) {
@@ -234,18 +233,18 @@
         return;
       }
       const copyLink = event.target && event.target.closest && event.target.closest("#copy-link");
-      if (copyLink) copyScenarioLink(copyLink);
+      if (copyLink) {
+        copyScenarioLink(copyLink);
+        return;
+      }
+      const useSaved = event.target && event.target.closest && event.target.closest("[data-use-scenario]");
+      if (useSaved) useNamedScenario(useSaved.getAttribute("data-use-scenario"));
     });
     markActivePreset();
   }
 
   function parseFiniteAmount(value) {
-    if (typeof value !== "number" && typeof value !== "string") return null;
-    if (value == null || (typeof value === "string" && value.trim() === "")) return null;
-    const n = Number(value);
-    if (!Number.isFinite(n)) return null;
-    if (n > CardFitEngine.MAX_SPEND) pendingSpendCapNotice = true;
-    return CardFitEngine.clampSpend(n);
+    return store.parseFiniteAmount(value);
   }
 
   function spendCapStatusNode() {
@@ -253,13 +252,13 @@
   }
 
   function flushSpendCapNotice() {
+    const pending = store.consumeSpendCapNotice();
     const status = spendCapStatusNode();
     if (status) {
-      status.textContent = pendingSpendCapNotice
+      status.textContent = pending
         ? `Amounts above S$${fmt(CardFitEngine.MAX_SPEND)} are capped at S$${fmt(CardFitEngine.MAX_SPEND)}.`
         : "";
     }
-    pendingSpendCapNotice = false;
   }
 
   function amountFromInput(input) {
@@ -267,14 +266,6 @@
     const normalized = amount == null ? 0 : amount;
     if (input) input.value = String(normalized);
     return normalized;
-  }
-
-  function csvList(value) {
-    if (!value || typeof value !== "string") return [];
-    return value
-      .split(",")
-      .map((part) => part.trim())
-      .filter(Boolean);
   }
 
   function knownCardIds() {
@@ -285,54 +276,16 @@
     return new Set((db?.cards || []).map((card) => card.issuer).filter(Boolean));
   }
 
-  function allowedList(values, known) {
-    if (!Array.isArray(values) || !known?.size) return [];
-    return [...new Set(values.filter((value) => known.has(value)))].sort();
+  function knownSets() {
+    return { cardIds: knownCardIds(), issuers: knownIssuers() };
   }
 
   function scenarioFromSearch(search) {
-    if (!search || typeof search !== "string") return null;
-    const params = new URLSearchParams(search[0] === "?" ? search.slice(1) : search);
-    if (![...params.keys()].some((key) => SCENARIO_PARAM_KEYS.has(key))) return null;
-    const record = {};
-    const oneOff = parseFiniteAmount(params.get("oneOff"));
-    const monthly = parseFiniteAmount(params.get("monthly"));
-    const months = Number(params.get("months"));
-    if (oneOff != null) record.oneOff = oneOff;
-    if (monthly != null) record.monthly = monthly;
-    if (months === 6 || months === 12 || months === 24) record.months = months;
-    const goal = params.get("goal");
-    if (goal === "long_term" || goal === "keep" || goal === "acquire") record.intent = goal;
-    if (params.get("fuss") === "0" || params.get("fuss") === "1") {
-      record.preferFussFree = params.get("fuss") === "1";
-    }
-    if (params.get("opt") === "0" || params.get("opt") === "1") {
-      record.optimizerMode = params.get("opt") === "1";
-    }
-    if (params.get("amex") === "0" || params.get("amex") === "1") {
-      record.amexOk = params.get("amex") === "1";
-    }
-    const hold = allowedList(csvList(params.get("hold")), knownCardIds());
-    if (hold.length) record.existingCardIds = hold;
-    const issuers = allowedList(csvList(params.get("issuers")), knownIssuers());
-    if (issuers.length) record.recentIssuers = issuers;
-    return record;
+    return store.scenarioFromSearch(search, knownSets());
   }
 
   function scenarioSearch(scenario) {
-    const params = new URLSearchParams();
-    params.set("oneOff", String(parseFiniteAmount(scenario.oneOff) ?? 0));
-    params.set("monthly", String(parseFiniteAmount(scenario.monthly) ?? 0));
-    params.set("months", String(scenario.months === 6 || scenario.months === 24 ? scenario.months : 12));
-    params.set("goal", scenario.intent === "long_term" || scenario.intent === "keep" ? scenario.intent : "acquire");
-    params.set("fuss", scenario.preferFussFree ? "1" : "0");
-    params.set("opt", scenario.optimizerMode ? "1" : "0");
-    params.set("amex", scenario.amexOk ? "1" : "0");
-    const hold = allowedList(scenario.existingCardIds, knownCardIds());
-    if (hold.length) params.set("hold", hold.join(","));
-    const issuers = allowedList(scenario.recentIssuers, knownIssuers());
-    if (issuers.length) params.set("issuers", issuers.join(","));
-    return params.toString();
+    return store.scenarioSearch(scenario, knownSets());
   }
 
   function scenarioPageUrl(scenario) {
@@ -377,17 +330,22 @@
     if (typeof saved.amexOk === "boolean" && $("#amexOk")) $("#amexOk").checked = saved.amexOk;
     if ($("#fussFree")?.checked && $("#optimizer")?.checked) $("#optimizer").checked = false;
     if (Array.isArray(saved.existingCardIds)) {
-      const hold = new Set(allowedList(saved.existingCardIds, knownCardIds()));
+      const allowed = new Set(listedTokens("hold", saved.existingCardIds, "existingCardIds"));
       $$('input[name="existing"]').forEach((el) => {
-        el.checked = hold.has(el.value);
+        el.checked = allowed.has(el.value);
       });
     }
     if (Array.isArray(saved.recentIssuers)) {
-      const issuers = new Set(allowedList(saved.recentIssuers, knownIssuers()));
+      const issuers = new Set(listedTokens("issuers", saved.recentIssuers, "recentIssuers"));
       $$('input[name="recent-issuer"]').forEach((el) => {
         el.checked = issuers.has(el.value);
       });
     }
+  }
+
+  function listedTokens(param, values, field) {
+    const parsed = store.scenarioFromSearch(`?${param}=${values.join(",")}`, knownSets());
+    return parsed && Array.isArray(parsed[field]) ? parsed[field] : [];
   }
 
   function signupExpiryLine(card, asOfYmd) {
@@ -507,17 +465,7 @@
 
   function persistScenario(scenario) {
     try {
-      globalThis.localStorage?.setItem(SCENARIO_KEY, JSON.stringify({
-        oneOff: scenario.oneOff,
-        monthly: scenario.monthly,
-        months: scenario.months,
-        intent: scenario.intent,
-        preferFussFree: scenario.preferFussFree,
-        optimizerMode: scenario.optimizerMode,
-        amexOk: scenario.amexOk,
-        existingCardIds: scenario.existingCardIds || [],
-        recentIssuers: scenario.recentIssuers || [],
-      }));
+      store.writeActive(globalThis.localStorage, scenario);
     } catch {
       /* fail closed */
     }
@@ -530,10 +478,8 @@
         applyScenarioRecord(fromUrl);
         return;
       }
-      const raw = globalThis.localStorage?.getItem(SCENARIO_KEY);
-      if (!raw) return;
-      const saved = JSON.parse(raw);
-      applyScenarioRecord(saved);
+      const saved = store.readActive(globalThis.localStorage);
+      if (saved) applyScenarioRecord(saved);
     } catch {
       /* fail closed */
     }
@@ -626,8 +572,11 @@
     writeScenarioLink(scenario);
     const result = CardFitEngine.recommend(db, scenario);
     lastResult = result;
+    scoredMarketYmd = scenario.asOf || "";
     renderResult(result);
     renderCompare();
+    renderNamedScenarioList();
+    renderAssumptionComparison();
   }
 
   function updateTopFitDock(result) {
@@ -734,7 +683,8 @@
       </ul>
       ${p.warnings.length ? `<div class="warn">${p.warnings.map((w) => `<p>${escapeHtml(w)}</p>`).join("")}</div>` : ""}
       ${p.notes.length ? `<div class="notes">${p.notes.map((n) => `<p>${escapeHtml(n)}</p>`).join("")}</div>` : ""}
-      <p class="muted tiny">Estimate only — excludes overseas FX markups, non-qualifying MCC codes, and promo clawbacks. Rates as of ${escapeHtml(db.meta.asOf)}; promo windows checked against ${escapeHtml(result.scenario.asOf)}.</p>
+      ${renderBreakdown(p, result)}
+      <p class="muted tiny">Estimate only — excludes overseas FX markups, non-qualifying MCC codes, and promo clawbacks. Rates as of ${escapeHtml(db.meta.asOf)}.</p>
     `;
     }
 
@@ -750,6 +700,217 @@
       rankedPaintFrame = 0;
       paintRankedList(result);
     });
+  }
+
+  function signedCents(row, key) {
+    return key === "fee" ? -row.fee : row[key];
+  }
+
+  function renderBreakdown(score, result) {
+    const breakdown = score?.breakdown;
+    if (!breakdown || !Array.isArray(breakdown.months) || !breakdown.totals) return "";
+    const visible = [
+      ["base", "Base cashback"],
+      ["intro", "Intro effect"],
+      ["category", "Category cashback"],
+      ["quarterly", "Quarterly award"],
+      ["signup", "Signup cash"],
+      ["fee", "Fee"],
+    ].filter(([key]) => breakdown.months.some((row) => row[key] !== 0) || breakdown.totals[key] !== 0);
+    const head = visible.map(([, label]) => `<th scope="col">${escapeHtml(label)}</th>`).join("");
+    const body = breakdown.months
+      .map((row) => {
+        const cells = visible
+          .map(([key]) => {
+            const cents = signedCents(row, key);
+            return `<td data-component-cents="${cents}">${escapeHtml(fmt(cents / 100))}</td>`;
+          })
+          .join("");
+        const rowNet = visible.reduce((sum, [key]) => sum + signedCents(row, key), 0);
+        return `<tr><th scope="row">Month ${row.month}</th>${cells}<td>${escapeHtml(fmt(rowNet / 100))}</td></tr>`;
+      })
+      .join("");
+    const foot = visible
+      .map(([key]) => `<td>${escapeHtml(fmt(signedCents(breakdown.totals, key) / 100))}</td>`)
+      .join("");
+    const gift =
+      breakdown.giftValueEst > 0
+        ? `<p class="gift-aside" data-gift-cents="${Math.round(breakdown.giftValueEst * 100)}">Non-cash gift, not included in the ranked net: about S$${fmt(breakdown.giftValueEst)} retail.</p>`
+        : "";
+    const aside =
+      breakdown.signupAside
+        ? `<p class="signup-aside" data-signup-aside-cents="${Math.round(breakdown.signupAside * 100)}">Signup cash S$${fmt(breakdown.signupAside)} is not in the ranked net. ${escapeHtml(breakdown.signupStatus || "")}</p>`
+        : "";
+    const calculatedOn = breakdown.calculatedOn || result?.scenario?.asOf || "";
+    return `
+      ${gift}
+      ${aside}
+      <p class="muted tiny calc-stamp" data-calculated-on="${escapeAttr(calculatedOn)}">Calculated on the Singapore market date ${escapeHtml(calculatedOn)}. Promo eligibility uses that date, not the device timezone.</p>
+      <details class="month-math">
+        <summary>Month-by-month</summary>
+        <p class="muted tiny">${escapeHtml(breakdown.signupStatus || "")}</p>
+        <div class="month-scroll">
+          <table class="month-table">
+            <caption>These lines add up to the ranked net of S$${fmt(score.net)}.</caption>
+            <thead><tr><th scope="col">Month</th>${head}<th scope="col">Net</th></tr></thead>
+            <tbody>${body}</tbody>
+            <tfoot><tr><th scope="row">Total</th>${foot}<td data-net-cents="${breakdown.totals.net}">${escapeHtml(fmt(breakdown.totals.net / 100))}</td></tr></tfoot>
+          </table>
+        </div>
+      </details>`;
+  }
+
+  function readNamedScenarios() {
+    try {
+      return store.readNamed(globalThis.localStorage);
+    } catch {
+      return [];
+    }
+  }
+
+  function renderNamedScenarioList() {
+    const list = $("#named-scenario-list");
+    if (!list) return;
+    const saved = readNamedScenarios();
+    list.innerHTML = saved
+      .map(
+        (item) => `
+        <li>
+          <span>${escapeHtml(item.name)}</span>
+          <button type="button" class="preset-chip" data-use-scenario="${escapeAttr(item.id)}">Use</button>
+        </li>`
+      )
+      .join("");
+  }
+
+  function renderAssumptionSelects() {
+    const saved = readNamedScenarios();
+    ["assumption-a", "assumption-b"].forEach((id, index) => {
+      const el = $("#" + id);
+      if (!el) return;
+      const previous = el.value;
+      const placeholder = saved.length ? "" : `<option value="">Save a scenario first</option>`;
+      el.innerHTML =
+        placeholder +
+        saved.map((item) => `<option value="${escapeAttr(item.id)}">${escapeHtml(item.name)}</option>`).join("");
+      const keep = saved.some((item) => item.id === previous);
+      if (keep) el.value = previous;
+      else if (saved[index]) el.value = saved[index].id;
+      else if (saved[0]) el.value = saved[0].id;
+    });
+  }
+
+  function scenarioForSaved(record) {
+    const existing = Array.isArray(record.existingCardIds) ? record.existingCardIds : [];
+    const recentIssuers = Array.isArray(record.recentIssuers) ? record.recentIssuers : [];
+    const existingIssuers = [
+      ...new Set([
+        ...existing.map((id) => db.cards.find((card) => card.id === id)?.issuer).filter(Boolean),
+        ...recentIssuers,
+      ]),
+    ];
+    return {
+      oneOff: record.oneOff,
+      monthly: record.monthly,
+      months: record.months,
+      existingCardIds: existing,
+      recentIssuers,
+      existingIssuers,
+      preferFussFree: !!record.preferFussFree,
+      optimizerMode: !!record.optimizerMode,
+      amexOk: !!record.amexOk,
+      intent: record.intent === "long_term" || record.intent === "keep" ? record.intent : "acquire",
+      weightLongTerm: record.intent === "long_term",
+      asOf: marketTodayYmd() || db.meta.asOf,
+    };
+  }
+
+  function renderAssumptionComparison() {
+    const out = $("#assumption-out");
+    if (!out || !db) return;
+    renderAssumptionSelects();
+    const saved = readNamedScenarios();
+    const left = saved.find((item) => item.id === $("#assumption-a")?.value);
+    const right = saved.find((item) => item.id === $("#assumption-b")?.value);
+    if (!left || !right) {
+      out.innerHTML = `<p class="muted">Save two named scenarios to compare those spending assumptions.</p>`;
+      return;
+    }
+    if (left.id === right.id) {
+      out.innerHTML = `<p class="muted">Pick two different saved scenarios.</p>`;
+      return;
+    }
+    const leftResult = CardFitEngine.recommend(db, scenarioForSaved(left.record));
+    const rightResult = CardFitEngine.recommend(db, scenarioForSaved(right.record));
+    const explained = CardFitScenario.explainAssumptionChange(
+      { name: left.name, result: leftResult },
+      { name: right.name, result: rightResult }
+    );
+    out.innerHTML = explained.lines.map((line) => `<p class="assumption-why">${escapeHtml(line)}</p>`).join("");
+  }
+
+  function saveNamedScenario(name) {
+    if (!db) return { ok: false, reason: "catalog" };
+    let result;
+    try {
+      result = store.saveNamed(globalThis.localStorage, name, scenarioFromForm());
+    } catch {
+      result = { ok: false, reason: "storage" };
+    }
+    const status = $("#named-scenario-status");
+    if (status) {
+      status.textContent = result.ok ? `Saved “${result.name}”.` : "Enter a name to save this scenario.";
+    }
+    renderNamedScenarioList();
+    renderAssumptionComparison();
+    return result;
+  }
+
+  function useNamedScenario(id) {
+    const found = readNamedScenarios().find((item) => item.id === id);
+    if (!found) return;
+    applyScenarioRecord(found.record);
+    run();
+  }
+
+  function namedScenarios() {
+    return readNamedScenarios();
+  }
+
+  function refreshIfMarketDateChanged() {
+    if (!db) return false;
+    const today = marketTodayYmd();
+    if (!isYmd(today) || today === scoredMarketYmd) return false;
+    renderCatalogDates();
+    run();
+    return true;
+  }
+
+  function msUntilNextSingaporeMidnight(now = new Date()) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(marketTodayYmd() || "");
+    if (!match) return 60 * 60 * 1000;
+    const nextMidnightUtc =
+      Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]) + 1) - 8 * 60 * 60 * 1000;
+    const delay = nextMidnightUtc - now.getTime();
+    if (!Number.isFinite(delay) || delay < 1000) return 60 * 1000;
+    return delay;
+  }
+
+  function armMarketDateWatch() {
+    const tick = () => {
+      refreshIfMarketDateChanged();
+      arm();
+    };
+    const arm = () => {
+      const handle = setTimeout(tick, msUntilNextSingaporeMidnight());
+      if (handle && typeof handle.unref === "function") handle.unref();
+    };
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") return;
+      refreshIfMarketDateChanged();
+    });
+    window.addEventListener("focus", () => refreshIfMarketDateChanged());
+    arm();
   }
 
   function buildPlan(p, scenario, result) {
@@ -830,6 +991,11 @@
     scenarioSearch,
     scenarioFromSearch,
     scenarioPageUrl,
+    saveNamedScenario,
+    useNamedScenario,
+    namedScenarios,
+    renderAssumptionComparison,
+    refreshIfMarketDateChanged,
   };
 
   if (document.readyState === "loading") {

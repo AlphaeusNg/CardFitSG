@@ -526,6 +526,62 @@ select:focus {
   color: var(--warn);
 }
 
+.named-list {
+  list-style: none;
+  margin: 0.35rem 0 0.85rem;
+  padding: 0;
+}
+.named-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0.3rem 0;
+}
+.month-math {
+  margin: 0.75rem 0 0;
+}
+.month-math summary {
+  cursor: pointer;
+  color: var(--gold);
+  font-size: 0.82rem;
+  font-weight: 600;
+  width: fit-content;
+}
+.month-scroll {
+  overflow-x: auto;
+}
+.month-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+  margin-top: 0.45rem;
+}
+.month-table caption {
+  caption-side: bottom;
+  text-align: left;
+  color: var(--muted);
+  padding-top: 0.35rem;
+}
+.month-table th,
+.month-table td {
+  text-align: right;
+  padding: 0.28rem 0.4rem;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+.month-table th:first-child,
+.month-table td:first-child {
+  text-align: left;
+}
+.gift-aside,
+.signup-aside,
+.assumption-why {
+  margin: 0.45rem 0 0;
+  color: #c9d5e4;
+  font-size: 0.82rem;
+}
+
 .plan-steps {
   margin: 0.5rem 0 0;
   padding-left: 1.2rem;

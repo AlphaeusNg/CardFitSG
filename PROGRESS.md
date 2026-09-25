@@ -1,18 +1,28 @@
 # CardFitSG continuous improvement log
 
-Last updated: 2026-09-15 (CardFitSG Cycle 62)
+Last updated: 2026-09-25 (CardFitSG Cycle 62)
 
-## Latest cycle: 15 September issuer catalog recheck
+## Latest cycle: catalog recheck, month math, named scenarios
 
-Official OCBC, UOB, Standard Chartered, and American Express product pages plus
-the current OCBC welcome-gift PDF, UOB July–September 2026 acquisition PDF, and
-SC new-to-card promotion T&Cs were rechecked on 2026-09-15 (SGT). No material
-drift: rates, fees, networks, lookbacks, welcome/gift windows, UOB One fixed
-quarterly awards, and the AMEX intro window match the prior snapshot. Catalog
-`asOf` is 2026-09-15; `reviewBy` advances to 2026-09-29 (still before the
-earliest dated offer end on 2026-09-30). Version `2026.09.15.1`.
+Official product pages and acquisition terms for all six cards were fetched on
+2026-09-25. Base rates, annual fees, networks, 6/12-month issuer lookbacks,
+UOB One's S$60/S$100/S$200 quarterly awards, AMEX's six-month S$5,000 intro,
+and the dated offer ends are unchanged. OCBC's welcome terms (version
+1 September 2026), UOB's July–September 2026 acquisition terms, and Standard
+Chartered's April 2025–September 2026 terms still end on 30 September 2026;
+those ends were not extended. Snapshot `asOf` is 2026-09-25. `reviewBy` is
+2026-09-28, before that earliest end. Version `2026.09.25.1`.
 
-## Latest cycle: correct Simply Cash's card network
+The top-fit summary can open a month-by-month split of base cashback, intro
+effect, signup cash, quarterly awards, and fees. Those displayed cents add up
+to the ranked net. Non-cash gifts, and signup cash excluded in long-term mode,
+stay outside that total. Named scenarios are stored locally and can be compared
+without changing the active scenario's share URL. URL parsing, serialization,
+and scenario persistence live in `js/scenario.js`; scoring stays in `js/engine.js`.
+If a result stays open across Singapore midnight on the review date or a
+promotion end, labels and eligibility recompute from the current form.
+
+## Previous cycle: correct Simply Cash's card network
 
 
 A complete six-card recheck against the official product pages and the current
@@ -72,29 +82,31 @@ quicker, coalesced recalculation.
 
 - Branch: `main`; continuous-improvement commits are published to `origin/main` after verification.
 - Runtime: zero-build static HTML/CSS/JavaScript.
-- Verification: workflow policy (14 assertions), `node tools/test-engine.mjs`
-  (134 assertions), `node
-  tools/test-catalog-freshness.mjs` (19 assertions), the live catalog-deadline
-  check, `node tools/test-site.mjs` (10 local references, 4 fragments, input
-  bounds, and render architecture), focused scenario-boundary coverage in
-  `node tools/test-app.mjs`, recursive JavaScript syntax checks, catalog JSON
-  parsing, and repository CI on Node 24 LTS.
+- Verification on 2026-09-25: `node tools/test-engine.mjs` (222 assertions),
+  `node tools/test-catalog-freshness.mjs` (19 assertions), the live
+  catalog-deadline check (3 days remaining; earliest offer ends 2026-09-30),
+  `node tools/test-site.mjs` (11 local references, 4 fragments), 
+  `node tools/test-app.mjs` (startup through midnight refresh), and
+  `node --check js/*.js`.
 - Catalog snapshot: all six cards and the current OCBC/UOB/SC promotion terms
-  were rechecked from official sources on 2026-09-15; `data/cards.json`
-  declares `asOf` 2026-09-15 and `reviewBy` 2026-09-29 (before the earliest
-  2026-09-30 offer ends).
-- UOB One's optimizer condition was reverified against UOB's product page, full
-  terms, and FAQ on 2026-08-10; the official product page reconfirmed its
-  fixed S$60/S$100/S$200 quarterly award structure on 2026-08-11.
-- AMEX True Cashback's official page reconfirmed on 2026-08-11 that 3% applies
-  to up to S$5,000 of eligible spend in the first six months for new members,
-  followed by 1.5% on subsequent eligible purchases.
-- Current OCBC, UOB, and Standard Chartered promotion terms reconfirmed on
-  2026-08-11 that their modeled signup offers require respectively 12, 6, and
-  12 months without the issuer's principal credit cards.
-- Catalog review policy: recheck by 2026-09-25, five days before the dated
-  offers end on 2026-09-30; daily CI enforces the boundary.
-- Deployment version: `2026.09.12.1`.
+  were rechecked from official sources on 2026-09-25; `data/cards.json`
+  declares `asOf` 2026-09-25 and `reviewBy` 2026-09-28 (before the earliest
+  2026-09-30 offer ends). Modeled rates, fees, caps, networks, and offer ends
+  were unchanged. The soft signup-ending banner from origin is kept.
+- UOB One's product page on 2026-09-25 still shows fixed S$60/S$100/S$200
+  quarterly awards at S$600/S$1,000/S$2,000 with 10 purchases each month.
+  The separate partner, grocery, and Singapore Power cashback is still not
+  modeled.
+- AMEX True Cashback's official page on 2026-09-25 still shows 3% on up to
+  S$5,000 of eligible spend in the first six months for new members (up to
+  S$150), then 1.5%, with a S$174.40 annual fee waived for the first year.
+- OCBC, UOB, and Standard Chartered acquisition terms on 2026-09-25 still
+  require respectively 12, 6, and 12 months without that issuer's principal
+  credit cards. The OCBC terms are version 1 September 2026 and still end on
+  30 September 2026.
+- Catalog review policy: recheck by 2026-09-28, before the dated offers end
+  on 2026-09-30; daily CI enforces the boundary.
+- Deployment version: `2026.09.25.1`.
 
 ## Latest cycle: restore current September signup windows (2026-09-01)
 
@@ -1061,5 +1073,5 @@ Fuss-free and optimizer checkboxes are intentionally mutually exclusive, but the
 
 ## Next cycle
 
-Local next: recheck all dated offers by 2026-09-25. Workspace next: rotate
-until the next enforced financial-data deadline.
+Local next: recheck all dated offers by 2026-09-28, before they end on
+2026-09-30. Do not extend an end date unless the official terms say so.

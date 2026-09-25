@@ -7,6 +7,7 @@ import vm from "node:vm";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const catalog = JSON.parse(readFileSync(resolve(root, "data/cards.json"), "utf8"));
 const engineSource = readFileSync(resolve(root, "js/engine.js"), "utf8");
+const scenarioSource = readFileSync(resolve(root, "js/scenario.js"), "utf8");
 const appSource = readFileSync(resolve(root, "js/app.js"), "utf8");
 
 function makeElement(initial = {}) {
@@ -89,6 +90,13 @@ function makeDocument(existingCardIds = [], recentIssuers = []) {
       "compare-a",
       "compare-b",
       "compare-out",
+      "assumption-a",
+      "assumption-b",
+      "assumption-out",
+      "scenario-name",
+      "save-named-scenario",
+      "named-scenario-status",
+      "named-scenario-list",
       "catalog-preload",
     ].map((id) => [id, makeElement()])
   );
@@ -256,11 +264,15 @@ async function boot(
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
   vm.runInContext(engineSource, sandbox, { filename: "js/engine.js" });
+  vm.runInContext(scenarioSource, sandbox, { filename: "js/scenario.js" });
   sandbox.CardFitEngine = sandbox.window.CardFitEngine;
-  if (todayYmd) {
+  sandbox.CardFitScenario = sandbox.window.CardFitScenario;
+  if (typeof todayYmd === "function") {
+    sandbox.CardFitEngine.todayYmd = todayYmd;
+  } else if (todayYmd) {
     sandbox.CardFitEngine.todayYmd = () => todayYmd;
-    sandbox.window.CardFitEngine.todayYmd = sandbox.CardFitEngine.todayYmd;
   }
+  sandbox.window.CardFitEngine.todayYmd = sandbox.CardFitEngine.todayYmd;
   const recommend = sandbox.CardFitEngine.recommend;
   sandbox.CardFitEngine.recommend = (database, scenario) => {
     scenarios.push({ ...scenario });
@@ -391,7 +403,8 @@ async function boot(
   assert.match(result.elements["compare-a"].innerHTML, /ocbc-infinity/, "compare lists catalog cards");
   assert.match(result.elements["compare-out"].innerHTML, /Official page/, "compare surfaces official product links");
   assert.match(result.elements["compare-out"].innerHTML, /1\.6% flat/, "flat comparison labels the flat rate");
-  assert.match(appSource, /cardfitsg-last-scenario-v1/, "app remembers the last scenario locally");
+  assert.match(scenarioSource, /cardfitsg-last-scenario-v1/, "scenario module remembers the last scenario locally");
+  assert.match(appSource, /writeActive\(globalThis\.localStorage/, "app persists the active scenario through that module");
   assert.equal(
     (result.elements.ranked.innerHTML.match(/<article/g) || []).length,
     catalog.cards.length,
@@ -995,6 +1008,11 @@ async function boot(
   assert.equal(parsed.recentIssuers, undefined, "unknown issuers are dropped");
 }
 
+function shiftYmd(ymd, days) {
+  const [year, month, day] = ymd.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10);
+}
+
 {
   const result = await boot(
     {
@@ -1081,7 +1099,7 @@ async function boot(
         return JSON.parse(JSON.stringify(catalog));
       },
     },
-    { todayYmd: "2026-09-29" }
+    { todayYmd: catalog.meta.reviewBy }
   );
   assert.equal(
     result.elements["catalog-review-banner"].hidden,
@@ -1095,7 +1113,7 @@ async function boot(
   );
   assert.match(
     result.elements["catalog-review-banner"].textContent,
-    /review date \(2026-09-29\) has passed/i,
+    new RegExp(`review date \\(${catalog.meta.reviewBy}\\) has passed`, "i"),
     "overdue banner states that the review date has passed"
   );
   assert.match(
@@ -1119,7 +1137,7 @@ async function boot(
         return JSON.parse(JSON.stringify(catalog));
       },
     },
-    { todayYmd: "2026-09-30" }
+    { todayYmd: shiftYmd(catalog.meta.reviewBy, 1) }
   );
   assert.equal(
     result.elements["catalog-review-banner"].hidden,
@@ -1133,4 +1151,138 @@ async function boot(
   );
 }
 
-console.log("test-app.mjs: startup, event, persistence, scenario-boundary, spend-cap, compare, ranked-rate, two-phase render, preset, dock, share-link, reviewBy, soft-signup-ending, and render assertions passed");
+{
+  const result = await boot({
+    ok: true,
+    status: 200,
+    async json() {
+      return JSON.parse(JSON.stringify(catalog));
+    },
+  });
+  const html = result.elements.primary.innerHTML;
+  const netCents = Number(/data-net-cents="(-?\d+)"/.exec(html)?.[1]);
+  const componentCents = [...html.matchAll(/data-component-cents="(-?\d+)"/g)].map((match) => Number(match[1]));
+  assert.match(html, /Month-by-month/, "the result summary offers a month-by-month calculation");
+  assert.match(
+    html,
+    new RegExp(`Singapore market date ${result.scenarios[0].asOf}`),
+    "the calculation names its Singapore market date"
+  );
+  assert.equal(componentCents.reduce((sum, value) => sum + value, 0), netCents, "displayed month components add up to the net");
+  assert.equal(netCents, Math.round(result.recommendations[0].primary.net * 100), "the month total is the ranked net");
+  assert.doesNotMatch(html, /data-gift-cents="[^"]+"[\s\S]*data-component-cents="\1"/, "gift cents are not given a ranked-net component");
+  if (/data-gift-cents=/.test(html)) {
+    assert.match(html, /not included in the ranked net/i, "a non-cash gift stays outside the ranked net");
+  }
+}
+
+{
+  const boundary = await boot({
+    ok: true,
+    status: 200,
+    async json() {
+      return JSON.parse(JSON.stringify(catalog));
+    },
+  });
+  const mod = boundary.sandbox.window.CardFitScenario.create({
+    clampSpend: boundary.sandbox.CardFitEngine.clampSpend,
+    maxSpend: boundary.sandbox.CardFitEngine.MAX_SPEND,
+  });
+  const known = {
+    cardIds: new Set(catalog.cards.map((card) => card.id)),
+    issuers: new Set(catalog.cards.map((card) => card.issuer)),
+  };
+  assert.equal(mod.scenarioFromSearch("?utm_source=portfolio", known), null, "module ignores tracking-only URLs");
+  assert.equal(mod.scenarioFromSearch("?oneOff=0&monthly=0", known).oneOff, 0, "module keeps an explicit zero");
+  assert.equal(mod.scenarioFromSearch("?oneOff=12.5&monthly=34.75", known).monthly, 34.75, "module keeps decimal amounts");
+  assert.equal(mod.scenarioFromSearch("?oneOff=not-a-number&monthly=10", known).oneOff, undefined, "module drops invalid amounts");
+  assert.equal(mod.parseFiniteAmount("100000001"), 100000000, "module caps spend at the engine maximum");
+  assert.equal(mod.consumeSpendCapNotice(), true, "module reports the spend cap");
+  const history = mod.scenarioFromSearch("?hold=ocbc-infinity,nope&issuers=UOB,Nope", known);
+  assert.equal(history.existingCardIds.join(","), "ocbc-infinity", "module keeps known held cards");
+  assert.equal(history.recentIssuers.join(","), "UOB", "module keeps known issuer history");
+  assert.equal(
+    new URLSearchParams(mod.scenarioSearch({ oneOff: 12.5, monthly: 0, existingCardIds: ["nope"], recentIssuers: ["UOB"] }, known)).get("issuers"),
+    "UOB",
+    "module serialization keeps the same issuer normalization"
+  );
+}
+
+{
+  const clock = { ymd: "2026-09-15" };
+  const result = await boot(
+    {
+      ok: true,
+      status: 200,
+      async json() {
+        return JSON.parse(JSON.stringify(catalog));
+      },
+    },
+    { todayYmd: () => clock.ymd }
+  );
+  const reads = () => result.recommendations.at(-1).ranked.find((score) => score.card.id === "ocbc-infinity");
+  assert.equal(result.elements["catalog-review-banner"].hidden, true, "review banner is quiet before the deadline");
+  assert.equal(reads().signupCash, 180, "Infinity signup still qualifies before the promotion end");
+  assert.equal(result.sandbox.window.CardFitApp.refreshIfMarketDateChanged(), false, "the same Singapore date does not recompute");
+
+  clock.ymd = catalog.meta.reviewBy;
+  assert.equal(result.sandbox.window.CardFitApp.refreshIfMarketDateChanged(), true, "crossing the review deadline refreshes");
+  assert.equal(result.elements.oneOff.value, "3500", "review refresh keeps the one-off input");
+  assert.equal(result.elements.monthly.value, "1200", "review refresh keeps the monthly input");
+  assert.equal(result.elements.months.value, "12", "review refresh keeps the horizon");
+  assert.equal(result.elements["catalog-review-banner"].hidden, false, "review refresh reveals the overdue banner");
+  assert.equal(reads().signupCash, 180, "the promotion is still eligible on the review date");
+  assert.match(
+    result.elements.primary.innerHTML,
+    new RegExp(`Singapore market date ${catalog.meta.reviewBy}`),
+    "the refreshed calculation shows the new Singapore date"
+  );
+
+  clock.ymd = "2026-10-01";
+  assert.equal(result.sandbox.window.CardFitApp.refreshIfMarketDateChanged(), true, "crossing the promotion end refreshes eligibility");
+  assert.equal(result.elements.oneOff.value, "3500", "promotion refresh keeps the typed one-off");
+  assert.equal(result.elements.fussFree.checked, true, "promotion refresh keeps fuss-free mode");
+  assert.equal(reads().signupCash, 0, "Infinity signup drops after the dated offer ends");
+  assert.equal(result.scenarios.at(-1).asOf, "2026-10-01", "the recomputed scenario uses the new Singapore date");
+  assert.match(result.elements.primary.innerHTML, /Singapore market date 2026-10-01/, "the future market date is explicit");
+  assert.match(result.elements.ranked.innerHTML, /ended 2026-09-30/i, "the ended promotion is labeled after midnight");
+}
+
+{
+  const result = await boot({
+    ok: true,
+    status: 200,
+    async json() {
+      return JSON.parse(JSON.stringify(catalog));
+    },
+  });
+  result.elements.oneOff.value = "8000";
+  result.elements.monthly.value = "200";
+  result.elements.fussFree.checked = true;
+  result.elements.optimizer.checked = false;
+  result.sandbox.window.CardFitApp.saveNamedScenario("Honeymoon");
+  result.elements.oneOff.value = "0";
+  result.elements.monthly.value = "2000";
+  result.elements.fussFree.checked = false;
+  result.elements.optimizer.checked = true;
+  result.sandbox.window.CardFitApp.run();
+  const activeSearch = result.sandbox.location.search;
+  result.sandbox.window.CardFitApp.saveNamedScenario("Optimizer month");
+  const saved = result.sandbox.window.CardFitApp.namedScenarios();
+  assert.equal(saved.length, 2, "two named scenarios are stored locally");
+  result.elements["assumption-a"].value = saved[0].id;
+  result.elements["assumption-b"].value = saved[1].id;
+  result.sandbox.window.CardFitApp.renderAssumptionComparison();
+  const comparison = result.elements["assumption-out"].innerHTML;
+  assert.match(comparison, /Honeymoon/, "assumption comparison names the first saved scenario");
+  assert.match(comparison, /Optimizer month/, "assumption comparison names the second saved scenario");
+  assert.match(comparison, /ranks /, "assumption comparison states the rankings");
+  assert.match(comparison, /Assumptions that differ/, "assumption comparison explains the input change");
+  assert.match(comparison, /one-off spend/, "assumption comparison names the one-off difference");
+  assert.match(comparison, /optimizer mode/, "assumption comparison names the mode difference");
+  assert.equal(result.sandbox.location.search, activeSearch, "comparing saved assumptions leaves the active share URL alone");
+  assert.doesNotMatch(result.elements["compare-out"].innerHTML, /Assumptions that differ/, "card comparison stays separate from scenario comparison");
+  assert.equal(result.elements.oneOff.value, "0", "the active scenario inputs stay on the form");
+}
+
+console.log("test-app.mjs: startup, event, persistence, scenario-boundary, spend-cap, compare, ranked-rate, two-phase render, preset, dock, share-link, reviewBy, soft-signup-ending, month-math, assumptions, midnight, and render assertions passed");
