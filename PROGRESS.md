@@ -1,8 +1,21 @@
 # CardFitSG continuous improvement log
 
-Last updated: 2026-09-25 (CardFitSG Cycle 62)
+Last updated: 2026-09-28 (CardFitSG Cycle 63)
 
-## Latest cycle: catalog recheck, month math, named scenarios
+## Latest cycle: catalog recheck before the 30 September offer cliff
+
+Official product pages and acquisition terms for all six cards were re-fetched on
+2026-09-28. Base rates, annual fees, networks, 6/12-month issuer lookbacks,
+UOB One's S$60/S$100/S$200 quarterly awards, AMEX's six-month S$5,000 intro,
+and the dated offer ends are unchanged. OCBC's welcome terms (version
+1 September 2026), UOB's July–September 2026 acquisition terms, and Standard
+Chartered's April 2025–September 2026 terms still end on 30 September 2026;
+those ends were not extended. Snapshot `asOf` is 2026-09-28. `reviewBy` is
+2026-09-29, before that earliest end. Soft signup-ending banner logic is
+untouched. Version `2026.09.28.1`.
+
+## Previous cycle: catalog recheck, month math, named scenarios
+
 
 Official product pages and acquisition terms for all six cards were fetched on
 2026-09-25. Base rates, annual fees, networks, 6/12-month issuer lookbacks,
