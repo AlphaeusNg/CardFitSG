@@ -1,8 +1,27 @@
 # CardFitSG continuous improvement log
 
-Last updated: 2026-09-28 (CardFitSG Cycle 63)
+Last updated: 2026-10-02 (CardFitSG Cycle 64)
 
-## Latest cycle: catalog recheck before the 30 September offer cliff
+## Latest cycle: post-cliff catalog recheck (2 October 2026)
+
+Official product pages and promotion terms for all six cards were re-fetched on
+2026-10-02. Base rates, annual fees, 6/12-month issuer lookbacks, UOB One's
+S$60/S$100/S$200 quarterly awards, and AMEX's six-month 3% intro (S$150 cap on
+S$5,000) are unchanged. The 30 September 2026 signup windows ended. OCBC
+published new welcome terms for 1 October–31 December 2026: OCBC 365 now pays
+S$300 cashback on S$800 within 60 days, and INFINITY pays a 14.4% bonus on the
+first S$2,000 within 60 days (capped at S$288, modeled conservatively as S$288
+once S$2,000 is spent). UOB Absolute has a 1–31 October 2026 Samsonite gift
+(worth S$600, non-cash, outside the ranked net). Standard Chartered Simply Cash
+(new offer needs a Bonus$aver deposit bundle) and UOB One (no listed welcome
+gift) now carry no signup value. OCBC 365's 1 November 2026 cashback revision is
+disclosed but not yet modeled. Engine/app mechanics tests now use a frozen
+30 September fixture; live-catalog tests prove ended offers rank S$0 signup
+cash. Snapshot `asOf` is 2026-10-02; `reviewBy` is 2026-10-16, before the
+earliest remaining end (2026-10-31). Soft signup-ending banner logic is
+untouched. Version `2026.10.02.1`.
+
+## Previous cycle: catalog recheck before the 30 September offer cliff
 
 Official product pages and acquisition terms for all six cards were re-fetched on
 2026-09-28. Base rates, annual fees, networks, 6/12-month issuer lookbacks,
@@ -14,7 +33,7 @@ those ends were not extended. Snapshot `asOf` is 2026-09-28. `reviewBy` is
 2026-09-29, before that earliest end. Soft signup-ending banner logic is
 untouched. Version `2026.09.28.1`.
 
-## Previous cycle: catalog recheck, month math, named scenarios
+## Earlier cycle: catalog recheck, month math, named scenarios
 
 
 Official product pages and acquisition terms for all six cards were fetched on

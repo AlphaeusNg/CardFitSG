@@ -17,6 +17,64 @@ vm.createContext(sandbox);
 vm.runInContext(src, sandbox);
 const E = sandbox.window.CardFitEngine;
 
+// Frozen 30 September 2026 signup snapshot. Engine-mechanics tests below use it so
+// their offer-window, gift, and award-month assertions do not move with each
+// live catalog recheck.
+const SEP30_SIGNUPS = {
+  "ocbc-infinity": {
+    "activeThrough": "2026-09-30",
+    "minSpend": 600,
+    "windowDays": 30,
+    "newToIssuerMonths": 12,
+    "termsUrl": "https://www.ocbc.com/iwov-resources/sg/ocbc/personal/pdf/campaign/tncs-governing-the-ocbc-credit-card-welcome-gift-promotion.pdf",
+    "cashReward": 180,
+    "notes": "New OCBC principal cardmembers with no current OCBC credit card and none in the prior 12 months: spend S$300 within 30 days for the welcome gift, then another S$300 in the same period for S$180 cashback. Confirm live T&Cs."
+  },
+  "uob-absolute": {
+    "activeThrough": "2026-09-30",
+    "minSpend": 1000,
+    "windowDays": null,
+    "newToIssuerMonths": 6,
+    "termsUrl": "https://www.uob.com.sg/credit-cards/pdf/online-cards-campaign.pdf",
+    "cashReward": 0,
+    "giftValueEst": 100,
+    "notes": "New-to-UOB principal cardmembers with no current UOB credit card and no UOB card cancellation in the prior six months can receive a S$100 Samsung e-voucher after S$1,000 spend in the first month. Non-cash and not used for ranking."
+  },
+  "sc-simply": {
+    "activeThrough": "2026-09-30",
+    "minSpend": 800,
+    "windowDays": 60,
+    "newToIssuerMonths": 12,
+    "termsUrl": "https://www.sc.com/sg/terms-and-conditions/new-to-standard-chartered-credit-card-promotion-tncs/",
+    "cashReward": 100,
+    "giftValueEst": 610,
+    "notes": "New Standard Chartered principal cardmembers with no current or cancelled SC card in the prior 12 months: spend S$800 within 60 days for S$100 cashback and a Samsonite MODUS Spinner listed at S$610."
+  },
+  "uob-one": {
+    "activeThrough": "2026-09-30",
+    "minSpend": 1000,
+    "windowDays": null,
+    "newToIssuerMonths": 6,
+    "termsUrl": "https://www.uob.com.sg/credit-cards/pdf/online-cards-campaign.pdf",
+    "cashReward": 0,
+    "giftValueEst": 100,
+    "notes": "New-to-UOB principal cardmembers with no current UOB credit card and no UOB card cancellation in the prior six months can receive a S$100 Samsung e-voucher after S$1,000 spend in the first month. Enhanced first-quarter category cashback is not modeled."
+  },
+  "ocbc-365": {
+    "activeThrough": "2026-09-30",
+    "minSpend": 600,
+    "windowDays": 30,
+    "newToIssuerMonths": 12,
+    "termsUrl": "https://www.ocbc.com/iwov-resources/sg/ocbc/personal/pdf/campaign/tncs-governing-the-ocbc-credit-card-welcome-gift-promotion.pdf",
+    "cashReward": 180,
+    "notes": "New OCBC principal cardmembers with no current OCBC credit card and none in the prior 12 months: spend S$300 within 30 days for the welcome gift, then another S$300 in the same period for S$180 cashback."
+  }
+};
+const sep30 = structuredClone(db);
+for (const card of sep30.cards) {
+  if (SEP30_SIGNUPS[card.id]) card.signup = structuredClone(SEP30_SIGNUPS[card.id]);
+}
+
 let passed = 0;
 let failed = 0;
 function assert(cond, msg) {
@@ -57,33 +115,48 @@ console.log("CardFitSG engine tests\n");
   );
 }
 
-// Official issuer audit snapshot (2026-09-28)
+// Official issuer audit snapshot (2026-10-02)
 {
   const byId = Object.fromEntries(db.cards.map((card) => [card.id, card]));
-  assert(db.meta.asOf === "2026-09-28", "catalog audit date is current");
-  assert(db.meta.reviewBy === "2026-09-29", "catalog review precedes the earliest offer end");
+  assert(db.meta.asOf === "2026-10-02", "catalog audit date is current");
+  assert(db.meta.reviewBy === "2026-10-16", "catalog review precedes the earliest offer end");
   assert(
     db.meta.sources.length === 6 && db.meta.sources.every((source) => /ocbc\.com|uob\.com\.sg|americanexpress\.com|sc\.com/.test(source)),
     "catalog cites one official issuer page per card"
   );
   assert(byId["ocbc-infinity"].network === "Mastercard", "Infinity uses the official Mastercard network");
-  assert(byId["ocbc-infinity"].signup.activeThrough === "2026-09-30", "Infinity signup window is current");
+  assert(byId["ocbc-infinity"].signup.activeThrough === "2026-12-31", "Infinity October–December 2026 welcome window is current");
+  assert(
+    byId["ocbc-infinity"].signup.cashReward === 288 &&
+      byId["ocbc-infinity"].signup.minSpend === 2000 &&
+      byId["ocbc-infinity"].signup.windowDays === 60,
+    "Infinity bonus is modeled at its S$288 cap on the first S$2,000 within 60 days"
+  );
   assert(
     byId["ocbc-infinity"].signup.newToIssuerMonths === 12 &&
       byId["ocbc-365"].signup.newToIssuerMonths === 12,
     "OCBC signup value requires twelve months without a principal OCBC card"
   );
   assert(byId["uob-absolute"].network === "Amex", "Absolute uses the official Amex network");
-  assert(byId["uob-absolute"].signup.giftValueEst === 100, "Absolute non-cash signup value is current");
+  assert(
+    byId["uob-absolute"].signup.giftValueEst === 600 &&
+      byId["uob-absolute"].signup.cashReward === 0 &&
+      byId["uob-absolute"].signup.activeThrough === "2026-10-31",
+    "Absolute October 2026 non-cash gift is current and stays out of the ranked net"
+  );
   assert(
     byId["uob-absolute"].signup.newToIssuerMonths === 6 &&
       byId["uob-one"].signup.newToIssuerMonths === 6,
     "UOB signup value requires six months without a principal UOB card"
   );
   assert(byId["amex-true"].introMonths === 6, "True Cashback's welcome rate lasts six months");
-  assert(byId["sc-simply"].signup.cashReward === 100, "Simply Cash active cash reward is represented");
+  assert(
+    byId["sc-simply"].signup.cashReward === 0 &&
+      byId["sc-simply"].signup.giftValueEst == null &&
+      byId["sc-simply"].signup.activeThrough === null,
+    "Simply Cash ended September 2026 signup carries no cash or gift"
+  );
   assert(byId["sc-simply"].network === "Mastercard", "Simply Cash uses the official Mastercard network");
-  assert(byId["sc-simply"].signup.activeThrough === "2026-09-30", "Simply Cash signup window is current");
   assert(
     byId["sc-simply"].signup.newToIssuerMonths === 12,
     "Simply Cash signup value requires twelve months without an SC card"
@@ -111,12 +184,18 @@ console.log("CardFitSG engine tests\n");
     "OCBC 365 discloses the 0.5% advertising-instalment marketing rate"
   );
   assert(byId["ocbc-365"].feeWaiverYears === 2, "OCBC 365 has a two-year fee waiver");
-  assert(byId["ocbc-365"].signup.cashReward === 180, "OCBC 365 active cash reward is represented");
-  assert(byId["ocbc-365"].signup.activeThrough === "2026-09-30", "OCBC 365 signup window is current");
+  assert(byId["ocbc-365"].signup.cashReward === 300, "OCBC 365 October–December 2026 cash reward is represented");
+  assert(byId["ocbc-365"].signup.activeThrough === "2026-12-31", "OCBC 365 signup window is current");
   assert(
-    ["ocbc-infinity", "uob-absolute", "sc-simply", "uob-one", "ocbc-365"].every(
-      (id) => /^https:\/\//.test(byId[id].signup.termsUrl)
-    ),
+    byId["uob-one"].signup.cashReward === 0 &&
+      byId["uob-one"].signup.giftValueEst == null &&
+      byId["uob-one"].signup.activeThrough === null,
+    "UOB One ended September 2026 signup carries no cash or gift"
+  );
+  assert(
+    db.cards
+      .filter((card) => card.signup?.activeThrough)
+      .every((card) => /^https:\/\//.test(card.signup.termsUrl)),
     "every dated signup offer cites its official terms"
   );
   assert(
@@ -127,7 +206,7 @@ console.log("CardFitSG engine tests\n");
 
 // Cash rewards can disclose a bundled gift without adding it to ranking value
 {
-  const simply = db.cards.find((card) => card.id === "sc-simply");
+  const simply = sep30.cards.find((card) => card.id === "sc-simply");
   const score = E.scoreCard(simply, {
     oneOff: 800,
     monthly: 0,
@@ -140,7 +219,7 @@ console.log("CardFitSG engine tests\n");
 
 // Signup spend is bounded by both the offer window and scenario horizon
 {
-  const simply = db.cards.find((card) => card.id === "sc-simply");
+  const simply = sep30.cards.find((card) => card.id === "sc-simply");
   const twoMonths = E.scoreCard(simply, {
     oneOff: 0,
     monthly: 400,
@@ -156,7 +235,7 @@ console.log("CardFitSG engine tests\n");
   assert(twoMonths.signupCash === 100, "60-day offer counts up to two months of recurring spend");
   assert(shortHorizon.signupCash === 0, "signup spend cannot exceed the scenario horizon");
 
-  const infinity = db.cards.find((card) => card.id === "ocbc-infinity");
+  const infinity = sep30.cards.find((card) => card.id === "ocbc-infinity");
   const thirtyDays = E.scoreCard(infinity, {
     oneOff: 0,
     monthly: 300,
@@ -165,7 +244,7 @@ console.log("CardFitSG engine tests\n");
   });
   assert(thirtyDays.signupCash === 0, "30-day offer does not count a second month");
 
-  const absolute = db.cards.find((card) => card.id === "uob-absolute");
+  const absolute = sep30.cards.find((card) => card.id === "uob-absolute");
   const belowGiftHurdle = E.scoreCard(absolute, {
     oneOff: 0,
     monthly: 500,
@@ -423,8 +502,8 @@ assert(db.cards.length >= 5, "has card catalog");
 
 // Issuer-level welcome eligibility excludes value for known same-bank holders
 {
-  const infinity = db.cards.find((card) => card.id === "ocbc-infinity");
-  const ocbc365 = db.cards.find((card) => card.id === "ocbc-365");
+  const infinity = sep30.cards.find((card) => card.id === "ocbc-infinity");
+  const ocbc365 = sep30.cards.find((card) => card.id === "ocbc-365");
   const sameIssuer = E.scoreCard(ocbc365, {
     oneOff: 600,
     monthly: 0,
@@ -451,7 +530,7 @@ assert(db.cards.length >= 5, "has card catalog");
     existingIssuers: [],
     asOf: "2026-08-11",
   });
-  assert(otherwiseEligible.signupCash === 180, "eligible OCBC spend retains the live signup cash");
+  assert(otherwiseEligible.signupCash === 180, "eligible OCBC spend retains the snapshot signup cash");
   assert(
     otherwiseEligible.notes.some((note) => /no OCBC.*previous 12 months/i.test(note)) &&
       !otherwiseEligible.notes.some((note) => /not collected/i.test(note)),
@@ -475,7 +554,7 @@ assert(db.cards.length >= 5, "has card catalog");
     "invalid direct-call issuer eligibility is disclosed"
   );
 
-  const simply = db.cards.find((card) => card.id === "sc-simply");
+  const simply = sep30.cards.find((card) => card.id === "sc-simply");
   const existingSc = E.scoreCard(simply, {
     oneOff: 800,
     monthly: 0,
@@ -486,7 +565,7 @@ assert(db.cards.length >= 5, "has card catalog");
   });
   assert(existingSc.signupCash === 0, "an existing SC card excludes Simply Cash signup value");
 
-  const absolute = db.cards.find((card) => card.id === "uob-absolute");
+  const absolute = sep30.cards.find((card) => card.id === "uob-absolute");
   const existingUob = E.scoreCard(absolute, {
     oneOff: 1000,
     monthly: 0,
@@ -899,7 +978,7 @@ assert(db.cards.length >= 5, "has card catalog");
 
 // Expired promo: no signup cash
 {
-  const s = E.scoreCard(db.cards.find((c) => c.id === "ocbc-infinity"), {
+  const s = E.scoreCard(sep30.cards.find((c) => c.id === "ocbc-infinity"), {
     oneOff: 4000,
     monthly: 800,
     months: 12,
@@ -912,7 +991,7 @@ assert(db.cards.length >= 5, "has card catalog");
 
 // Dated non-cash offers expire just like cash offers
 {
-  const absolute = db.cards.find((c) => c.id === "uob-absolute");
+  const absolute = sep30.cards.find((c) => c.id === "uob-absolute");
   const active = E.scoreCard(absolute, {
     oneOff: 1000,
     monthly: 0,
@@ -981,7 +1060,7 @@ function assertReconciled(score, msg) {
   );
   assert(quarterly.breakdown.giftValueEst === 0, "UOB One gift stays out when the spend hurdle is missed");
 
-  const gifted = E.scoreCard(db.cards.find((card) => card.id === "uob-absolute"), {
+  const gifted = E.scoreCard(sep30.cards.find((card) => card.id === "uob-absolute"), {
     oneOff: 1000,
     monthly: 0,
     months: 12,
@@ -991,7 +1070,7 @@ function assertReconciled(score, msg) {
   assert(gifted.breakdown.giftValueEst === 100, "eligible non-cash gift is reported beside the net");
   assert(gifted.breakdown.totals.net === Math.round(gifted.net * 100), "gift value is not inside the ranked net");
 
-  const longTerm = E.scoreCard(db.cards.find((card) => card.id === "ocbc-infinity"), {
+  const longTerm = E.scoreCard(sep30.cards.find((card) => card.id === "ocbc-infinity"), {
     oneOff: 3500,
     monthly: 0,
     months: 12,
@@ -1015,7 +1094,7 @@ function assertReconciled(score, msg) {
   assert(renewal.breakdown.months[12].fee === 19620, "the second-year fee lands in month 13");
   assert(renewal.breakdown.months.filter((row) => row.fee > 0).length === 1, "a 24-month waiver charges one renewal");
 
-  const simply = E.scoreCard(db.cards.find((card) => card.id === "sc-simply"), {
+  const simply = E.scoreCard(sep30.cards.find((card) => card.id === "sc-simply"), {
     oneOff: 0,
     monthly: 400,
     months: 12,
@@ -1023,6 +1102,33 @@ function assertReconciled(score, msg) {
   });
   assert(simply.breakdown.months[1].signup === 10000, "a 60-day signup award waits until the second month");
   assertReconciled(simply, "signup month");
+}
+
+
+// Live catalog: ended September 2026 offers add no signup value, and every
+// dated offer drops to zero the day after its listed end.
+{
+  const today = db.meta.asOf;
+  const big = { oneOff: 5000, monthly: 1500, months: 12, existingCardIds: [], existingIssuers: [], asOf: today };
+  for (const id of ["sc-simply", "uob-one"]) {
+    const card = db.cards.find((c) => c.id === id);
+    const score = E.scoreCard(card, { ...big, optimizerMode: true, preferFussFree: false });
+    assert(score.signupCash === 0, `${id} ended signup ranks S$0 signup cash`);
+    assert(!score.notes.some((note) => /non-cash gift/i.test(note)), `${id} ended signup shows no gift`);
+  }
+  const ranked = E.recommend(db, big).ranked;
+  for (const id of ["sc-simply", "uob-one"]) {
+    const row = ranked.find((score) => score.card.id === id);
+    assert(row && row.signupCash === 0, `ranked ${id} carries S$0 signup cash`);
+  }
+  const ocbc365 = E.scoreCard(db.cards.find((c) => c.id === "ocbc-365"), { ...big, oneOff: 800, monthly: 0 });
+  assert(ocbc365.signupCash === 300, "eligible OCBC 365 spend earns the live S$300 welcome cash");
+  for (const card of db.cards.filter((c) => c.signup?.activeThrough)) {
+    const [y, m, d] = card.signup.activeThrough.split("-").map(Number);
+    const after = new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
+    const lapsed = E.scoreCard(card, { ...big, asOf: after });
+    assert(lapsed.signupCash === 0, `${card.id} signup drops to S$0 after ${card.signup.activeThrough}`);
+  }
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);
