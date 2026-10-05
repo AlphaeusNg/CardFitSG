@@ -397,7 +397,7 @@ async function boot(
   assert.match(result.elements.primary.innerHTML, /Official product page/, "top fit links to the official issuer page");
   assert.match(
     result.elements.primary.innerHTML,
-    /href="https:\/\/www\.ocbc\.com\/[^\"]+welcome-gift-promotion\.pdf"[^>]*>Offer terms<\/a>/,
+    /href="https:\/\/www\.ocbc\.com\/[^\"]+welcome-gift-promotion[^"]*\.pdf"[^>]*>Offer terms<\/a>/,
     "top fit links directly to the issuer's acquisition terms"
   );
   assert.match(result.elements["compare-a"].innerHTML, /ocbc-infinity/, "compare lists catalog cards");
@@ -1013,21 +1013,34 @@ function shiftYmd(ymd, days) {
   return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10);
 }
 
+// Frozen 30 September 2026 window fixture: the soft-banner assertions keep a
+// fixed clock and earliest end instead of moving with each live catalog recheck.
+function sep30Catalog() {
+  const fixture = JSON.parse(JSON.stringify(catalog));
+  fixture.meta.asOf = "2026-09-15";
+  fixture.meta.reviewBy = "2026-09-29";
+  for (const card of fixture.cards) {
+    if (card.signup?.activeThrough) card.signup.activeThrough = "2026-09-30";
+  }
+  return fixture;
+}
+const sep30 = sep30Catalog();
+
 {
   const result = await boot(
     {
       ok: true,
       status: 200,
       async json() {
-        return JSON.parse(JSON.stringify(catalog));
+        return sep30Catalog();
       },
     },
     { todayYmd: "2026-09-15" }
   );
-  assert.equal(result.elements["asof-label"].textContent, catalog.meta.asOf, "audit date still renders before reviewBy");
+  assert.equal(result.elements["asof-label"].textContent, sep30.meta.asOf, "audit date still renders before reviewBy");
   assert.equal(
     result.elements["review-by-label"].textContent,
-    catalog.meta.reviewBy,
+    sep30.meta.reviewBy,
     "quiet review-by label uses catalog meta.reviewBy"
   );
   assert.equal(
@@ -1053,7 +1066,7 @@ function shiftYmd(ymd, days) {
       ok: true,
       status: 200,
       async json() {
-        return JSON.parse(JSON.stringify(catalog));
+        return sep30Catalog();
       },
     },
     { todayYmd: "2026-09-21" }
@@ -1075,7 +1088,7 @@ function shiftYmd(ymd, days) {
   );
   assert.match(
     result.elements["catalog-review-banner"].textContent,
-    new RegExp(`Rates were last verified ${catalog.meta.asOf}`),
+    new RegExp(`Rates were last verified ${sep30.meta.asOf}`),
     "soft banner still names the asOf verification date"
   );
   assert.doesNotMatch(
@@ -1280,7 +1293,10 @@ function displayedFeeCents(html) {
 }
 
 {
-  const clock = { ymd: "2026-09-15" };
+  const infinityOffer = catalog.cards.find((card) => card.id === "ocbc-infinity").signup;
+  const offerEnd = infinityOffer.activeThrough;
+  const dayAfterEnd = shiftYmd(offerEnd, 1);
+  const clock = { ymd: catalog.meta.asOf };
   const result = await boot(
     {
       ok: true,
@@ -1293,7 +1309,7 @@ function displayedFeeCents(html) {
   );
   const reads = () => result.recommendations.at(-1).ranked.find((score) => score.card.id === "ocbc-infinity");
   assert.equal(result.elements["catalog-review-banner"].hidden, true, "review banner is quiet before the deadline");
-  assert.equal(reads().signupCash, 180, "Infinity signup still qualifies before the promotion end");
+  assert.equal(reads().signupCash, infinityOffer.cashReward, "Infinity signup still qualifies before the promotion end");
   assert.equal(result.sandbox.window.CardFitApp.refreshIfMarketDateChanged(), false, "the same Singapore date does not recompute");
 
   clock.ymd = catalog.meta.reviewBy;
@@ -1302,21 +1318,21 @@ function displayedFeeCents(html) {
   assert.equal(result.elements.monthly.value, "1200", "review refresh keeps the monthly input");
   assert.equal(result.elements.months.value, "12", "review refresh keeps the horizon");
   assert.equal(result.elements["catalog-review-banner"].hidden, false, "review refresh reveals the overdue banner");
-  assert.equal(reads().signupCash, 180, "the promotion is still eligible on the review date");
+  assert.equal(reads().signupCash, infinityOffer.cashReward, "the promotion is still eligible on the review date");
   assert.match(
     result.elements.primary.innerHTML,
     new RegExp(`Singapore market date ${catalog.meta.reviewBy}`),
     "the refreshed calculation shows the new Singapore date"
   );
 
-  clock.ymd = "2026-10-01";
+  clock.ymd = dayAfterEnd;
   assert.equal(result.sandbox.window.CardFitApp.refreshIfMarketDateChanged(), true, "crossing the promotion end refreshes eligibility");
   assert.equal(result.elements.oneOff.value, "3500", "promotion refresh keeps the typed one-off");
   assert.equal(result.elements.fussFree.checked, true, "promotion refresh keeps fuss-free mode");
   assert.equal(reads().signupCash, 0, "Infinity signup drops after the dated offer ends");
-  assert.equal(result.scenarios.at(-1).asOf, "2026-10-01", "the recomputed scenario uses the new Singapore date");
-  assert.match(result.elements.primary.innerHTML, /Singapore market date 2026-10-01/, "the future market date is explicit");
-  assert.match(result.elements.ranked.innerHTML, /ended 2026-09-30/i, "the ended promotion is labeled after midnight");
+  assert.equal(result.scenarios.at(-1).asOf, dayAfterEnd, "the recomputed scenario uses the new Singapore date");
+  assert.match(result.elements.primary.innerHTML, new RegExp(`Singapore market date ${dayAfterEnd}`), "the future market date is explicit");
+  assert.match(result.elements.ranked.innerHTML, new RegExp(`ended ${offerEnd}`, "i"), "the ended promotion is labeled after midnight");
 }
 
 {

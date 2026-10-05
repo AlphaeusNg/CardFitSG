@@ -254,6 +254,15 @@
             );
           }
           requireNumber(card.signup.cashReward, `${signupPath}.cashReward`);
+          if (Object.prototype.hasOwnProperty.call(card.signup, "minSpendPerMonth") ||
+              Object.prototype.hasOwnProperty.call(card.signup, "spendMonths")) {
+            requireNumber(card.signup.minSpendPerMonth, `${signupPath}.minSpendPerMonth`, { min: 1 });
+            requireNumber(card.signup.spendMonths, `${signupPath}.spendMonths`, { min: 1, max: 120, integer: true });
+            if (!Number.isFinite(card.signup.windowDays) ||
+                card.signup.windowDays < card.signup.spendMonths * 30) {
+              errors.push(`${signupPath}.windowDays must cover spendMonths`);
+            }
+          }
           if (card.signup.giftValueEst != null) {
             requireNumber(card.signup.giftValueEst, `${signupPath}.giftValueEst`);
           }
@@ -468,7 +477,22 @@
       } else if (promoOk && hasSignupValue) {
         const need = su.minSpend || 0;
         const qualifyingSpend = signupQualifyingSpend(oneOff, monthly, months, su.windowDays);
-        if (qualifyingSpend >= need) {
+        const hasMonthlyRule = Object.prototype.hasOwnProperty.call(su, "minSpendPerMonth") ||
+          Object.prototype.hasOwnProperty.call(su, "spendMonths");
+        const validMonthlyRule = Number.isFinite(su.minSpendPerMonth) && su.minSpendPerMonth >= 1 &&
+          Number.isInteger(su.spendMonths) && su.spendMonths >= 1 && su.spendMonths <= 120 &&
+          Number.isFinite(su.windowDays) && su.windowDays >= su.spendMonths * 30;
+        // A one-off purchase belongs to the first month, not every qualifying month.
+        const meetsMonthlyRule = !hasMonthlyRule || (validMonthlyRule &&
+          months >= su.spendMonths && oneOff + monthly >= su.minSpendPerMonth &&
+          (su.spendMonths === 1 || monthly >= su.minSpendPerMonth));
+        if (hasMonthlyRule && !validMonthlyRule) {
+          signupStatus = "Signup monthly requirements could not be validated — verify live terms.";
+          warnings.push(signupStatus);
+        } else if (!meetsMonthlyRule) {
+          signupStatus = `Signup needs at least S$${su.minSpendPerMonth} in each of ${su.spendMonths} consecutive months.`;
+          warnings.push(signupStatus);
+        } else if (qualifyingSpend >= need) {
           if (su.cashReward > 0) {
             signupCash = su.cashReward;
             if (longTerm) {

@@ -15,11 +15,11 @@ function check(condition, message) {
   assertions += 1;
 }
 
-const beforeDeadline = evaluateCatalogFreshness(catalog, "2026-09-27");
+const beforeDeadline = evaluateCatalogFreshness(catalog, "2026-10-15");
 check(beforeDeadline.ok, "catalog remains current before its review deadline");
-check(beforeDeadline.earliestOfferEnd === "2026-09-30", "earliest dated offer is reported");
+check(beforeDeadline.earliestOfferEnd === "2026-10-31", "earliest dated offer is reported");
 
-const onDeadline = evaluateCatalogFreshness(catalog, "2026-09-28");
+const onDeadline = evaluateCatalogFreshness(catalog, "2026-10-16");
 check(!onDeadline.ok, "catalog audit becomes due on the review date");
 check(onDeadline.errors.some((error) => /review is due/i.test(error)), "due-date failure is actionable");
 
@@ -31,7 +31,7 @@ delete missingDeadline.meta.reviewBy;
 check(!evaluateCatalogFreshness(missingDeadline, "2026-09-01").ok, "missing review deadline fails closed");
 
 const lateDeadline = structuredClone(catalog);
-lateDeadline.meta.reviewBy = "2026-09-30";
+lateDeadline.meta.reviewBy = "2026-10-31";
 const lateResult = evaluateCatalogFreshness(lateDeadline, "2026-09-01");
 check(!lateResult.ok, "review must precede offer expiry");
 check(lateResult.errors.some((error) => /must precede earliest dated offer end/i.test(error)), "late review failure names the offer boundary");

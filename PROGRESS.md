@@ -1,17 +1,61 @@
 # CardFitSG continuous improvement log
 
-Last updated: 2026-10-05
+Last updated: 2026-10-06
 
-## Latest cycle: name the renewal-fee month
+## Latest cycle: reconcile catalog audits and release renewal timing
 
-Cleanup validation 2026-10-05: 235 engine assertions, app/site checks, and 19
-freshness-policy fixtures pass. The actual `catalog-freshness.mjs` gate fails:
-reviewBy 2026-09-28 is overdue. Release is held until CARD-06 performs an official
-issuer audit. No review date was advanced and no catalog facts were changed.
+Fetched and preserved upstream September/October audit commits b326a12 and
+40e6dbe alongside CARD-09; no history was rewritten. Official OCBC and UOB
+October terms were independently rechecked. The renewal line names month 13,
+or says when it falls beyond the selected horizon, without changing fee cents.
+Release version: 2026.10.06.1. Catalog review remains due 2026-10-16.
 
-The month-by-month view states the month the first renewal fee lands. That month is the year after `max(1, feeWaiverYears)`, so it is not the optional first-year fee. A waiver that pushes the renewal past the selected horizon is named without moving fee cents onto a month outside the view. Fee rows stay the cents the ranked net already uses. Version `2026.10.05.1`. This change does not recheck the catalog.
+Review caught a UOB Absolute eligibility mismatch: a single S$2,000 purchase
+cannot satisfy S$1,000 in each of two consecutive months. Declarative monthly
+spend requirements now suppress the gift for an insufficient second month or
+short horizon, and invalid metadata fails closed. Non-cash value remains out of
+ranking. All gates pass: 255 engine, 19 freshness and 14 workflow assertions,
+plus app/site/syntax checks and the actual freshness gate.
 
-## Previous cycle: catalog recheck, month math, named scenarios
+## Previous cycle: name the renewal-fee month
+
+CARD-09 was initially held against the stale local September catalog. The
+upstream October audit resolves that hold. Its fee-timing implementation and
+regressions are retained in this release.
+
+## Latest cycle: post-cliff catalog recheck (2 October 2026)
+
+Official product pages and promotion terms for all six cards were re-fetched on
+2026-10-02. Base rates, annual fees, 6/12-month issuer lookbacks, UOB One's
+S$60/S$100/S$200 quarterly awards, and AMEX's six-month 3% intro (S$150 cap on
+S$5,000) are unchanged. The 30 September 2026 signup windows ended. OCBC
+published new welcome terms for 1 October–31 December 2026: OCBC 365 now pays
+S$300 cashback on S$800 within 60 days, and INFINITY pays a 14.4% bonus on the
+first S$2,000 within 60 days (capped at S$288, modeled conservatively as S$288
+once S$2,000 is spent). UOB Absolute has a 1–31 October 2026 Samsonite gift
+(worth S$600, non-cash, outside the ranked net). Standard Chartered Simply Cash
+(new offer needs a Bonus$aver deposit bundle) and UOB One (no listed welcome
+gift) now carry no signup value. OCBC 365's 1 November 2026 cashback revision is
+disclosed but not yet modeled. Engine/app mechanics tests now use a frozen
+30 September fixture; live-catalog tests prove ended offers rank S$0 signup
+cash. Snapshot `asOf` is 2026-10-02; `reviewBy` is 2026-10-16, before the
+earliest remaining end (2026-10-31). Soft signup-ending banner logic is
+untouched. Version `2026.10.02.1`.
+
+## Previous cycle: catalog recheck before the 30 September offer cliff
+
+Official product pages and acquisition terms for all six cards were re-fetched on
+2026-09-28. Base rates, annual fees, networks, 6/12-month issuer lookbacks,
+UOB One's S$60/S$100/S$200 quarterly awards, AMEX's six-month S$5,000 intro,
+and the dated offer ends are unchanged. OCBC's welcome terms (version
+1 September 2026), UOB's July–September 2026 acquisition terms, and Standard
+Chartered's April 2025–September 2026 terms still end on 30 September 2026;
+those ends were not extended. Snapshot `asOf` is 2026-09-28. `reviewBy` is
+2026-09-29, before that earliest end. Soft signup-ending banner logic is
+untouched. Version `2026.09.28.1`.
+
+## Earlier cycle: catalog recheck, month math, named scenarios
+
 
 Official product pages and acquisition terms for all six cards were fetched on
 2026-09-25. Base rates, annual fees, networks, 6/12-month issuer lookbacks,
