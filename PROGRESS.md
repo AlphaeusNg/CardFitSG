@@ -11,7 +11,7 @@ issuer audit. No review date was advanced and no catalog facts were changed.
 
 The month-by-month view states the month the first renewal fee lands. That month is the year after `max(1, feeWaiverYears)`, so it is not the optional first-year fee. A waiver that pushes the renewal past the selected horizon is named without moving fee cents onto a month outside the view. Fee rows stay the cents the ranked net already uses. Version `2026.10.05.1`. This change does not recheck the catalog.
 
-## Latest cycle: catalog recheck, month math, named scenarios
+## Previous cycle: catalog recheck, month math, named scenarios
 
 Official product pages and acquisition terms for all six cards were fetched on
 2026-09-25. Base rates, annual fees, networks, 6/12-month issuer lookbacks,
