@@ -1162,7 +1162,19 @@ function shiftYmd(ymd, days) {
   const html = result.elements.primary.innerHTML;
   const netCents = Number(/data-net-cents="(-?\d+)"/.exec(html)?.[1]);
   const componentCents = [...html.matchAll(/data-component-cents="(-?\d+)"/g)].map((match) => Number(match[1]));
+  const opened = result.recommendations[0].primary.breakdown;
   assert.match(html, /Month-by-month/, "the result summary offers a month-by-month calculation");
+  assert.equal(opened.renewalMonth, 13, "the default horizon names OCBC Infinity's month-13 renewal");
+  assert.ok(
+    html.includes("Renewal fee lands in month 13, after this 12-month view."),
+    "a waiver past the horizon says the renewal is after this view"
+  );
+  assert.match(html, /data-renewal-month="13"/, "the renewal line exposes the month number");
+  assert.equal(
+    displayedFeeCents(html).reduce((sum, value) => sum + value, 0),
+    opened.totals.fee,
+    "fee cells still sum to the ranked net fee total"
+  );
   assert.match(
     html,
     new RegExp(`Singapore market date ${result.scenarios[0].asOf}`),
@@ -1174,6 +1186,65 @@ function shiftYmd(ymd, days) {
   if (/data-gift-cents=/.test(html)) {
     assert.match(html, /not included in the ranked net/i, "a non-cash gift stays outside the ranked net");
   }
+}
+
+function displayedFeeCents(html) {
+  const table = /<table class="month-table">([\s\S]*?)<\/table>/.exec(html)?.[1] || "";
+  const header = /<thead><tr>([\s\S]*?)<\/tr><\/thead>/.exec(table)?.[1] || "";
+  const labels = [...header.matchAll(/<th\b[^>]*>([\s\S]*?)<\/th>/g)].map((match) => match[1]);
+  const feeIndex = labels.indexOf("Fee");
+  if (feeIndex < 0) return [];
+  const body = /<tbody>([\s\S]*?)<\/tbody>/.exec(table)?.[1] || "";
+  const cents = [];
+  for (const row of body.matchAll(/<tr>([\s\S]*?)<\/tr>/g)) {
+    const cells = [...row[1].matchAll(/<t[dh]\b([^>]*)>/g)];
+    const match = /data-component-cents="(-?\d+)"/.exec(cells[feeIndex]?.[1] || "");
+    if (match) cents.push(-Number(match[1]));
+  }
+  return cents;
+}
+
+{
+  const result = await boot({
+    ok: true,
+    status: 200,
+    async json() {
+      return JSON.parse(JSON.stringify(catalog));
+    },
+  });
+  result.elements.months.value = "24";
+  result.sandbox.window.CardFitApp.run();
+  const primary = result.recommendations.at(-1).primary;
+  const html = result.elements.primary.innerHTML;
+  assert.equal(primary.breakdown.renewalMonth, 13, "a 24-month view still renews in month 13");
+  assert.ok(html.includes("Renewal fee lands in month 13."), "an in-horizon renewal names that month");
+  assert.doesNotMatch(html, /after this \d+-month view/, "an in-horizon renewal does not say it is past the view");
+  assert.match(html, /data-renewal-month="13"/, "the in-horizon renewal line exposes month 13");
+  const feeCents = displayedFeeCents(html);
+  assert.equal(
+    feeCents.reduce((sum, value) => sum + value, 0),
+    primary.breakdown.totals.fee,
+    "in-horizon fee cells still sum to the ranked net fee total"
+  );
+  assert.equal(primary.breakdown.totals.fee, Math.round(primary.feeDrag * 100), "that fee total is the ranked fee drag");
+  assert.equal(feeCents[12], 19620, "the displayed month-13 fee stays 19620 cents");
+}
+
+{
+  const zeroFee = JSON.parse(JSON.stringify(catalog));
+  for (const card of zeroFee.cards) card.annualFee = 0;
+  const result = await boot({
+    ok: true,
+    status: 200,
+    async json() {
+      return zeroFee;
+    },
+  });
+  const html = result.elements.primary.innerHTML;
+  assert.equal(result.recommendations[0].primary.breakdown.renewalMonth, null, "a zero annual fee has no renewal month");
+  assert.equal(result.recommendations[0].primary.breakdown.totals.fee, 0, "a zero annual fee adds no ranked fee cents");
+  assert.doesNotMatch(html, /Renewal fee lands/, "a zero-annual-fee card does not get the renewal sentence");
+  assert.doesNotMatch(html, /data-renewal-month/, "a zero-annual-fee card does not get a renewal month attribute");
 }
 
 {

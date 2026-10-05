@@ -720,6 +720,14 @@
     return 0;
   }
 
+  // First renewal is the year after max(1, waiver), not the optional year-1 fee.
+  function firstRenewalMonth(annualFee, feeWaiverYears) {
+    if (annualFee === 0) return null;
+    const waiver = Number.isInteger(feeWaiverYears) ? feeWaiverYears : 0;
+    const year = Math.max(1, waiver) + 1;
+    return (year - 1) * 12 + 1;
+  }
+
   function buildBreakdown(input) {
     const months = input.months;
     let base;
@@ -781,6 +789,7 @@
     return {
       months: rows,
       totals,
+      renewalMonth: firstRenewalMonth(input.annualFee, input.feeWaiverYears),
       giftValueEst: input.separateGift > 0 ? input.separateGift : 0,
       signupAside: input.longTerm ? input.signupCash : 0,
       signupStatus: input.signupStatus,

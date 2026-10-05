@@ -706,6 +706,17 @@
     return key === "fee" ? -row.fee : row[key];
   }
 
+  function renewalFeeLine(breakdown) {
+    const month = breakdown?.renewalMonth;
+    const horizon = breakdown?.months?.length;
+    if (!Number.isInteger(month) || !Number.isInteger(horizon)) return "";
+    const sentence =
+      month <= horizon
+        ? `Renewal fee lands in month ${month}.`
+        : `Renewal fee lands in month ${month}, after this ${horizon}-month view.`;
+    return `<p class="muted tiny" data-renewal-month="${month}">${sentence}</p>`;
+  }
+
   function renderBreakdown(score, result) {
     const breakdown = score?.breakdown;
     if (!breakdown || !Array.isArray(breakdown.months) || !breakdown.totals) return "";
@@ -749,6 +760,7 @@
       <details class="month-math">
         <summary>Month-by-month</summary>
         <p class="muted tiny">${escapeHtml(breakdown.signupStatus || "")}</p>
+        ${renewalFeeLine(breakdown)}
         <div class="month-scroll">
           <table class="month-table">
             <caption>These lines add up to the ranked net of S$${fmt(score.net)}.</caption>

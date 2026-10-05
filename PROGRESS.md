@@ -1,6 +1,15 @@
 # CardFitSG continuous improvement log
 
-Last updated: 2026-09-25 (CardFitSG Cycle 62)
+Last updated: 2026-10-05
+
+## Latest cycle: name the renewal-fee month
+
+Cleanup validation 2026-10-05: 235 engine assertions, app/site checks, and 19
+freshness-policy fixtures pass. The actual `catalog-freshness.mjs` gate fails:
+reviewBy 2026-09-28 is overdue. Release is held until CARD-06 performs an official
+issuer audit. No review date was advanced and no catalog facts were changed.
+
+The month-by-month view states the month the first renewal fee lands. That month is the year after `max(1, feeWaiverYears)`, so it is not the optional first-year fee. A waiver that pushes the renewal past the selected horizon is named without moving fee cents onto a month outside the view. Fee rows stay the cents the ranked net already uses. Version `2026.10.05.1`. This change does not recheck the catalog.
 
 ## Latest cycle: catalog recheck, month math, named scenarios
 

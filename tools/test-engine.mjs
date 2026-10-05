@@ -649,9 +649,12 @@ assert(db.cards.length >= 5, "has card catalog");
   );
 
   const notWaived = { ...waived, firstYearFeeWaived: false, feeWaiverYears: 0 };
+  const chargedFirstYear = E.scoreCard(notWaived, { ...base, months: 12, includeFeeYear1: true });
+  assert(chargedFirstYear.feeDrag === waived.annualFee, "non-waived first-year fee is included when requested");
+  assert(chargedFirstYear.breakdown.renewalMonth === 13, "a zero-year waiver still renews in month 13");
   assert(
-    E.scoreCard(notWaived, { ...base, months: 12, includeFeeYear1: true }).feeDrag === waived.annualFee,
-    "non-waived first-year fee is included when requested"
+    chargedFirstYear.breakdown.months[0].fee === Math.round(waived.annualFee * 100),
+    "the optional first-year fee stays on month 1"
   );
   assert(
     E.scoreCard(notWaived, { ...base, months: 24, includeFeeYear1: true }).feeDrag === waived.annualFee * 2,
@@ -659,13 +662,34 @@ assert(db.cards.length >= 5, "has card catalog");
   );
 
   const twoYearsWaived = { ...waived, feeWaiverYears: 2 };
+  const twoYearHorizon = E.scoreCard(twoYearsWaived, { ...base, months: 24 });
+  assert(twoYearHorizon.feeDrag === 0, "two-year waiver covers a 24-month horizon");
+  assert(twoYearHorizon.breakdown.renewalMonth === 25, "two-year waiver names month 25 as the first renewal");
   assert(
-    E.scoreCard(twoYearsWaived, { ...base, months: 24 }).feeDrag === 0,
-    "two-year waiver covers a 24-month horizon"
+    twoYearHorizon.breakdown.renewalMonth > twoYearHorizon.breakdown.months.length,
+    "two-year waiver pushes the renewal past a 24-month horizon"
   );
   assert(
-    E.scoreCard(twoYearsWaived, { ...base, months: 36 }).feeDrag === waived.annualFee,
-    "two-year waiver defers the first renewal fee to year three"
+    twoYearHorizon.breakdown.months.reduce((sum, row) => sum + row.fee, 0) === 0,
+    "in-horizon fee cents stay zero when the renewal is past the view"
+  );
+  assert(twoYearHorizon.breakdown.totals.fee === 0, "ranked fee total stays zero across that horizon");
+  const twoYearDeferred = E.scoreCard(twoYearsWaived, { ...base, months: 36 });
+  assert(twoYearDeferred.feeDrag === waived.annualFee, "two-year waiver defers the first renewal fee to year three");
+  assert(twoYearDeferred.breakdown.renewalMonth === 25, "the deferred renewal remains month 25");
+  assert(
+    twoYearDeferred.breakdown.months[24].fee === Math.round(waived.annualFee * 100),
+    "year-three fee cents stay on month 25"
+  );
+  assert(
+    twoYearDeferred.breakdown.totals.fee === Math.round(waived.annualFee * 100),
+    "in-horizon fee total stays the single renewal the ranked net uses"
+  );
+
+  const freeCard = { ...waived, annualFee: 0 };
+  assert(
+    E.scoreCard(freeCard, { ...base, months: 24 }).breakdown.renewalMonth === null,
+    "a zero annual fee has no renewal month"
   );
 }
 
@@ -1014,6 +1038,12 @@ function assertReconciled(score, msg) {
   assertReconciled(renewal, "renewal fee");
   assert(renewal.breakdown.months[12].fee === 19620, "the second-year fee lands in month 13");
   assert(renewal.breakdown.months.filter((row) => row.fee > 0).length === 1, "a 24-month waiver charges one renewal");
+  assert(renewal.card.feeWaiverYears === 1, "OCBC Infinity has a one-year fee waiver");
+  assert(renewal.breakdown.renewalMonth === 13, "that waiver puts the first renewal in month 13");
+  assert(
+    renewal.breakdown.totals.fee === 19620,
+    "the ranked fee total stays the single month-13 renewal"
+  );
 
   const simply = E.scoreCard(db.cards.find((card) => card.id === "sc-simply"), {
     oneOff: 0,
