@@ -2,7 +2,22 @@
 
 Last updated: 2026-10-06
 
-## Latest cycle: reconcile catalog audits and release renewal timing
+## Latest cycle: OCBC 365 November rates by date + catalog recheck (6 October 2026)
+
+Official product pages and terms for all six cards were re-fetched on
+2026-10-06; no drift since the 2 October audit. OCBC 365's revised programme
+from 1 November 2026 (posting date) is now modeled as a dated `rateSchedule`
+on the card: one S$800 minimum, S$160 monthly cap, 6% on dining (now incl.
+fast food), groceries, land transport and petrol, 3% Watsons until 31 March
+2027, and telco/utilities/streaming/EV at the 0.25% base. `CardFitEngine.cardAsOf`
+resolves the terms in force on the scenario's Singapore market day; before
+2026-11-01 the listed card object is returned unchanged, so ranking, compare and
+pills are identical. Estimates apply the terms in force on the calculation date
+to the whole horizon, and a note discloses an upcoming change inside the horizon.
+asOf 2026-10-06, reviewBy 2026-10-30 (UOB Absolute's gift window ends
+2026-10-31). Release version: 2026.10.06.2.
+
+## Previous cycle: reconcile catalog audits and release renewal timing
 
 Fetched and preserved upstream September/October audit commits b326a12 and
 40e6dbe alongside CARD-09; no history was rewritten. Official OCBC and UOB
