@@ -2,7 +2,16 @@
 
 Last updated: 2026-10-06
 
-## Latest cycle: OCBC 365 November rates by date + catalog recheck (6 October 2026)
+## Latest cycle: remove a saved named scenario (6 October 2026)
+
+Each saved scenario row now has Use and Remove buttons. The accessible name
+on each button includes that scenario's name. Removing a scenario deletes it
+from browser storage and refreshes the list and the assumption comparison.
+Saving when storage is full or unavailable says so, instead of asking for a
+name. Release version: 2026.10.06.3. `data/cards.json` and the scoring engine
+are untouched.
+
+## Previous cycle: OCBC 365 November rates by date + catalog recheck (6 October 2026)
 
 Official product pages and terms for all six cards were re-fetched on
 2026-10-06; no drift since the 2 October audit. OCBC 365's revised programme

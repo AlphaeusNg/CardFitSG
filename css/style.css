@@ -538,6 +538,10 @@ select:focus {
   gap: 0.5rem;
   margin: 0.3rem 0;
 }
+.named-actions {
+  display: inline-flex;
+  gap: 0.35rem;
+}
 .month-math {
   margin: 0.75rem 0 0;
 }

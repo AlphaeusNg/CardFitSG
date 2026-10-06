@@ -237,6 +237,11 @@
         copyScenarioLink(copyLink);
         return;
       }
+      const removeSaved = event.target && event.target.closest && event.target.closest("[data-remove-scenario]");
+      if (removeSaved) {
+        deleteNamedScenario(removeSaved.getAttribute("data-remove-scenario"));
+        return;
+      }
       const useSaved = event.target && event.target.closest && event.target.closest("[data-use-scenario]");
       if (useSaved) useNamedScenario(useSaved.getAttribute("data-use-scenario"));
     });
@@ -793,7 +798,10 @@
         (item) => `
         <li>
           <span>${escapeHtml(item.name)}</span>
-          <button type="button" class="preset-chip" data-use-scenario="${escapeAttr(item.id)}">Use</button>
+          <span class="named-actions">
+            <button type="button" class="preset-chip" data-use-scenario="${escapeAttr(item.id)}" aria-label="Use scenario “${escapeAttr(item.name)}”">Use</button>
+            <button type="button" class="preset-chip" data-remove-scenario="${escapeAttr(item.id)}" aria-label="Remove scenario “${escapeAttr(item.name)}”">Remove</button>
+          </span>
         </li>`
       )
       .join("");
@@ -848,7 +856,7 @@
     const saved = readNamedScenarios();
     const left = saved.find((item) => item.id === $("#assumption-a")?.value);
     const right = saved.find((item) => item.id === $("#assumption-b")?.value);
-    if (!left || !right) {
+    if (saved.length < 2 || !left || !right) {
       out.innerHTML = `<p class="muted">Save two named scenarios to compare those spending assumptions.</p>`;
       return;
     }
@@ -875,7 +883,29 @@
     }
     const status = $("#named-scenario-status");
     if (status) {
-      status.textContent = result.ok ? `Saved “${result.name}”.` : "Enter a name to save this scenario.";
+      if (result.ok) status.textContent = `Saved “${result.name}”.`;
+      else if (result.reason === "storage") {
+        status.textContent = "Couldn’t save this scenario because browser storage is full or unavailable.";
+      } else status.textContent = "Enter a name to save this scenario.";
+    }
+    renderNamedScenarioList();
+    renderAssumptionComparison();
+    return result;
+  }
+
+  function deleteNamedScenario(id) {
+    let result;
+    try {
+      result = store.deleteNamed(globalThis.localStorage, id);
+    } catch {
+      result = { ok: false, reason: "storage" };
+    }
+    const status = $("#named-scenario-status");
+    if (status) {
+      if (result.ok) status.textContent = `Removed “${result.name}”.`;
+      else if (result.reason === "storage") {
+        status.textContent = "Couldn’t remove that scenario because browser storage is unavailable.";
+      } else status.textContent = "That scenario was already removed.";
     }
     renderNamedScenarioList();
     renderAssumptionComparison();
@@ -1008,6 +1038,7 @@
     scenarioFromSearch,
     scenarioPageUrl,
     saveNamedScenario,
+    deleteNamedScenario,
     useNamedScenario,
     namedScenarios,
     renderAssumptionComparison,
