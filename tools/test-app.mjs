@@ -404,6 +404,7 @@ async function boot(
   assert.match(result.elements["compare-out"].innerHTML, /Official page/, "compare surfaces official product links");
   assert.match(result.elements["compare-out"].innerHTML, /1\.6% flat/, "flat comparison labels the flat rate");
   assert.match(scenarioSource, /cardfitsg-last-scenario-v1/, "scenario module remembers the last scenario locally");
+  assert.match(scenarioSource, /deleteNamed,/, "scenario store exports deleteNamed");
   assert.match(appSource, /writeActive\(globalThis\.localStorage/, "app persists the active scenario through that module");
   assert.equal(
     (result.elements.ranked.innerHTML.match(/<article/g) || []).length,
@@ -1370,6 +1371,119 @@ function displayedFeeCents(html) {
   assert.equal(result.sandbox.location.search, activeSearch, "comparing saved assumptions leaves the active share URL alone");
   assert.doesNotMatch(result.elements["compare-out"].innerHTML, /Assumptions that differ/, "card comparison stays separate from scenario comparison");
   assert.equal(result.elements.oneOff.value, "0", "the active scenario inputs stay on the form");
+  const listHtml = result.elements["named-scenario-list"].innerHTML;
+  assert.match(listHtml, /aria-label="Use scenario “Honeymoon”"/, "each row names its Use control");
+  assert.match(listHtml, /aria-label="Remove scenario “Honeymoon”"/, "each row names its Remove control");
+  const removed = saved[0];
+  const kept = saved[1];
+  const deletion = result.sandbox.window.CardFitApp.deleteNamedScenario(removed.id);
+  assert.equal(deletion.ok, true, "removing a saved scenario succeeds");
+  assert.equal(result.sandbox.window.CardFitApp.namedScenarios().length, 1, "one named scenario remains");
+  assert.equal(
+    result.elements["named-scenario-list"].innerHTML.includes(removed.name),
+    false,
+    "the removed scenario name leaves the list"
+  );
+  assert.equal(
+    result.elements["named-scenario-list"].innerHTML.includes(kept.name),
+    true,
+    "the other saved scenario stays in the list"
+  );
+  assert.match(
+    result.elements["assumption-out"].innerHTML,
+    /Save two named scenarios to compare those spending assumptions\./,
+    "one saved scenario is not enough to compare assumptions"
+  );
+  assert.match(result.elements["named-scenario-status"].textContent, /Removed/, "removal confirms the scenario name");
+}
+
+{
+  const result = await boot({
+    ok: true,
+    status: 200,
+    async json() {
+      return JSON.parse(JSON.stringify(catalog));
+    },
+  });
+  const writeItem = result.localStorage.setItem.bind(result.localStorage);
+  result.localStorage.setItem = (key, value) => {
+    if (key === "cardfitsg-named-scenarios-v1") throw new Error("QuotaExceededError");
+    writeItem(key, value);
+  };
+  const saved = result.sandbox.window.CardFitApp.saveNamedScenario("Trip");
+  assert.equal(saved.ok, false, "a full named-scenario store does not report success");
+  assert.equal(saved.reason, "storage", "quota failure is a storage reason");
+  assert.doesNotMatch(
+    result.elements["named-scenario-status"].textContent,
+    /Enter a name/,
+    "storage failure does not ask for a name"
+  );
+  assert.match(
+    result.elements["named-scenario-status"].textContent,
+    /storage/i,
+    "storage failure mentions storage"
+  );
+  assert.equal(result.sandbox.window.CardFitApp.namedScenarios().length, 0, "a failed save stores nothing");
+  const blank = result.sandbox.window.CardFitApp.saveNamedScenario("   ");
+  assert.equal(blank.reason, "name", "a blank name is rejected before storage");
+  assert.equal(
+    result.elements["named-scenario-status"].textContent,
+    "Enter a name to save this scenario.",
+    "an empty name still asks for a name"
+  );
+}
+
+{
+  const result = await boot({
+    ok: true,
+    status: 200,
+    async json() {
+      return JSON.parse(JSON.stringify(catalog));
+    },
+  });
+  const saved = result.sandbox.window.CardFitApp.saveNamedScenario("Trip");
+  assert.equal(saved.ok, true, "a named scenario saves before storage writes fail");
+  const writeItem = result.localStorage.setItem.bind(result.localStorage);
+  result.localStorage.setItem = (key, value) => {
+    if (key === "cardfitsg-named-scenarios-v1") throw new Error("QuotaExceededError");
+    writeItem(key, value);
+  };
+  const deletion = result.sandbox.window.CardFitApp.deleteNamedScenario(saved.id);
+  assert.equal(deletion.ok, false, "removing while storage writes fail does not report success");
+  assert.equal(deletion.reason, "storage", "a failed removal write is a storage reason");
+  assert.equal(
+    result.sandbox.window.CardFitApp.namedScenarios().length,
+    1,
+    "a failed removal leaves the saved scenario listed"
+  );
+  assert.match(
+    result.elements["named-scenario-status"].textContent,
+    /storage/i,
+    "a failed removal mentions storage"
+  );
+  assert.doesNotMatch(
+    result.elements["named-scenario-status"].textContent,
+    /already removed/,
+    "a failed removal is not reported as already removed"
+  );
+  const readItem = result.localStorage.getItem.bind(result.localStorage);
+  result.localStorage.getItem = (key) => {
+    if (key === "cardfitsg-named-scenarios-v1") throw new Error("storage unavailable");
+    return readItem(key);
+  };
+  const unread = result.sandbox.window.CardFitApp.deleteNamedScenario(saved.id);
+  assert.equal(unread.ok, false, "removing while storage reads fail does not report success");
+  assert.equal(unread.reason, "storage", "a failed removal read is a storage reason");
+  assert.match(
+    result.elements["named-scenario-status"].textContent,
+    /storage/i,
+    "a failed removal read mentions storage"
+  );
+  assert.doesNotMatch(
+    result.elements["named-scenario-status"].textContent,
+    /already removed/,
+    "a failed removal read is not reported as already removed"
+  );
 }
 
 // OCBC 365 published terms switch by Singapore market date (1 November 2026).

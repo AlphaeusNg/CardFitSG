@@ -181,6 +181,25 @@
       return { ok: true, id, name: label, scenarios: capped };
     }
 
+    function deleteNamed(storage, id) {
+      let list;
+      try {
+        list = readNamed(storage);
+      } catch {
+        return { ok: false, reason: "storage" };
+      }
+      if (typeof id !== "string") return { ok: false, reason: "missing", scenarios: list };
+      const removed = list.find((item) => item.id === id);
+      if (!removed) return { ok: false, reason: "missing", scenarios: list };
+      const next = list.filter((item) => item.id !== id);
+      try {
+        storage.setItem(NAMED_KEY, JSON.stringify(next));
+      } catch {
+        return { ok: false, reason: "storage" };
+      }
+      return { ok: true, id, name: removed.name, scenarios: next };
+    }
+
     return {
       SCENARIO_KEY,
       NAMED_KEY,
@@ -194,6 +213,7 @@
       writeActive,
       readNamed,
       saveNamed,
+      deleteNamed,
       explainAssumptionChange,
     };
   }
