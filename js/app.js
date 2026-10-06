@@ -535,8 +535,12 @@
   function renderCompare() {
     const out = $("#compare-out");
     if (!out || !db) return;
-    const a = db.cards.find((c) => c.id === $("#compare-a")?.value);
-    const b = db.cards.find((c) => c.id === $("#compare-b")?.value);
+    // Compare shows the published terms in force on the scored market day.
+    const compareYmd = scoredMarketYmd || marketTodayYmd() || db.meta.asOf;
+    const termsOn = (card) =>
+      card && typeof CardFitEngine.cardAsOf === "function" ? CardFitEngine.cardAsOf(card, compareYmd) : card;
+    const a = termsOn(db.cards.find((c) => c.id === $("#compare-a")?.value));
+    const b = termsOn(db.cards.find((c) => c.id === $("#compare-b")?.value));
     if (!a || !b) {
       out.innerHTML = "";
       return;

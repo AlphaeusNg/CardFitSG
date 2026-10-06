@@ -115,11 +115,11 @@ console.log("CardFitSG engine tests\n");
   );
 }
 
-// Official issuer audit snapshot (2026-10-02)
+// Official issuer audit snapshot (2026-10-06)
 {
   const byId = Object.fromEntries(db.cards.map((card) => [card.id, card]));
-  assert(db.meta.asOf === "2026-10-02", "catalog audit date is current");
-  assert(db.meta.reviewBy === "2026-10-16", "catalog review precedes the earliest offer end");
+  assert(db.meta.asOf === "2026-10-06", "catalog audit date is current");
+  assert(db.meta.reviewBy === "2026-10-30", "catalog review precedes the earliest offer end");
   assert(
     db.meta.sources.length === 6 && db.meta.sources.every((source) => /ocbc\.com|uob\.com\.sg|americanexpress\.com|sc\.com/.test(source)),
     "catalog cites one official issuer page per card"
@@ -1180,6 +1180,130 @@ function assertReconciled(score, msg) {
   shortWindow.signup.windowDays = 30;
   assert(!E.validateCatalog({ ...db, cards: db.cards.map(card => card.id === absolute.id ? shortWindow : card) }).valid, "signup window must cover its required monthly periods");
   assert(E.scoreCard(shortWindow, { ...scenario, monthly: 1000 }).breakdown.giftValueEst === 0, "direct scoring rejects a window shorter than the monthly requirement");
+}
+
+// OCBC 365 revised cashback programme from 1 November 2026 (posting date), per
+// https://www.ocbc.com/iwov-resources/sg/ocbc/personal/pdf/cards/tncs-governing-365-cc-cashback-programme-wef1nov26.pdf
+// Frozen scenario dates keep these assertions stable across catalog rechecks.
+{
+  const listed = db.cards.find((card) => card.id === "ocbc-365");
+  const nov = listed.rateSchedule?.[0];
+  assert(E.validateCatalog(db).valid, "catalog with a dated OCBC 365 rate schedule validates");
+  assert(
+    nov &&
+      nov.effectiveFrom === "2026-11-01" &&
+      nov.termsUrl === "https://www.ocbc.com/iwov-resources/sg/ocbc/personal/pdf/cards/tncs-governing-365-cc-cashback-programme-wef1nov26.pdf",
+    "OCBC 365 November terms cite OCBC's official 1 November 2026 programme T&Cs"
+  );
+  assert(
+    nov.minMonthlySpend === 800 &&
+      nov.earnCap === 160 &&
+      JSON.stringify(nov.earnCapTiers) === JSON.stringify([{ minSpend: 800, cap: 160 }]),
+    "OCBC 365 November terms use one S$800 tier with a S$160 cap"
+  );
+  assert(
+    ["dining", "groceries", "transport", "petrol"].every((key) => nov.categoryRates[key] === 0.06) &&
+      nov.categoryRates.watsons === 0.03 &&
+      nov.flatRate === 0.0025,
+    "OCBC 365 November terms pay 6% dining/groceries/land transport/petrol, 3% Watsons, 0.25% base"
+  );
+  assert(
+    ["telco", "utilities", "streaming", "ev_charging"].every((key) => !(key in nov.categoryRates)),
+    "OCBC 365 telco, utilities, streaming and EV charging fall to the 0.25% base from November"
+  );
+
+  // Rates in force on each side of the switch date.
+  const oct31 = E.cardAsOf(listed, "2026-10-31");
+  const nov1 = E.cardAsOf(listed, "2026-11-01");
+  assert(oct31 === listed, "2026-10-31 uses the listed card object unchanged");
+  assert(
+    oct31.categoryRates.dining === 0.05 &&
+      oct31.categoryRates.groceries === 0.03 &&
+      oct31.categoryRates.utilities === 0.03 &&
+      oct31.earnCap === 80 &&
+      oct31.earnCapTiers.length === 2,
+    "2026-10-31 keeps current OCBC 365 rates and S$80/S$160 tiers"
+  );
+  assert(
+    nov1 !== listed &&
+      nov1.ratesEffectiveFrom === "2026-11-01" &&
+      nov1.categoryRates.dining === 0.06 &&
+      nov1.categoryRates.groceries === 0.06 &&
+      !("utilities" in nov1.categoryRates) &&
+      nov1.earnCap === 160 &&
+      nov1.earnCapTiers.length === 1,
+    "2026-11-01 resolves the new OCBC 365 rates and single tier"
+  );
+  assert(
+    nov1.signup === listed.signup && nov1.annualFee === listed.annualFee && nov1.id === listed.id,
+    "dated rate switch leaves signup, fees and identity untouched"
+  );
+  assert(listed.categoryRates.dining === 0.05 && listed.earnCap === 80, "resolving a date never mutates the catalog card");
+  assert(E.cardAsOf(listed, "2027-03-31").categoryRates.watsons === 0.03, "Watsons stays 3% through 31 March 2027");
+  const apr = E.cardAsOf(listed, "2027-04-01");
+  assert(
+    !("watsons" in apr.categoryRates) && apr.earnCap === 160 && apr.minMonthlySpend === 800,
+    "Watsons drops to base from 1 April 2027 while the November cap and tier carry forward"
+  );
+  assert(E.cardAsOf(listed, "not-a-date") === listed, "invalid dates fail closed to the listed terms");
+
+  // Scoring: S$1,500/month in optimizer mode for a held card (no signup noise).
+  const base = { oneOff: 0, months: 12, optimizerMode: true, existingCardIds: [listed.id] };
+  const before = E.scoreCard(listed, { ...base, monthly: 1500, asOf: "2026-10-31" });
+  const after = E.scoreCard(listed, { ...base, monthly: 1500, asOf: "2026-11-01" });
+  assert(before.cashFromRate === 960, "before 2026-11-01 S$1,500/month hits the S$80 tier-one cap");
+  assert(after.cashFromRate === 1080, "from 2026-11-01 S$1,500/month earns 6% under the S$160 cap");
+  assert(after.card.earnCap === 160, "scored result exposes the terms in force for display");
+  assert(
+    E.scoreCard(listed, { ...base, monthly: 3000, asOf: "2026-11-01" }).cashFromRate === 1920,
+    "from 2026-11-01 monthly cashback is capped at S$160"
+  );
+  const below = E.scoreCard(listed, { ...base, monthly: 700, asOf: "2026-11-01" });
+  assert(
+    below.cashFromRate === 21 && below.warnings.some((w) => /S\$800\/mo minimum/.test(w)),
+    "from 2026-11-01 spend below S$800 earns only the 0.25% base"
+  );
+  const fussBefore = E.scoreCard(listed, { oneOff: 2000, monthly: 1500, months: 12, asOf: "2026-10-31" });
+  const fussAfter = E.scoreCard(listed, { oneOff: 2000, monthly: 1500, months: 12, asOf: "2026-11-01" });
+  assert(fussBefore.cashFromRate === fussAfter.cashFromRate, "fuss-free base-rate scoring is unchanged by the switch");
+
+  // Before the switch, ranking and numbers match a catalog without the schedule.
+  const unscheduled = structuredClone(db);
+  delete unscheduled.cards.find((card) => card.id === "ocbc-365").rateSchedule;
+  for (const scenario of [
+    { oneOff: 3500, monthly: 1500, months: 12, optimizerMode: true, asOf: "2026-10-31" },
+    { oneOff: 3500, monthly: 1200, months: 24, preferFussFree: true, asOf: "2026-10-06" },
+  ]) {
+    const withSchedule = E.recommend(db, scenario).ranked;
+    const without = E.recommend(unscheduled, scenario).ranked;
+    assert(
+      JSON.stringify(withSchedule.map((r) => [r.card.id, r.net, r.score, r.cashFromRate, r.signupCash, r.warnings])) ===
+        JSON.stringify(without.map((r) => [r.card.id, r.net, r.score, r.cashFromRate, r.signupCash, r.warnings])),
+      `pre-switch ranking is identical on ${scenario.asOf}`
+    );
+  }
+  assert(
+    before.notes.some((note) => /rates change from 2026-11-01.*in force on 2026-10-31/.test(note)),
+    "a horizon crossing 2026-11-01 discloses that current terms are applied throughout"
+  );
+  assert(
+    !E.scoreCard(listed, { ...base, monthly: 1500, months: 3, asOf: "2026-11-01" }).notes.some((n) => /rates change/.test(n)),
+    "no change notice when the next scheduled change is beyond the horizon"
+  );
+
+  // Validation fails closed on malformed schedules.
+  const withSchedule = (mutate) => {
+    const copy = structuredClone(db);
+    mutate(copy.cards.find((card) => card.id === "ocbc-365").rateSchedule);
+    return E.validateCatalog(copy);
+  };
+  assert(!withSchedule((rs) => { rs[0].annualFee = 0; }).valid, "schedule cannot change fields outside published earn terms");
+  assert(!withSchedule((rs) => { rs[1].effectiveFrom = "2026-10-01"; }).valid, "schedule entries must be in ascending date order");
+  assert(!withSchedule((rs) => { rs[0].effectiveFrom = "2026-11-31"; }).valid, "schedule dates must be real dates");
+  assert(!withSchedule((rs) => { rs[0].termsUrl = "https://example.com/365.pdf"; }).valid, "schedule terms must use the issuer's official domain");
+  assert(!withSchedule((rs) => { rs[0].earnCapTiers[0].cap = -1; }).valid, "schedule cap tiers are validated");
+  assert(!withSchedule((rs) => { rs[0].categoryRates.dining = 6; }).valid, "schedule rates are validated");
+  assert(!withSchedule((rs) => { rs.splice(0, rs.length, { effectiveFrom: "2026-11-01", termsUrl: rs[0].termsUrl }); }).valid, "schedule entries must change at least one rate field");
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

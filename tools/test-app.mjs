@@ -1372,4 +1372,53 @@ function displayedFeeCents(html) {
   assert.equal(result.elements.oneOff.value, "0", "the active scenario inputs stay on the form");
 }
 
-console.log("test-app.mjs: startup, event, persistence, scenario-boundary, spend-cap, compare, ranked-rate, two-phase render, preset, dock, share-link, reviewBy, soft-signup-ending, month-math, assumptions, midnight, and render assertions passed");
+// OCBC 365 published terms switch by Singapore market date (1 November 2026).
+{
+  const search = "?oneOff=0&monthly=1500&months=12&goal=keep&fuss=0&opt=1&amex=1&hold=ocbc-365";
+  const bootOn = (todayYmd) =>
+    boot(
+      {
+        ok: true,
+        status: 200,
+        async json() {
+          return JSON.parse(JSON.stringify(catalog));
+        },
+      },
+      { search, todayYmd }
+    );
+  const before = await bootOn("2026-10-31");
+  const after = await bootOn("2026-11-01");
+  const row = (result) => result.recommendations.at(-1).ranked.find((score) => score.card.id === "ocbc-365");
+  assert.equal(row(before).cashFromRate, 960, "app scores OCBC 365 at the S$80 tier-one cap on 2026-10-31");
+  assert.equal(row(after).cashFromRate, 1080, "app scores OCBC 365 under the single S$160 cap on 2026-11-01");
+  assert.equal(row(before).card.earnCap, 80, "ranked row carries the October terms before the switch");
+  assert.equal(row(after).card.earnCap, 160, "ranked row carries the November terms after the switch");
+  for (const result of [before, after]) {
+    assert.match(
+      result.elements.ranked.innerHTML,
+      /0\.25% base · category rates up to 6\.0% from S\$800\/month/,
+      "ranked OCBC 365 pill stays accurate on both sides of the switch"
+    );
+    result.elements["compare-a"].value = "uob-one";
+    result.elements["compare-a"].dispatch("change");
+    result.elements["compare-b"].value = "ocbc-365";
+    result.elements["compare-b"].dispatch("change");
+    assert.match(
+      result.elements["compare-out"].innerHTML,
+      /0\.25% base · category rates up to 6\.0% from S\$800\/month/,
+      "compare OCBC 365 summary stays accurate on both sides of the switch"
+    );
+  }
+  assert.match(
+    before.elements["compare-out"].innerHTML,
+    /OCBC 365[\s\S]*est\. S\$960/,
+    "compare estimate uses the October terms before the switch"
+  );
+  assert.match(
+    after.elements["compare-out"].innerHTML,
+    /OCBC 365[\s\S]*est\. S\$1,080/,
+    "compare estimate uses the November terms after the switch"
+  );
+}
+
+console.log("test-app.mjs: startup, event, persistence, scenario-boundary, spend-cap, compare, ranked-rate, two-phase render, preset, dock, share-link, reviewBy, soft-signup-ending, dated-rate-switch, month-math, assumptions, midnight, and render assertions passed");

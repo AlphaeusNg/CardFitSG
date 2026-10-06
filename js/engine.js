@@ -52,6 +52,62 @@
     return Math.round((b - a) / 86400000);
   }
 
+  // Fields a dated rateSchedule entry may replace. Signup offers, fees, network,
+  // and scores stay on the card; only published earn terms switch by date.
+  const RATE_SCHEDULE_FIELDS = Object.freeze([
+    "flatRate",
+    "categoryRates",
+    "minMonthlySpend",
+    "earnCap",
+    "earnCapTiers",
+    "pros",
+    "cons",
+    "exclusionsNote",
+  ]);
+  const RATE_SCHEDULE_META = Object.freeze(["effectiveFrom", "termsUrl"]);
+
+  /**
+   * Card terms in force on a Singapore market day. Entries in card.rateSchedule
+   * apply cumulatively, in ascending effectiveFrom order, once asOfYmd reaches
+   * them. Before the first entry (or without a schedule) the original card
+   * object is returned unchanged.
+   */
+  function cardAsOf(card, asOfYmd) {
+    if (!card || !Array.isArray(card.rateSchedule) || card.rateSchedule.length === 0) return card;
+    if (!parseYmd(asOfYmd)) return card;
+    const due = card.rateSchedule
+      .filter((entry) => entry && typeof entry === "object" && parseYmd(entry.effectiveFrom))
+      .filter((entry) => entry.effectiveFrom <= asOfYmd)
+      .sort((a, b) => (a.effectiveFrom < b.effectiveFrom ? -1 : a.effectiveFrom > b.effectiveFrom ? 1 : 0));
+    if (due.length === 0) return card;
+    const resolved = { ...card };
+    for (const entry of due) {
+      for (const key of RATE_SCHEDULE_FIELDS) {
+        if (Object.prototype.hasOwnProperty.call(entry, key)) resolved[key] = entry[key];
+      }
+      resolved.ratesEffectiveFrom = entry.effectiveFrom;
+    }
+    return resolved;
+  }
+
+  /** Earliest scheduled rate change strictly after asOfYmd, or null. */
+  function nextRateChange(card, asOfYmd) {
+    if (!card || !Array.isArray(card.rateSchedule) || !parseYmd(asOfYmd)) return null;
+    let next = null;
+    for (const entry of card.rateSchedule) {
+      if (!entry || typeof entry !== "object" || !parseYmd(entry.effectiveFrom)) continue;
+      if (entry.effectiveFrom > asOfYmd && (!next || entry.effectiveFrom < next.effectiveFrom)) next = entry;
+    }
+    return next;
+  }
+
+  function addMonthsYmd(ymd, months) {
+    const date = parseYmd(ymd);
+    if (!date) return null;
+    const target = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + months, date.getUTCDate()));
+    return target.toISOString().slice(0, 10);
+  }
+
   function validateCatalog(db) {
     const errors = [];
     const isRecord = (value) => !!value && typeof value === "object" && !Array.isArray(value);
@@ -228,6 +284,74 @@
         }
       }
 
+      if (card.rateSchedule != null) {
+        const schedulePath = `${path}.rateSchedule`;
+        if (!Array.isArray(card.rateSchedule) || card.rateSchedule.length === 0) {
+          errors.push(`${schedulePath} must be a non-empty array`);
+        } else {
+          let previous = null;
+          card.rateSchedule.forEach((entry, entryIndex) => {
+            const entryPath = `${schedulePath}[${entryIndex}]`;
+            if (!isRecord(entry)) {
+              errors.push(`${entryPath} must be an object`);
+              return;
+            }
+            if (!parseYmd(entry.effectiveFrom)) {
+              errors.push(`${entryPath}.effectiveFrom must be a valid YYYY-MM-DD date`);
+            } else {
+              if (previous && entry.effectiveFrom <= previous) {
+                errors.push(`${entryPath}.effectiveFrom must be later than the previous entry`);
+              }
+              previous = entry.effectiveFrom;
+            }
+            requireOfficialUrl(entry.termsUrl, `${entryPath}.termsUrl`, card.issuer);
+            const keys = Object.keys(entry);
+            keys
+              .filter((key) => !RATE_SCHEDULE_FIELDS.includes(key) && !RATE_SCHEDULE_META.includes(key))
+              .forEach((key) => errors.push(`${entryPath}.${key} cannot change by date`));
+            if (!keys.some((key) => RATE_SCHEDULE_FIELDS.includes(key))) {
+              errors.push(`${entryPath} must change at least one published rate field`);
+            }
+            const has = (key) => Object.prototype.hasOwnProperty.call(entry, key);
+            if (has("flatRate")) requireRate(entry.flatRate, `${entryPath}.flatRate`);
+            if (has("minMonthlySpend")) requireNumber(entry.minMonthlySpend, `${entryPath}.minMonthlySpend`);
+            if (has("earnCap")) requireNumber(entry.earnCap, `${entryPath}.earnCap`, { nullable: true });
+            if (has("categoryRates")) {
+              if (card.style !== "category") {
+                errors.push(`${entryPath}.categoryRates requires a category-style card`);
+              } else if (!isRecord(entry.categoryRates) || Object.keys(entry.categoryRates).length === 0) {
+                errors.push(`${entryPath}.categoryRates must be a non-empty object`);
+              } else {
+                Object.entries(entry.categoryRates).forEach(([category, rate]) =>
+                  requireRate(rate, `${entryPath}.categoryRates.${category}`)
+                );
+              }
+            }
+            if (has("earnCapTiers")) {
+              if (!Array.isArray(entry.earnCapTiers) || entry.earnCapTiers.length === 0) {
+                errors.push(`${entryPath}.earnCapTiers must be a non-empty array`);
+              } else {
+                entry.earnCapTiers.forEach((tier, tierIndex) => {
+                  const tierPath = `${entryPath}.earnCapTiers[${tierIndex}]`;
+                  if (!isRecord(tier)) {
+                    errors.push(`${tierPath} must be an object`);
+                    return;
+                  }
+                  requireNumber(tier.minSpend, `${tierPath}.minSpend`);
+                  requireNumber(tier.cap, `${tierPath}.cap`);
+                });
+              }
+            }
+            ["pros", "cons"].forEach((key) => {
+              if (has(key) && (!Array.isArray(entry[key]) || !entry[key].every((item) => typeof item === "string"))) {
+                errors.push(`${entryPath}.${key} must be an array of strings`);
+              }
+            });
+            if (has("exclusionsNote")) requireString(entry.exclusionsNote, `${entryPath}.exclusionsNote`);
+          });
+        }
+      }
+
       if (card.signup != null) {
         if (!isRecord(card.signup)) {
           errors.push(`${path}.signup must be an object or null`);
@@ -286,11 +410,13 @@
    *   - amexOk: boolean
    *   - asOf: YYYY-MM-DD
    */
-  function scoreCard(card, scenario = {}) {
+  function scoreCard(listedCard, scenario = {}) {
     const months = normalizeMonths(scenario.months);
     const oneOff = clampSpend(scenario.oneOff);
     const monthly = clampSpend(scenario.monthly);
     const asOf = scenario.asOf || todayYmd();
+    // Published earn terms in force on the scenario's Singapore market day.
+    const card = cardAsOf(listedCard, asOf);
     const existing = new Set(scenario.existingCardIds || []);
     const existingIssuers = new Set(
       Array.isArray(scenario.existingIssuers) ? scenario.existingIssuers : []
@@ -526,6 +652,15 @@
         signupStatus = `Listed signup window ended ${su.activeThrough}.`;
         warnings.push(`Listed signup window ended ${su.activeThrough} — verify live offers.`);
       }
+    }
+
+    const upcoming = nextRateChange(listedCard, asOf);
+    const horizonEnd = addMonthsYmd(asOf, months);
+    if (upcoming && horizonEnd && upcoming.effectiveFrom < horizonEnd) {
+      notes.push(
+        `Published rates change from ${upcoming.effectiveFrom}; this estimate applies the ` +
+          `rates in force on ${asOf} to the whole horizon.`
+      );
     }
 
     if (alreadyHold) {
@@ -914,6 +1049,8 @@
     scoreCard,
     recommend,
     validateCatalog,
+    cardAsOf,
+    nextRateChange,
     daysUntil,
     clampSpend,
     normalizeMonths,

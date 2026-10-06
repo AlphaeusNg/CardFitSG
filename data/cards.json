@@ -2,9 +2,9 @@
   "meta": {
     "currency": "SGD",
     "market": "Singapore",
-    "asOf": "2026-10-02",
-    "reviewBy": "2026-10-16",
-    "ratesNote": "Rates, fees and public offers re-verified against official issuer pages and promotion terms on 2026-10-02. Base earn rates, annual fees, 6/12-month issuer lookbacks, UOB One fixed quarterly awards and the AMEX 6-month 3% intro (capped at S$150 on S$5,000) are unchanged. The 30 September 2026 signup windows ended: OCBC published new welcome terms for 1 October to 31 December 2026 (OCBC 365: S$300 cashback on S$800 within 60 days; INFINITY: 14.4% bonus on the first S$2,000 within 60 days, capped at S$288), and UOB published a 1 to 31 October 2026 UOB Absolute gift (Samsonite worth S$600, non-cash). Standard Chartered Simply Cash and UOB One have no card-only signup offer modeled. OCBC 365 revises its cashback programme from 1 November 2026 (single S$800 tier, S$160 cap, 6% dining/groceries/land transport, telco/utilities/streaming/EV to 0.25%); this snapshot models the rates in force until 31 October 2026. OCBC 365 still advertises up to 1% on advertising-platform spend without minimum or cap; generic-spend rankings do not assume that category. Promo windows are date-checked at runtime — expired or known-ineligible signup value is not counted.",
+    "asOf": "2026-10-06",
+    "reviewBy": "2026-10-30",
+    "ratesNote": "Rates, fees and public offers re-verified against official issuer pages and promotion terms on 2026-10-06. No drift since 2026-10-02: base earn rates, annual fees, 6/12-month issuer lookbacks, UOB One fixed quarterly awards, the AMEX 6-month 3% intro (capped at S$150 on S$5,000), OCBC's 1 October to 31 December 2026 welcome terms (OCBC 365: S$300 cashback on S$800 within 60 days; INFINITY: 14.4% bonus on the first S$2,000 within 60 days, capped at S$288) and UOB's 1 to 31 October 2026 UOB Absolute gift (Samsonite worth S$600, non-cash) are unchanged. Standard Chartered Simply Cash and UOB One have no card-only signup offer modeled. OCBC 365's revised cashback programme from 1 November 2026 (by posting date) is modeled as a dated rate schedule: a single S$800 minimum spend, S$160 monthly cap, 6% on dining (now including fast food), groceries, land transport and petrol, 3% at Watsons until 31 March 2027, and telco, utilities, streaming and EV charging at the 0.25% base rate. Estimates apply the terms in force on the calculation date to the whole horizon. OCBC 365 still advertises up to 1% on advertising-platform spend without minimum or cap; generic-spend rankings do not assume that category. Promo windows are date-checked at runtime — expired or known-ineligible signup value is not counted.",
     "disclaimer": "Rates, promos, and fees change. Always verify on the issuer's official page before applying. This tool is educational, not financial advice.",
     "sources": [
       "https://www.ocbc.com/personal-banking/cards/infinity-unlimited-cashback-card.page",
@@ -191,6 +191,39 @@
         { "minSpend": 800, "cap": 80 },
         { "minSpend": 1600, "cap": 160 }
       ],
+      "rateSchedule": [
+        {
+          "effectiveFrom": "2026-11-01",
+          "termsUrl": "https://www.ocbc.com/iwov-resources/sg/ocbc/personal/pdf/cards/tncs-governing-365-cc-cashback-programme-wef1nov26.pdf",
+          "flatRate": 0.0025,
+          "categoryRates": {
+            "petrol": 0.06,
+            "dining": 0.06,
+            "groceries": 0.06,
+            "transport": 0.06,
+            "watsons": 0.03
+          },
+          "minMonthlySpend": 800,
+          "earnCap": 160,
+          "earnCapTiers": [
+            { "minSpend": 800, "cap": 160 }
+          ],
+          "pros": ["6% on dining, groceries, land transport and petrol", "Single S$800 monthly minimum with a S$160 cap", "Dining now includes fast food"],
+          "cons": ["S$800 monthly minimum", "Telco, utilities, streaming and EV charging fall to 0.25%", "Category constraints"],
+          "exclusionsNote": "From 1 November 2026 (by posting date): spending at least S$800 in a calendar month earns 6% on dining (including fast food), groceries, land transport and petrol, and 3% at Watsons until 31 March 2027, with one S$160 monthly cap across those categories. Telco, utilities, streaming and EV charging earn the 0.25% base rate. The separate 1% marketing-expense rate (0.5% on advertising instalments) has no minimum spend and no cap; generic-spend rankings do not add it."
+        },
+        {
+          "effectiveFrom": "2027-04-01",
+          "termsUrl": "https://www.ocbc.com/iwov-resources/sg/ocbc/personal/pdf/cards/tncs-governing-365-cc-cashback-programme-wef1nov26.pdf",
+          "categoryRates": {
+            "petrol": 0.06,
+            "dining": 0.06,
+            "groceries": 0.06,
+            "transport": 0.06
+          },
+          "exclusionsNote": "From 1 April 2027: spending at least S$800 in a calendar month earns 6% on dining (including fast food), groceries, land transport and petrol, with one S$160 monthly cap across those categories. Watsons, telco, utilities, streaming and EV charging earn the 0.25% base rate. The separate 1% marketing-expense rate (0.5% on advertising instalments) has no minimum spend and no cap; generic-spend rankings do not add it."
+        }
+      ],
       "fussFreeScore": 40,
       "acceptanceScore": 92,
       "signup": {
@@ -202,7 +235,7 @@
         "cashReward": 300,
         "notes": "OCBC welcome promotion 1 October to 31 December 2026: new OCBC principal cardmembers with no current OCBC credit card and none in the prior 12 months receive S$300 cashback after S$800 qualifying spend within 60 days of approval."
       },
-      "exclusionsNote": "Rates shown apply until 31 October 2026; OCBC revises 365 categories, rates and caps from 1 November 2026. The S$800/S$1,600 spend tiers and S$80/S$160 caps apply to the listed lifestyle categories. The separate 1% marketing-expense rate (0.5% on advertising instalments) has no minimum spend and no cap; generic-spend rankings do not add it.",
+      "exclusionsNote": "Rates shown apply to transactions posted until 31 October 2026; the dated rateSchedule switches to OCBC's revised categories, rates and cap from 1 November 2026. The S$800/S$1,600 spend tiers and S$80/S$160 caps apply to the listed lifestyle categories. The separate 1% marketing-expense rate (0.5% on advertising instalments) has no minimum spend and no cap; generic-spend rankings do not add it.",
       "pros": ["6% petrol", "5% dining", "3% on groceries, transport and selected recurring spend"],
       "cons": ["S$800 monthly minimum", "Tiered S$80/S$160 caps", "Category constraints"],
       "bestFor": ["optimizer", "dining_heavy"]
