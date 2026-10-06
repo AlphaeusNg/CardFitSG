@@ -221,6 +221,7 @@
     });
     $("#compare-a")?.addEventListener("change", renderCompare);
     $("#compare-b")?.addEventListener("change", renderCompare);
+    $("#copy-assumptions")?.addEventListener("click", copyAssumptionComparison);
     $("#assumption-a")?.addEventListener("change", renderAssumptionComparison);
     $("#assumption-b")?.addEventListener("change", renderAssumptionComparison);
     $("#save-named-scenario")?.addEventListener("click", () => {
@@ -849,9 +850,27 @@
     };
   }
 
+  let assumptionComparisonText = "";
+
+  async function copyAssumptionComparison() {
+    if (!assumptionComparisonText) return;
+    const status = $("#assumption-copy-status");
+    try {
+      await navigator.clipboard.writeText(assumptionComparisonText);
+      if (status) status.textContent = "Comparison copied.";
+    } catch {
+      if (status) status.textContent = "Copy unavailable. Select the comparison text to copy it.";
+    }
+  }
+
   function renderAssumptionComparison() {
     const out = $("#assumption-out");
     if (!out || !db) return;
+    assumptionComparisonText = "";
+    const copyButton = $("#copy-assumptions");
+    if (copyButton) copyButton.disabled = true;
+    const status = $("#assumption-copy-status");
+    if (status) status.textContent = "";
     renderAssumptionSelects();
     const saved = readNamedScenarios();
     const left = saved.find((item) => item.id === $("#assumption-a")?.value);
@@ -870,6 +889,9 @@
       { name: left.name, result: leftResult },
       { name: right.name, result: rightResult }
     );
+    assumptionComparisonText = ["CardFitSG spending comparison", ...explained.lines,
+      "Gifts are separate from estimated net cashback. Educational only, not financial advice."].join("\n");
+    if (copyButton) copyButton.disabled = false;
     out.innerHTML = explained.lines.map((line) => `<p class="assumption-why">${escapeHtml(line)}</p>`).join("");
   }
 

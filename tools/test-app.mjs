@@ -93,6 +93,8 @@ function makeDocument(existingCardIds = [], recentIssuers = []) {
       "assumption-a",
       "assumption-b",
       "assumption-out",
+      "copy-assumptions",
+      "assumption-copy-status",
       "scenario-name",
       "save-named-scenario",
       "named-scenario-status",
@@ -1371,6 +1373,24 @@ function displayedFeeCents(html) {
   assert.equal(result.sandbox.location.search, activeSearch, "comparing saved assumptions leaves the active share URL alone");
   assert.doesNotMatch(result.elements["compare-out"].innerHTML, /Assumptions that differ/, "card comparison stays separate from scenario comparison");
   assert.equal(result.elements.oneOff.value, "0", "the active scenario inputs stay on the form");
+  let copied = "";
+  result.sandbox.navigator = { clipboard: { async writeText(text) { copied = text; } } };
+  assert.equal(result.elements["copy-assumptions"].disabled, false);
+  result.elements["copy-assumptions"].dispatch("click");
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(copied, ["CardFitSG spending comparison",
+    ...[...comparison.matchAll(/<p class="assumption-why">(.*?)<\/p>/g)].map((item) => item[1]),
+    "Gifts are separate from estimated net cashback. Educational only, not financial advice."].join("\n"));
+  assert.equal(result.elements["assumption-copy-status"].textContent, "Comparison copied.");
+  assert.equal(result.sandbox.location.search, activeSearch, "copying preserves the active URL");
+  result.sandbox.navigator.clipboard.writeText = async () => { throw new Error("denied"); };
+  result.elements["copy-assumptions"].dispatch("click");
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.match(result.elements["assumption-copy-status"].textContent, /Copy unavailable/);
+  result.elements["assumption-b"].value = saved[0].id;
+  result.sandbox.window.CardFitApp.renderAssumptionComparison();
+  assert.equal(result.elements["copy-assumptions"].disabled, true);
+
   const listHtml = result.elements["named-scenario-list"].innerHTML;
   assert.match(listHtml, /aria-label="Use scenario “Honeymoon”"/, "each row names its Use control");
   assert.match(listHtml, /aria-label="Remove scenario “Honeymoon”"/, "each row names its Remove control");
