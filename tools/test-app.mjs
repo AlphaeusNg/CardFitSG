@@ -52,6 +52,8 @@ function makeElement(initial = {}) {
         return on;
       },
     },
+    focus() { this.focused = true; },
+    select() { this.selected = true; },
     getAttribute() {
       return null;
     },
@@ -95,6 +97,7 @@ function makeDocument(existingCardIds = [], recentIssuers = []) {
       "assumption-out",
       "copy-assumptions",
       "assumption-copy-status",
+      "assumption-copy-fallback",
       "scenario-name",
       "save-named-scenario",
       "named-scenario-status",
@@ -1387,9 +1390,13 @@ function displayedFeeCents(html) {
   result.elements["copy-assumptions"].dispatch("click");
   await new Promise((resolve) => setImmediate(resolve));
   assert.match(result.elements["assumption-copy-status"].textContent, /Copy unavailable/);
+  assert.equal(result.elements["assumption-copy-fallback"].value, copied);
+  assert.equal(result.elements["assumption-copy-fallback"].hidden, false);
+  assert.equal(result.elements["assumption-copy-fallback"].selected, true);
   result.elements["assumption-b"].value = saved[0].id;
   result.sandbox.window.CardFitApp.renderAssumptionComparison();
   assert.equal(result.elements["copy-assumptions"].disabled, true);
+  assert.equal(result.elements["assumption-copy-fallback"].hidden, true);
 
   const listHtml = result.elements["named-scenario-list"].innerHTML;
   assert.match(listHtml, /aria-label="Use scenario “Honeymoon”"/, "each row names its Use control");

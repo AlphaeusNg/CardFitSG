@@ -1167,3 +1167,7 @@ The market-date timer is capped at one day. Future-pinned clocks cannot overflow
 ## 2026-10-07 — Report saved-scenario replacement and eviction
 
 Named-scenario saves distinguish Updated from Saved and disclose the oldest scenario removed by the existing storage cap. The store returns replacement/eviction metadata without changing scoring or catalog facts. Validation: app, 285 engine, freshness, site and workflow gates passed, including replacement and cap-eviction fixtures. Version 2026.10.07.3.
+
+## 2026-10-07 — Offer selectable text when comparison copying fails
+
+A rejected/unavailable clipboard reveals and selects the complete plain-text scenario comparison in a readonly field, including the gift and educational caveats. A new comparison clears the fallback. App, 285 engine assertions, freshness, site and workflow gates passed. Catalog facts and ranking math stay unchanged.

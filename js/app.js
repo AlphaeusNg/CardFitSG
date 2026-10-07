@@ -859,6 +859,13 @@
       await navigator.clipboard.writeText(assumptionComparisonText);
       if (status) status.textContent = "Comparison copied.";
     } catch {
+      const fallback = $("#assumption-copy-fallback");
+      if (fallback) {
+        fallback.value = assumptionComparisonText;
+        fallback.hidden = false;
+        fallback.focus();
+        fallback.select();
+      }
       if (status) status.textContent = "Copy unavailable. Select the comparison text to copy it.";
     }
   }
@@ -867,6 +874,8 @@
     const out = $("#assumption-out");
     if (!out || !db) return;
     assumptionComparisonText = "";
+    const fallback = $("#assumption-copy-fallback");
+    if (fallback) { fallback.hidden = true; fallback.value = ""; }
     const copyButton = $("#copy-assumptions");
     if (copyButton) copyButton.disabled = true;
     const status = $("#assumption-copy-status");
