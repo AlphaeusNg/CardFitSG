@@ -961,7 +961,7 @@
       Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]) + 1) - 8 * 60 * 60 * 1000;
     const delay = nextMidnightUtc - now.getTime();
     if (!Number.isFinite(delay) || delay < 1000) return 60 * 1000;
-    return delay;
+    return Math.min(delay, 24 * 60 * 60 * 1000);
   }
 
   function armMarketDateWatch() {

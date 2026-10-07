@@ -200,7 +200,7 @@ function makeStorage(initialValue) {
 
 async function boot(
   response,
-  { existingCardIds = [], recentIssuers = [], savedScenario, search = "", todayYmd, deferRaf = false } = {}
+  { existingCardIds = [], recentIssuers = [], savedScenario, search = "", todayYmd, timerImpl = setTimeout, deferRaf = false } = {}
 ) {
   const { document, elements } = makeDocument(existingCardIds, recentIssuers);
   const errors = [];
@@ -259,7 +259,7 @@ async function boot(
     URL,
     URLSearchParams,
     localStorage,
-    setTimeout,
+    setTimeout: timerImpl,
     clearTimeout,
     SITE_VERSION: { id: "test-version" },
   };
@@ -1553,6 +1553,17 @@ function displayedFeeCents(html) {
     /OCBC 365[\s\S]*est\. S\$1,080/,
     "compare estimate uses the November terms after the switch"
   );
+}
+
+{
+  const delays = [];
+  await boot({ ok: true, status: 200, async json() { return catalog; } }, {
+    todayYmd: "2099-12-31",
+    timerImpl: (_callback, delay) => { delays.push(delay); return { unref() {} }; },
+  });
+  assert.ok(delays.length > 0, "the market watch schedules its next check");
+  assert.ok(delays.every((delay) => delay <= 86400000 && delay >= 0),
+    "future date fixtures cannot overflow browser timers into a rapid refresh loop");
 }
 
 console.log("test-app.mjs: startup, event, persistence, scenario-boundary, spend-cap, compare, ranked-rate, two-phase render, preset, dock, share-link, reviewBy, soft-signup-ending, dated-rate-switch, month-math, assumptions, midnight, and render assertions passed");

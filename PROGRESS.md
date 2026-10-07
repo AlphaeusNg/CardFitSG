@@ -1157,3 +1157,8 @@ Local next: recheck all dated offers by 2026-09-28, before they end on
 ## 2026-10-07 — Copy named spending comparisons
 
 The saved-scenario comparison can be copied as plain text using the displayed estimated nets, with gifts described separately. Copy does not modify the active scenario URL; invalid selections disable copying and clipboard denial gives recovery guidance. All app, engine (285 assertions), catalog, site and workflow gates passed. Newer upstream catalog/rate-switch and named-scenario removal work was retained.
+
+
+## 2026-10-07 — Bound the next Singapore midnight refresh
+
+The market-date timer is capped at one day. Future-pinned clocks cannot overflow a browser timer and cause a rapid refresh loop. A timer-capture regression checks the bound. Validation: app and 285 engine assertions passed; official catalog dates and date-gated issuer terms remain unchanged. Version 2026.10.07.2.
