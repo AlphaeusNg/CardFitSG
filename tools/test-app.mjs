@@ -1566,4 +1566,19 @@ function displayedFeeCents(html) {
     "future date fixtures cannot overflow browser timers into a rapid refresh loop");
 }
 
+
+{
+  const data = new Map();
+  const storage = { getItem: (key) => data.get(key) || null, setItem: (key, value) => data.set(key, value) };
+  const context = { window: {} };
+  vm.createContext(context);
+  vm.runInContext(scenarioSource, context);
+  const store = context.window.CardFitScenario.create({ maxSpend: 100000000, clampSpend: (value) => Math.max(0, Math.min(100000000, value)) });
+  assert.equal(store.saveNamed(storage, "Same name", { monthly: 10 }).replaced, false);
+  assert.equal(store.saveNamed(storage, "Same name", { monthly: 20 }).replaced, true);
+  let last;
+  for (let index = 0; index < 20; index++) last = store.saveNamed(storage, `Scenario ${index}`, { monthly: index });
+  assert.ok(last.evicted.length > 0, "the caller receives the name of an evicted scenario");
+}
+
 console.log("test-app.mjs: startup, event, persistence, scenario-boundary, spend-cap, compare, ranked-rate, two-phase render, preset, dock, share-link, reviewBy, soft-signup-ending, dated-rate-switch, month-math, assumptions, midnight, and render assertions passed");

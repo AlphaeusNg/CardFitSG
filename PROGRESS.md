@@ -1162,3 +1162,8 @@ The saved-scenario comparison can be copied as plain text using the displayed es
 ## 2026-10-07 — Bound the next Singapore midnight refresh
 
 The market-date timer is capped at one day. Future-pinned clocks cannot overflow a browser timer and cause a rapid refresh loop. A timer-capture regression checks the bound. Validation: app and 285 engine assertions passed; official catalog dates and date-gated issuer terms remain unchanged. Version 2026.10.07.2.
+
+
+## 2026-10-07 — Report saved-scenario replacement and eviction
+
+Named-scenario saves distinguish Updated from Saved and disclose the oldest scenario removed by the existing storage cap. The store returns replacement/eviction metadata without changing scoring or catalog facts. Validation: app, 285 engine, freshness, site and workflow gates passed, including replacement and cap-eviction fixtures. Version 2026.10.07.3.

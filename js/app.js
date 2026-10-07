@@ -905,7 +905,10 @@
     }
     const status = $("#named-scenario-status");
     if (status) {
-      if (result.ok) status.textContent = `Saved “${result.name}”.`;
+      if (result.ok) {
+        const evicted = result.evicted?.length ? ` Removed oldest saved scenario: ${result.evicted.join(", ")}.` : "";
+        status.textContent = `${result.replaced ? "Updated" : "Saved"} “${result.name}”.${evicted}`;
+      }
       else if (result.reason === "storage") {
         status.textContent = "Couldn’t save this scenario because browser storage is full or unavailable.";
       } else status.textContent = "Enter a name to save this scenario.";

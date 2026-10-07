@@ -178,7 +178,8 @@
       } catch {
         return { ok: false, reason: "storage" };
       }
-      return { ok: true, id, name: label, scenarios: capped };
+      return { ok: true, id, name: label, scenarios: capped, replaced: !!existing,
+        evicted: next.slice(MAX_NAMED).map((item) => item.name) };
     }
 
     function deleteNamed(storage, id) {
