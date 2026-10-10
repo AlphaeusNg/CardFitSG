@@ -1115,6 +1115,113 @@ const sep30 = sep30Catalog();
       ok: true,
       status: 200,
       async json() {
+        return sep30Catalog();
+      },
+    },
+    { todayYmd: "2026-09-20" }
+  );
+  assert.equal(
+    result.elements["catalog-review-banner"].hidden,
+    false,
+    "soft signup-ending banner is visible at exactly 10 days left"
+  );
+  assert.match(
+    result.elements["catalog-review-banner"].textContent,
+    /earliest 2026-09-30 SGT · 10 days left/,
+    "soft banner names the frozen earliest end with exactly 10 days left"
+  );
+  assert.doesNotMatch(
+    result.elements["catalog-review-banner"].textContent,
+    /review date .* has passed/i,
+    "soft banner does not use overdue copy at the 10-day boundary"
+  );
+  assert.equal(
+    result.elements["review-by-line"].hidden,
+    true,
+    "quiet Review by line yields to the soft banner at 10 days left"
+  );
+}
+
+{
+  const result = await boot(
+    {
+      ok: true,
+      status: 200,
+      async json() {
+        return sep30Catalog();
+      },
+    },
+    { todayYmd: "2026-09-19" }
+  );
+  assert.equal(
+    result.elements["catalog-review-banner"].hidden,
+    true,
+    "soft signup-ending banner stays hidden at 11 days left"
+  );
+  assert.equal(
+    result.elements["catalog-review-banner"].textContent,
+    "",
+    "catalog banner has no copy at 11 days left"
+  );
+  assert.doesNotMatch(
+    result.elements["catalog-review-banner"].textContent,
+    /signup windows end soon/i,
+    "catalog banner does not show soft signup-ending copy at 11 days left"
+  );
+  assert.equal(
+    result.elements["review-by-line"].hidden,
+    false,
+    "quiet Review by line remains visible at 11 days left"
+  );
+}
+
+{
+  const fixture = sep30Catalog();
+  for (const todayYmd of ["2026-09-29", "2026-09-30"]) {
+    const result = await boot(
+      {
+        ok: true,
+        status: 200,
+        async json() {
+          return JSON.parse(JSON.stringify(fixture));
+        },
+      },
+      { todayYmd }
+    );
+    assert.equal(
+      result.elements["catalog-review-banner"].hidden,
+      false,
+      `overdue banner is visible with a near signup end on ${todayYmd}`
+    );
+    assert.match(
+      result.elements["catalog-review-banner"].textContent,
+      /review date \(2026-09-29\) has passed/i,
+      `overdue copy wins inside the soft signup-ending window on ${todayYmd}`
+    );
+    assert.match(
+      result.elements["catalog-review-banner"].textContent,
+      /Rates last verified 2026-09-15/,
+      `overdue banner names the frozen verification date on ${todayYmd}`
+    );
+    assert.doesNotMatch(
+      result.elements["catalog-review-banner"].textContent,
+      /signup windows end soon/i,
+      `overdue banner excludes soft signup-ending copy on ${todayYmd}`
+    );
+    assert.equal(
+      result.elements["review-by-line"].hidden,
+      true,
+      `quiet Review by line yields to the overdue banner on ${todayYmd}`
+    );
+  }
+}
+
+{
+  const result = await boot(
+    {
+      ok: true,
+      status: 200,
+      async json() {
         return JSON.parse(JSON.stringify(catalog));
       },
     },
