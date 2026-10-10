@@ -1171,3 +1171,9 @@ Named-scenario saves distinguish Updated from Saved and disclose the oldest scen
 ## 2026-10-07 — Offer selectable text when comparison copying fails
 
 A rejected/unavailable clipboard reveals and selects the complete plain-text scenario comparison in a readonly field, including the gift and educational caveats. A new comparison clears the fallback. App, 285 engine assertions, freshness, site and workflow gates passed. Catalog facts and ranking math stay unchanged.
+
+## 2026-10-11 — Preserve named scenarios after a failed storage read
+
+Saving stops with a storage failure when existing named scenarios cannot be read or parsed. It no longer treats that failure as an empty collection and overwrites previous scenarios. Dated catalog facts are unchanged.
+
+Validation: App/storage regression, 285 engine assertions, catalog freshness, site and workflow gates.

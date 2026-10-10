@@ -1586,6 +1586,15 @@ function displayedFeeCents(html) {
   let last;
   for (let index = 0; index < 20; index++) last = store.saveNamed(storage, `Scenario ${index}`, { monthly: index });
   assert.ok(last.evicted.length > 0, "the caller receives the name of an evicted scenario");
+  const before = data.get(store.NAMED_KEY);
+  const denied = store.saveNamed({ getItem() { throw new Error("read denied"); },
+    setItem(key, value) { data.set(key, value); } }, "Unsafe replacement", { monthly: 123 });
+  assert.equal(denied.ok, false);
+  assert.equal(denied.reason, "storage");
+  assert.equal(data.get(store.NAMED_KEY), before, "a failed read never overwrites saved scenarios");
+  const corrupt = store.saveNamed({ getItem() { return "{"; },
+    setItem() { throw new Error("must not write corrupt storage"); } }, "Corrupt", {});
+  assert.equal(corrupt.reason, "storage");
 }
 
 console.log("test-app.mjs: startup, event, persistence, scenario-boundary, spend-cap, compare, ranked-rate, two-phase render, preset, dock, share-link, reviewBy, soft-signup-ending, dated-rate-switch, month-math, assumptions, midnight, and render assertions passed");
