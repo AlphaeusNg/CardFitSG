@@ -1702,6 +1702,13 @@ function displayedFeeCents(html) {
   const corrupt = store.saveNamed({ getItem() { return "{"; },
     setItem() { throw new Error("must not write corrupt storage"); } }, "Corrupt", {});
   assert.equal(corrupt.reason, "storage");
+  for (const raw of ["{}", "null", '"wrong shape"']) {
+    let written = false;
+    const invalid = { getItem: () => raw, setItem() { written = true; } };
+    assert.equal(store.saveNamed(invalid, "Keep existing data", {}).reason, "storage");
+    assert.equal(written, false, "invalid JSON shapes cannot be overwritten by a save");
+    assert.equal(store.deleteNamed(invalid, "n1").reason, "storage");
+  }
 }
 
 console.log("test-app.mjs: startup, event, persistence, scenario-boundary, spend-cap, compare, ranked-rate, two-phase render, preset, dock, share-link, reviewBy, soft-signup-ending, dated-rate-switch, month-math, assumptions, midnight, and render assertions passed");

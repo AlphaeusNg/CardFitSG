@@ -135,7 +135,7 @@
       const raw = storage?.getItem?.(NAMED_KEY);
       if (!raw) return [];
       const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) return [];
+      if (!Array.isArray(parsed)) throw new TypeError("Saved scenarios are not a list");
       return parsed.filter(
         (item) =>
           item &&

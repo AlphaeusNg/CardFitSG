@@ -1181,3 +1181,9 @@ The soft banner itself shipped in PR #8 (32aca79); this adds frozen-date app tes
 Saving stops with a storage failure when existing named scenarios cannot be read or parsed. It no longer treats that failure as an empty collection and overwrites previous scenarios. Dated catalog facts are unchanged.
 
 Validation: App/storage regression, 285 engine assertions, catalog freshness, site and workflow gates.
+
+## 2026-10-11 — Reject invalid named-scenario storage shapes
+
+A valid JSON value that is not a scenario array is now a storage failure. Save and delete cannot replace such a value with an empty or newly created list. Newer upstream frozen-date signup-banner checks were retained; catalog facts stay unchanged.
+
+Validation: App/storage regressions, 285 engine assertions, catalog freshness, site and workflow gates.
