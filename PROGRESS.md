@@ -1172,6 +1172,10 @@ Named-scenario saves distinguish Updated from Saved and disclose the oldest scen
 
 A rejected/unavailable clipboard reveals and selects the complete plain-text scenario comparison in a readonly field, including the gift and educational caveats. A new comparison clears the fallback. App, 285 engine assertions, freshness, site and workflow gates passed. Catalog facts and ranking math stay unchanged.
 
+## 2026-10-10 — Pin soft signup-ending banner boundaries
+
+The soft banner itself shipped in PR #8 (32aca79); this adds frozen-date app tests at exactly 10 days (shown), 11 days (hidden), and on/after reviewBy with a near signup end (overdue copy wins). Catalog facts, data/cards.json and the engine are unchanged. Version 2026.10.11.2 (after merging main). Built with Codex CLI.
+
 ## 2026-10-11 — Preserve named scenarios after a failed storage read
 
 Saving stops with a storage failure when existing named scenarios cannot be read or parsed. It no longer treats that failure as an empty collection and overwrites previous scenarios. Dated catalog facts are unchanged.
