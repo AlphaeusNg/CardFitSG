@@ -167,7 +167,7 @@
       try {
         list = readNamed(storage);
       } catch {
-        list = [];
+        return { ok: false, reason: "storage" };
       }
       const existing = list.find((item) => item.name === label);
       const id = existing ? existing.id : nextId(list);
