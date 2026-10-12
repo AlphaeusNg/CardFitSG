@@ -1712,3 +1712,16 @@ function displayedFeeCents(html) {
 }
 
 console.log("test-app.mjs: startup, event, persistence, scenario-boundary, spend-cap, compare, ranked-rate, two-phase render, preset, dock, share-link, reviewBy, soft-signup-ending, dated-rate-switch, month-math, assumptions, midnight, and render assertions passed");
+
+{
+  const context = {window:{}}; vm.createContext(context); vm.runInContext(scenarioSource, context);
+  const store = context.window.CardFitScenario.create({maxSpend:1e8,clampSpend:n=>n});
+  const good = {id:'n1',name:'Keep me',record:{monthly:100}};
+  for (const bad of [[good,null], [good,{...good,name:'Other'}], [good,{id:'n2',name:' ',record:{}}], [good,{id:'n2',name:'Broken',record:[]}]] ) {
+    const raw = JSON.stringify(bad); let writes = 0;
+    const storage = {getItem:()=>raw,setItem(){writes++;}};
+    assert.equal(store.saveNamed(storage,'New',{}).reason,'storage');
+    assert.equal(store.deleteNamed(storage,'n1').reason,'storage');
+    assert.equal(writes,0,'a malformed or ambiguous row cannot silently erase valid neighbors');
+  }
+}

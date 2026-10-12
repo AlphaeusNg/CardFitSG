@@ -1187,3 +1187,9 @@ Validation: App/storage regression, 285 engine assertions, catalog freshness, si
 A valid JSON value that is not a scenario array is now a storage failure. Save and delete cannot replace such a value with an empty or newly created list. Newer upstream frozen-date signup-banner checks were retained; catalog facts stay unchanged.
 
 Validation: App/storage regressions, 285 engine assertions, catalog freshness, site and workflow gates.
+
+## 2026-10-13 — Protect named scenarios from malformed stored entries
+
+Reject malformed named rows and duplicate IDs before saving or deleting. A valid neighboring scenario can no longer be silently lost during filtering. Catalog facts stay unchanged.
+
+Validation: App/storage, 285 engine assertions, freshness, site and workflow gates passed.

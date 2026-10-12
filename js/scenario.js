@@ -136,15 +136,15 @@
       if (!raw) return [];
       const parsed = JSON.parse(raw);
       if (!Array.isArray(parsed)) throw new TypeError("Saved scenarios are not a list");
-      return parsed.filter(
-        (item) =>
-          item &&
-          typeof item.id === "string" &&
-          typeof item.name === "string" &&
-          item.record &&
-          typeof item.record === "object" &&
-          !Array.isArray(item.record)
-      );
+      const ids = new Set();
+      for (const item of parsed) {
+        if (!item || typeof item.id !== "string" || !item.id.trim() ||
+            typeof item.name !== "string" || !item.name.trim() ||
+            !item.record || typeof item.record !== "object" || Array.isArray(item.record) ||
+            ids.has(item.id)) throw new TypeError("Saved scenarios contain an invalid or duplicate entry");
+        ids.add(item.id);
+      }
+      return parsed;
     }
 
     function cleanName(name) {
