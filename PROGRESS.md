@@ -1193,3 +1193,10 @@ Validation: App/storage regressions, 285 engine assertions, catalog freshness, s
 Reject malformed named rows and duplicate IDs before saving or deleting. A valid neighboring scenario can no longer be silently lost during filtering. Catalog facts stay unchanged.
 
 Validation: App/storage, 285 engine assertions, freshness, site and workflow gates passed.
+
+
+## 2026-10-13 — Keep clipboard feedback on the current comparison
+
+Delayed clipboard success or rejection cannot restore feedback or focus a fallback after the saved comparison changes or disappears. Each copy captures its text, and only the latest request for the current comparison may update the interface.
+
+Validation: deterministic deferred-clipboard regressions cover out-of-order success/rejection and deleting a comparison while copying; the regression fails against the previous production code. App/storage, 285 engine assertions, 19 freshness assertions, live catalog deadline, site, 14 workflow assertions, and individual JavaScript syntax checks passed. Catalog facts remain unchanged. Version 2026.10.13.2.

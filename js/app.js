@@ -851,17 +851,22 @@
   }
 
   let assumptionComparisonText = "";
+  let assumptionCopyRevision = 0;
 
   async function copyAssumptionComparison() {
     if (!assumptionComparisonText) return;
+    const revision = ++assumptionCopyRevision;
+    const text = assumptionComparisonText;
     const status = $("#assumption-copy-status");
     try {
-      await navigator.clipboard.writeText(assumptionComparisonText);
+      await navigator.clipboard.writeText(text);
+      if (revision !== assumptionCopyRevision) return;
       if (status) status.textContent = "Comparison copied.";
     } catch {
+      if (revision !== assumptionCopyRevision) return;
       const fallback = $("#assumption-copy-fallback");
       if (fallback) {
-        fallback.value = assumptionComparisonText;
+        fallback.value = text;
         fallback.hidden = false;
         fallback.focus();
         fallback.select();
@@ -873,6 +878,7 @@
   function renderAssumptionComparison() {
     const out = $("#assumption-out");
     if (!out || !db) return;
+    assumptionCopyRevision++;
     assumptionComparisonText = "";
     const fallback = $("#assumption-copy-fallback");
     if (fallback) { fallback.hidden = true; fallback.value = ""; }

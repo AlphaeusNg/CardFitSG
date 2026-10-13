@@ -1725,3 +1725,40 @@ console.log("test-app.mjs: startup, event, persistence, scenario-boundary, spend
     assert.equal(writes,0,'a malformed or ambiguous row cannot silently erase valid neighbors');
   }
 }
+
+
+// Clipboard completion must belong to the current comparison and latest request.
+for (const outcome of ["resolve", "reject"]) {
+  const result = await boot({ ok: true, status: 200, async json() { return catalog; } });
+  const app = result.sandbox.window.CardFitApp;
+  app.saveNamedScenario("First");
+  result.elements.monthly.value = "2000";
+  app.saveNamedScenario("Second");
+  const saved = app.namedScenarios();
+  result.elements["assumption-a"].value = saved[0].id;
+  result.elements["assumption-b"].value = saved[1].id;
+  app.renderAssumptionComparison();
+  const pending = [];
+  result.sandbox.navigator = { clipboard: { writeText(text) {
+    return new Promise((resolve, reject) => pending.push({ text, resolve, reject }));
+  } } };
+  result.elements["copy-assumptions"].dispatch("click");
+  result.elements["copy-assumptions"].dispatch("click");
+  pending[1].resolve();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(result.elements["assumption-copy-status"].textContent, "Comparison copied.");
+  pending[0][outcome](new Error("late clipboard result"));
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(result.elements["assumption-copy-status"].textContent, "Comparison copied.", "earlier copy cannot replace latest feedback");
+  assert.equal(result.elements["assumption-copy-fallback"].hidden, true);
+
+  result.elements["copy-assumptions"].dispatch("click");
+  app.deleteNamedScenario(saved[0].id);
+  assert.equal(result.elements["copy-assumptions"].disabled, true);
+  pending[2][outcome](new Error("late clipboard result"));
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(result.elements["assumption-copy-status"].textContent, "", "removed comparison stays clear after pending copy settles");
+  assert.equal(result.elements["assumption-copy-fallback"].hidden, true);
+  assert.equal(result.elements["assumption-copy-fallback"].value, "");
+  assert.notEqual(result.elements["assumption-copy-fallback"].focused, true, "obsolete failure does not steal focus");
+}
