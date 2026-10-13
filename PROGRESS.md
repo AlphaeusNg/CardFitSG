@@ -1220,3 +1220,16 @@ method/review-deadline labels and catalog facts are unchanged.
 Validation: app/storage, 285 engine assertions, 19 freshness assertions, current
 review deadline, site, category planner, 14 workflow assertions, runtime JS syntax
 and desktop/320px Chromium date/overflow checks passed. Version 2026.10.14.2.
+
+## 2026-10-14 — Compact top-fit actions
+
+Official product page, Offer terms, Copy result and Copy link now use a scoped
+wrapping flex row with smaller text/padding and 36px minimum height. Removed
+inline/full-width mixing that made links overlap and copy buttons fill the card.
+Other calculator buttons retain their sizing.
+
+Validation: app/storage, 285 engine, 19 freshness, live deadline, site, category
+planner and14 workflow gates passed, plus runtime syntax and diff checks. Chromium
+at320/375/768/1280px verified all four controls have no overlap, clipping or page
+overflow and both clipboard actions work.320px screenshot inspected.
+Version2026.10.14.3; catalog facts and dates unchanged.
