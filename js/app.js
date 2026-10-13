@@ -54,6 +54,11 @@
     const today = marketTodayYmd();
     const asofEl = $("#asof-label");
     if (asofEl) asofEl.textContent = asOf;
+    const lastChecked = $("#last-checked-label");
+    if (lastChecked) {
+      lastChecked.textContent = asOf;
+      lastChecked.setAttribute("datetime", asOf);
+    }
 
     const reviewLine = $("#review-by-line");
     const reviewLabel = $("#review-by-label");
