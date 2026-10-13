@@ -17,6 +17,10 @@ SG card content is mostly miles maximisers. Many people want cashback, no monthl
 3. Mark cards you already hold, and whether Amex is accepted where you shop.
 4. Read the ranked estimates and the next-step plan. Open the official issuer terms beside the top picks before you apply.
 
+For category spending, open **Plan OCBC 365 category cashback** below the comparisons and enable the optional estimate. Enter the posting month, eligible total and category amounts. See the minimum, cap and cashback breakdown separately from the generic rank. Advertising arithmetic stays separate; the planner is not saved or shared.
+
+Research and next priorities: [Feature roadmap](docs/FEATURE_ROADMAP.md).
+
 Last scenario restores locally. Copyable URLs restore spend, flags, held cards, and recent issuers. No account, no server.
 
 Working in this repo? See **[AGENTS.md](AGENTS.md)** for the scoring engine, catalog update rules, and tests.

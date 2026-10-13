@@ -34,6 +34,8 @@ jobs:
         run: node tools/catalog-freshness.mjs
       - name: Static site integrity
         run: node tools/test-site.mjs
+      - name: Category planner
+        run: node tools/test-category-planner.mjs
       - name: App startup and rendering
         run: node tools/test-app.mjs
       - name: JavaScript syntax

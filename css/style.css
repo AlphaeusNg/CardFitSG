@@ -286,6 +286,7 @@ label.field > span {
 }
 
 input[type="number"],
+input[type="month"],
 select {
   width: 100%;
   font: inherit;
@@ -668,3 +669,9 @@ select:focus {
     width: min(100% - 1.25rem, 1100px);
   }
 }
+
+.category-fields .field { min-width: 0; }
+#category-planner input { min-width: 0; width: 100%; }
+#category-planner input[type="checkbox"] { width: auto; }
+
+.layout > * { min-width: 0; }

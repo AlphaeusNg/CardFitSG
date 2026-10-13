@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600&display=swap" rel="stylesheet" />
-  <link id="catalog-preload" rel="preload" href="data/cards.json?v=2026.10.13.2" as="fetch" crossorigin />
+  <link id="catalog-preload" rel="preload" href="data/cards.json?v=2026.10.14.1" as="fetch" crossorigin />
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
@@ -172,6 +172,32 @@
           <textarea id="assumption-copy-fallback" rows="5" readonly hidden aria-label="Spending comparison to copy"></textarea>
         </section>
 
+        <section id="category-planner" class="panel" style="margin-top:1rem" aria-label="OCBC 365 category planner">
+          <details>
+            <summary>Plan OCBC 365 category cashback</summary>
+            <p class="muted tiny">Optional monthly estimate, outside the generic ranking. Use eligible transactions posted in the same calendar month. Do not include excluded payments or count a purchase twice.</p>
+            <label class="check"><input type="checkbox" id="category-enable" /> <span>Enable monthly category estimate</span></label>
+            <div id="category-controls" hidden>
+              <div class="compare-row">
+                <label class="field"><span>Posting month</span><input type="month" id="category-month" min="2026-10" max="2099-12" /></label>
+                <label class="field"><span>Total eligible monthly spend (SGD)</span><input type="number" id="category-total" min="0" max="100000000" step="0.01" inputmode="decimal" /></label>
+              </div>
+              <p class="muted tiny">Category amounts are parts of this total. The remainder earns base cashback. Dining excludes hotel banquets and, before November, ordinary fast-food purchases. Check merchant codes in the terms. Watsons marketplace purchases do not qualify for the Watsons category. Recurring SG telco / electricity means eligible automatic monthly card charges.</p>
+              <div id="category-fields" class="compare-row category-fields"></div>
+              <details>
+                <summary>Separate advertising estimate</summary>
+                <p class="muted tiny">Eligible issuer-listed advertising platforms only. No minimum or cap for this estimate. These amounts stay outside the monthly total, lifestyle estimate and ranking; they do not help meet this planner’s minimum. Mobile-wallet payments do not qualify. Enter only an instalment posted this month.</p>
+                <div class="compare-row">
+                  <label class="field"><span>Eligible full-payment advertising (SGD)</span><input type="number" id="category-ad-full" min="0" max="100000000" step="0.01" inputmode="decimal" /></label>
+                  <label class="field"><span>Eligible posted advertising instalment (SGD)</span><input type="number" id="category-ad-instalment" min="0" max="100000000" step="0.01" inputmode="decimal" /></label>
+                </div>
+              </details>
+              <div id="category-out" aria-live="polite"></div>
+              <p class="muted tiny">Estimate only: excludes annual fees, signup rewards, gifts, FX fees, interest and fuel discounts. Refunds, exclusions and posting delays can change eligibility. Planner inputs are not saved or included in share links. Future months use published scheduled terms.</p>
+            </div>
+          </details>
+        </section>
+
         <section style="margin-top:1rem" aria-label="Full ranking">
           <p class="eyebrow">Full ranking</p>
           <div id="ranked" class="rank-list"></div>
@@ -225,6 +251,7 @@
   <script src="js/version.js"></script>
   <script src="js/engine.js"></script>
   <script src="js/scenario.js"></script>
+  <script src="js/category-planner.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

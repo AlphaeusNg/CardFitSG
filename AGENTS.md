@@ -50,6 +50,7 @@ node tools/test-catalog-freshness.mjs
 node tools/catalog-freshness.mjs
 node tools/test-site.mjs
 node tools/test-app.mjs
+node tools/test-category-planner.mjs
 node --check js/*.js
 ```
 

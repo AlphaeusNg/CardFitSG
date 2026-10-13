@@ -155,6 +155,7 @@
     populateCompareSelects();
     bind();
     restoreScenario();
+    bindCategoryPlanner();
     run();
     armMarketDateWatch();
     if (typeof SITE_VERSION !== "undefined") {
@@ -565,6 +566,48 @@
         <div class="metric"><b>${escapeHtml(a.name)}</b><span>${escapeHtml(publishedRateSummary(a))} · fuss ${a.fussFreeScore}${ra ? ` · est. S$${fmt(ra.net)}` : ""}</span>${linkA ? `<a href="${escapeAttr(linkA)}" target="_blank" rel="noopener">Official page</a>` : ""}</div>
         <div class="metric"><b>${escapeHtml(b.name)}</b><span>${escapeHtml(publishedRateSummary(b))} · fuss ${b.fussFreeScore}${rb ? ` · est. S$${fmt(rb.net)}` : ""}</span>${linkB ? `<a href="${escapeAttr(linkB)}" target="_blank" rel="noopener">Official page</a>` : ""}</div>
       </div>`;
+  }
+
+  function bindCategoryPlanner() {
+    const root = $("#category-planner");
+    if (!root) return;
+    $("#category-month").value = (marketTodayYmd() || db.meta.asOf).slice(0, 7);
+    $("#category-total").value = $("#monthly").value;
+    $("#category-fields").innerHTML = CardFitCategoryPlanner.fields.map(([key, label]) =>
+      `<label class="field"><span>${escapeHtml(label)} (SGD)</span><input type="number" id="category-${key}" min="0" max="100000000" step="0.01" inputmode="decimal" /></label>`
+    ).join("");
+    root.addEventListener("input", renderCategoryPlanner);
+    root.addEventListener("change", renderCategoryPlanner);
+  }
+
+  function renderCategoryPlanner() {
+    const controls = $("#category-controls");
+    if (!controls) return;
+    const enabled = $("#category-enable").checked;
+    controls.hidden = !enabled;
+    const out = $("#category-out");
+    out.innerHTML = "";
+    if (!enabled) return;
+    const money = (cents) => `S$${(cents / 100).toFixed(2)}`;
+    try {
+      const estimate = CardFitCategoryPlanner.calculate(db.cards.find((card) => card.id === "ocbc-365"), {
+        month: $("#category-month").value, total: $("#category-total").value,
+        categories: Object.fromEntries(CardFitCategoryPlanner.fields.map(([key]) => [key, $("#category-" + key).value])),
+        advertisingFull: $("#category-ad-full").value, advertisingInstalment: $("#category-ad-instalment").value,
+      }, CardFitEngine);
+      const rows = estimate.rows.filter((row) => row.spend > 0).map((row) =>
+        `<tr><th scope="row">${escapeHtml(row.label)}</th><td>${money(row.spend)}</td><td>${(row.rate * 100).toFixed(2)}%</td><td>${money(row.cashBeforeCap)}</td></tr>`
+      ).join("");
+      out.innerHTML = `<p><strong data-category-cashback="${estimate.cashback}">${money(estimate.cashback)} estimated monthly cashback</strong> · ${escapeHtml(estimate.month)} posted spend</p>
+        <p>${estimate.qualifies ? `Minimum met. Applicable ${estimate.revised ? "category" : "monthly"} cap: ${money(estimate.cap)}.` : `Below minimum by ${money(estimate.shortfall)}. All lifestyle spend earns base cashback.`}</p>
+        ${rows ? `<div class="month-scroll"><table class="month-table"><caption>Category arithmetic before any cap reduction</caption><thead><tr><th scope="col">Category</th><th scope="col">Spend</th><th scope="col">Rate</th><th scope="col">Cash</th></tr></thead><tbody>${rows}</tbody></table></div>` : ""}
+        <p>Spend earning base: ${money(estimate.baseSpend)} → ${money(estimate.baseCash)}. Category cashback before cap: ${money(estimate.categoryCash)}. Cap reduction: ${money(estimate.capReduction)}.</p>
+        <p data-advertising-cashback="${estimate.advertisingCash}">Separate advertising arithmetic: ${money(estimate.advertisingCash)} (1% full payment; 0.5% posted instalments). Outside the lifestyle total and ranked net.</p>
+        ${!estimate.revised ? `<p class="muted tiny">October estimate uses monthly totals. OCBC computes each transaction to two decimals without rounding; individual transaction amounts can make actual cashback lower than this estimate.</p>` : ""}
+        <p><a href="${escapeAttr(estimate.termsUrl)}" target="_blank" rel="noopener">Verify eligibility in OCBC’s posting-month terms</a></p>`;
+    } catch (error) {
+      out.innerHTML = `<p role="alert">${escapeHtml(error.message)}</p>`;
+    }
   }
 
   function cancelRankedPaint() {

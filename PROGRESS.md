@@ -1200,3 +1200,12 @@ Validation: App/storage, 285 engine assertions, freshness, site and workflow gat
 Delayed clipboard success or rejection cannot restore feedback or focus a fallback after the saved comparison changes or disappears. Each copy captures its text, and only the latest request for the current comparison may update the interface.
 
 Validation: deterministic deferred-clipboard regressions cover out-of-order success/rejection and deleting a comparison while copying; the regression fails against the previous production code. App/storage, 285 engine assertions, 19 freshness assertions, live catalog deadline, site, 14 workflow assertions, and individual JavaScript syntax checks passed. Catalog facts remain unchanged. Version 2026.10.13.2.
+
+
+## 2026-10-14 — Add an optional monthly OCBC 365 category planner
+
+Researched official current and November terms and documented CARD-07 scope and next priorities in `docs/FEATURE_ROADMAP.md` before implementation. A folded opt-in planner estimates eligible posted monthly category spending, remaining base spend, minimum progress, applicable cap and cap reduction. It reuses the catalog's dated November and April schedules. Separate advertising arithmetic stays outside lifestyle totals and rankings. Invalid allocations/amounts replace prior estimates with an error. The generic ranking, active share URL and saved scenario remain unchanged. Catalog facts and dates stay unchanged.
+
+October's per-transaction precision cannot be reproduced from monthly totals, so the interface states actual cashback may be lower; other exclusions and model boundaries are visible. Narrow-screen grid children now permit contained tables to scroll without widening the page.
+
+Validation: 285 engine assertions, 19 freshness assertions, live catalog deadline, 14 workflow assertions, app/storage and site gates, the new category arithmetic gate and individual JS syntax passed. Real Chromium journeys at 1280px and 320px passed opt-in, month switching, allocation rejection, separate advertising arithmetic, unchanged ranking/URL/storage and no horizontal overflow. Version 2026.10.14.1.

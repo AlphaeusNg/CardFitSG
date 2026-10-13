@@ -72,7 +72,7 @@ assert.match(
   /<a href="#disclaimer-block">Disclaimer<\/a>/,
   "Disclaimer remains reachable from the footer"
 );
-const runtimeScripts = ["js/version.js", "js/engine.js", "js/scenario.js", "js/app.js"];
+const runtimeScripts = ["js/version.js", "js/engine.js", "js/scenario.js", "js/category-planner.js", "js/app.js"];
 let previousScriptIndex = -1;
 for (const script of runtimeScripts) {
   const scriptIndex = index.indexOf(`src="${script}"`);
