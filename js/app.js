@@ -710,7 +710,7 @@
         <p class="eyebrow">Enter a spend scenario</p>
         <h2 class="card-title">Add a one-off or monthly amount</h2>
         <p class="issuer">Estimates need at least some card spend to rank cash value.</p>
-        <p class="muted">Tip: try a large booking (e.g. S$3,500) plus typical monthly burn. Fuss-free mode still ranks simple flat cards when spend is blank, but numbers will be S$0.</p>
+        <p class="muted">Try a large booking (S$3,500) plus typical monthly spend. Fuss-free mode still ranks simple flat cards with no spend. Numbers are S$0.</p>
       `;
     } else {
       const c = p.card;
@@ -719,7 +719,7 @@
       const banners = [];
       if (result.noNewCard) {
         banners.push(
-          `<div class="warn"><p>You marked every catalog card as already held — showing the best <em>keep / use</em> fit instead of a new acquisition.</p></div>`
+          `<div class="warn"><p>You marked every catalog card as already held. Showing the best <em>keep / use</em> fit.</p></div>`
         );
       }
       primary.innerHTML = `
@@ -749,7 +749,7 @@
     // Primary, plan, and dock paint this turn; ranked list waits one frame.
     updateTopFitDock(result);
     $("#plan").innerHTML = result.zeroSpend
-      ? `<p class="muted">Enter one-off and/or monthly spend, then recalculate for a concrete action plan.</p>`
+      ? `<p class="muted">Enter one-off and/or monthly spend. Then recalculate fit.</p>`
       : buildPlan(p, result.scenario, result);
 
     // Keep any prior ranked HTML visible until the next frame paints the new list
@@ -1051,13 +1051,13 @@
     const c = p.card;
     const steps = [];
     if (result?.noNewCard) {
-      steps.push("No unheld cards left in this catalog — use the ranking to decide which existing card to prioritise for this spend.");
+      steps.push("Use the ranking to decide which held card to prioritise for this spend.");
     }
     if (p.alreadyHold) {
       steps.push(`Keep using <strong>${escapeHtml(c.name)}</strong> for this spend profile.`);
-      steps.push("Before a large booking, confirm MCC / airline exclusions do not zero your cashback.");
+      steps.push("Confirm MCC / airline exclusions do not zero your cashback before a large booking.");
       if (scenario.oneOff >= 500) {
-        steps.push("For a large ticket: pay in merchant currency; avoid dynamic currency conversion.");
+        steps.push("Pay in merchant currency. Decline dynamic currency conversion.");
       }
       steps.push("Re-run this tool if your monthly mix becomes category-heavy (dining/petrol).");
     } else {

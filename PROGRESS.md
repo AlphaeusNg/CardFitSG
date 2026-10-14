@@ -1265,3 +1265,9 @@ Version 2026.10.14.5; catalog facts and ranking logic unchanged.
 Follow-up: visual review replaced the fixed rank-number column with intrinsic
 width to improve readability at enlarged text. The eight-configuration reflow
 matrix remains contained. Version 2026.10.14.6.
+
+## 2026-10-15 — Say the spend steps in fewer words
+
+Empty-spend, held-card, and booking lines keep the S$3,500 example, the S$0 fuss-free result, MCC and airline exclusions, merchant currency, and the dynamic-currency warning. Signup lookback stays 6–12 months. Catalog facts and dates are unchanged. Version 2026.10.15.1.
+
+Validation: site and app node gates passed. The catalog engine suite was not rerun.
