@@ -19,7 +19,8 @@ At 320/375px with doubled text, initial document width was 534px. Named actions,
 minimum-content grid tracks and native month-input sizing contributed. After
 fixes, document width equals viewport width in all eight configurations. Saved
 scenario names and actions wrap, fields can shrink, and long currency/word
-content stays within its card. Scenario-name input now matches the other form
+content stays within its card. Rank numbers use their intrinsic width so
+large text retains more reading space. Scenario-name input now matches the other form
 fields instead of the native 21px-high unstyled input.
 
 Checkbox labels are at least 28px high; month/rank disclosures and footer

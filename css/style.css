@@ -440,7 +440,7 @@ select:focus {
 }
 .rank-card {
   display: grid;
-  grid-template-columns: 2.2rem minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr);
   gap: 0.65rem;
   background: var(--panel);
   border: 1px solid var(--line);

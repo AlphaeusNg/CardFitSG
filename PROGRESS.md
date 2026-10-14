@@ -1261,3 +1261,7 @@ page width under enlarged text is now contained at the viewport width.
 Audit scope, evidence, intentional scrolling and limits: docs/UI_SIZING_AUDIT.md.
 All required Node/syntax gates and eight rendered configurations passed.
 Version 2026.10.14.5; catalog facts and ranking logic unchanged.
+
+Follow-up: visual review replaced the fixed rank-number column with intrinsic
+width to improve readability at enlarged text. The eight-configuration reflow
+matrix remains contained. Version 2026.10.14.6.
