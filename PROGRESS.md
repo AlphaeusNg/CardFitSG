@@ -1248,3 +1248,16 @@ workflow gates passed. Chromium verified no overlap, clipped text or horizontal
 overflow across four widths, working copy actions, and bypass of simulated stale
 unversioned assets. Final 320px screenshot inspected. Version 2026.10.14.4.
 Catalog facts and dates remain unchanged.
+
+## 2026-10-14 — Expanded UI sizing audit
+
+Audited 320/375/768/1280px at default and 200% root text size across scenario,
+saved actions, comparisons, top fit, disclosures, planner and footer. Fixed
+minimum-content grid overflow, long saved-name/action wrapping, native text-field
+styling, and enlarged monetary/text wrapping. Raised compact checkbox labels and
+disclosure/footer targets while preserving 32px result actions. Initial 534px
+page width under enlarged text is now contained at the viewport width.
+
+Audit scope, evidence, intentional scrolling and limits: docs/UI_SIZING_AUDIT.md.
+All required Node/syntax gates and eight rendered configurations passed.
+Version 2026.10.14.5; catalog facts and ranking logic unchanged.
