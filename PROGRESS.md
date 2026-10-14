@@ -1233,3 +1233,18 @@ planner and14 workflow gates passed, plus runtime syntax and diff checks. Chromi
 at320/375/768/1280px verified all four controls have no overlap, clipping or page
 overflow and both clipboard actions work.320px screenshot inspected.
 Version2026.10.14.3; catalog facts and dates unchanged.
+
+## 2026-10-14 — Smaller actions and refreshed browser assets
+
+Reduced the four top-fit controls to 32px minimum height with 12px type and
+tighter horizontal padding/gaps. Full labels now fit in two rows at 320px and
+375px, and one row at 768px and 1280px. Existing copy actions still work.
+Versioned the stylesheet and all local runtime script URLs together so returning
+browsers request the matching compact styles and action markup. Site integrity
+now checks deployment versions on those assets.
+
+Validation: all existing app, 285 engine, freshness, deadline, site, planner and
+workflow gates passed. Chromium verified no overlap, clipped text or horizontal
+overflow across four widths, working copy actions, and bypass of simulated stale
+unversioned assets. Final 320px screenshot inspected. Version 2026.10.14.4.
+Catalog facts and dates remain unchanged.

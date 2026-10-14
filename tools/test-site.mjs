@@ -73,9 +73,10 @@ assert.match(
   "Disclaimer remains reachable from the footer"
 );
 const runtimeScripts = ["js/version.js", "js/engine.js", "js/scenario.js", "js/category-planner.js", "js/app.js"];
+const loadedScripts = [...index.matchAll(/<script\b[^>]*\bsrc="([^"]+)"/g)].map((match) => match[1]);
 let previousScriptIndex = -1;
 for (const script of runtimeScripts) {
-  const scriptIndex = index.indexOf(`src="${script}"`);
+  const scriptIndex = loadedScripts.findIndex((src) => src.split(/[?#]/, 1)[0] === script);
   assert(scriptIndex >= 0, `index.html must load ${script}`);
   assert(scriptIndex > previousScriptIndex, `${script} loads out of order`);
   previousScriptIndex = scriptIndex;
@@ -92,6 +93,12 @@ assert.match(preloadTag, /\bas=["']fetch["']/i, "catalog preload has fetch seman
 const versionSource = readFileSync(resolve(root, "js/version.js"), "utf8");
 const siteVersion = /\bid:\s*["']([^"']+)["']/.exec(versionSource)?.[1];
 assert(siteVersion, "version.js must declare a site version");
+const stylesheet = /<link\b[^>]*href="(css\/style\.css[^"]*)"/.exec(index)?.[1];
+assert(stylesheet, "the local stylesheet is loaded");
+for (const asset of [stylesheet, ...loadedScripts.filter((src) => src.startsWith("js/"))]) {
+  assert.equal(new URL(asset, "https://example.test/").searchParams.get("v"), siteVersion,
+    `${asset} refreshes cached assets for this deployment`);
+}
 assert.equal(
   new URL(catalogPath, "https://example.test/").searchParams.get("v"),
   siteVersion,
