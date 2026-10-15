@@ -1,6 +1,10 @@
 # CardFitSG continuous improvement log
 
-Last updated: 2026-10-06
+Last updated: 2026-10-15
+
+## 2026-10-15 — First-screen declutter
+
+Presets, spend, horizon, goal, and Recalculate fit stay on the first screen. Cards already held, preferences, saved scenarios, compare tools, and the scoring write-up open from secondary toggles. The top fit still shows the card, issuer, four figures, signup timing, and the official product page; reasons, notes, and the extra actions open on demand and start collapsed again after each result render. Ranking, catalog data, the catalog review banner, and the soft signup banner are unchanged. Version 2026.10.15.2.
 
 ## Latest cycle: remove a saved named scenario (6 October 2026)
 

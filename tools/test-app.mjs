@@ -142,12 +142,24 @@ function makeDocument(existingCardIds = [], recentIssuers = []) {
   elements.presets = presetButtons;
   elements.existingBoxes = existingBoxes;
   elements.recentIssuerBoxes = recentIssuerBoxes;
+  const listeners = new Map();
 
   return {
     elements,
     document: {
       readyState: "complete",
-      addEventListener() {},
+      addEventListener(type, listener) {
+        const registered = listeners.get(type) || [];
+        registered.push(listener);
+        listeners.set(type, registered);
+      },
+      dispatch(type, event = {}) {
+        const dispatched = { preventDefault() {}, ...event };
+        for (const listener of listeners.get(type) || []) listener(dispatched);
+      },
+      getElementById(id) {
+        return elements[id] || null;
+      },
       querySelector(selector) {
         if (selector === ".topbar") return topbar;
         const id = /^#([\w-]+)$/.exec(selector)?.[1];
@@ -1762,3 +1774,135 @@ for (const outcome of ["resolve", "reject"]) {
   assert.equal(result.elements["assumption-copy-fallback"].value, "");
   assert.notEqual(result.elements["assumption-copy-fallback"].focused, true, "obsolete failure does not steal focus");
 }
+
+const disclosureSpecs = [
+  { id: "more-options-toggle", region: "more-options", label: "More options (cards held, preferences)" },
+  { id: "saved-scenarios-toggle", region: "saved-scenarios-panel", label: "Saved scenarios" },
+  { id: "primary-details-toggle", region: "primary-details", label: "Why this card" },
+  { id: "primary-more-toggle", region: "primary-more", label: "More" },
+  { id: "compare-tools-toggle", region: "compare-tools", label: "Compare cards and scenarios" },
+  { id: "method-details-toggle", region: "method-details", label: "How scoring works: details" },
+];
+
+function visibleLabel(html) {
+  return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function extractButton(html, id) {
+  const match = new RegExp(`<button\\b[^>]*\\bid=["']${id}["'][^>]*>[\\s\\S]*?<\\/button>`).exec(html);
+  assert(match, `${id} exists`);
+  return match[0];
+}
+
+function assertCollapsedToggle(html, spec) {
+  const button = extractButton(html, spec.id);
+  const open = /^<button\b[^>]*>/.exec(button)?.[0] || "";
+  assert.match(open, /\btype=["']button["']/, `${spec.id} is a button`);
+  assert.match(open, /\bclass=["'][^"']*\bdisclosure-toggle\b/, `${spec.id} uses the disclosure class`);
+  assert.match(open, /\baria-expanded=["']false["']/, `${spec.id} starts collapsed`);
+  assert.match(open, new RegExp(`\\baria-controls=["']${spec.region}["']`), `${spec.id} controls ${spec.region}`);
+  assert.doesNotMatch(open, /\baria-label=/, `${spec.id} label is visible text`);
+  assert.equal(visibleLabel(button), spec.label, `${spec.id} shows ${spec.label}`);
+  const regionTag = new RegExp(`<(?:div|section)\\b[^>]*\\bid=["']${spec.region}["'][^>]*>`).exec(html);
+  assert(regionTag, `${spec.region} exists`);
+  assert.match(regionTag[0], /\bhidden\b/, `${spec.region} is hidden`);
+  assert.doesNotMatch(regionTag[0], /\bhidden=["']false["']/, `${spec.region} is not explicitly shown`);
+}
+
+function extractById(html, id) {
+  const open = new RegExp(`<(div|section)\\b[^>]*\\bid=["']${id}["'][^>]*>`, "i").exec(html);
+  assert(open, `${id} region markup exists`);
+  const tag = open[1].toLowerCase();
+  const rest = html.slice(open.index + open[0].length);
+  const token = new RegExp(`<(/?)${tag}\\b[^>]*>`, "gi");
+  let depth = 1;
+  let match;
+  while ((match = token.exec(rest))) {
+    depth += match[1] ? -1 : 1;
+    if (depth === 0) return html.slice(open.index, open.index + open[0].length + match.index + match[0].length);
+  }
+  assert.fail(`${id} region is not closed`);
+}
+
+function clickDisclosure(doc, elements, spec) {
+  const attrs = {
+    type: "button",
+    class: "disclosure-toggle",
+    id: spec.id,
+    "aria-expanded": "false",
+    "aria-controls": spec.region,
+  };
+  const button = makeElement({
+    id: spec.id,
+    textContent: spec.label,
+    getAttribute(name) {
+      return Object.prototype.hasOwnProperty.call(attrs, name) ? attrs[name] : null;
+    },
+    setAttribute(name, value) {
+      attrs[name] = String(value);
+    },
+    closest(selector) {
+      return selector === ".disclosure-toggle" ? this : null;
+    },
+  });
+  button.classList.add("disclosure-toggle");
+  const region = makeElement({ id: spec.region, hidden: true });
+  elements[spec.id] = button;
+  elements[spec.region] = region;
+  const label = { closest: (selector) => button.closest(selector) };
+  doc.dispatch("click", { target: label });
+  assert.equal(button.getAttribute("aria-expanded"), "true", `${spec.id} click sets aria-expanded true`);
+  assert.equal(region.hidden, false, `${spec.region} click unhides the region`);
+  return { button, region };
+}
+
+{
+  const indexHtml = readFileSync(resolve(root, "index.html"), "utf8");
+  const result = await boot({
+    ok: true,
+    status: 200,
+    async json() {
+      return JSON.parse(JSON.stringify(catalog));
+    },
+  });
+  const primaryHtml = result.elements.primary.innerHTML;
+  const sources = {
+    "more-options-toggle": indexHtml,
+    "saved-scenarios-toggle": indexHtml,
+    "compare-tools-toggle": indexHtml,
+    "method-details-toggle": indexHtml,
+    "primary-details-toggle": primaryHtml,
+    "primary-more-toggle": primaryHtml,
+  };
+  for (const spec of disclosureSpecs) {
+    assertCollapsedToggle(sources[spec.id], spec);
+    clickDisclosure(result.sandbox.document, result.elements, spec);
+  }
+
+  const details = extractById(primaryHtml, "primary-details");
+  const more = extractById(primaryHtml, "primary-more");
+  const outside = primaryHtml.replace(details, "").replace(more, "");
+  assert.match(details, /<ul class="reasons">/, "why-this-card holds the reason list");
+  assert.match(details, /Estimate only/, "why-this-card holds the fine print");
+  assert.match(more, /id="copy-result"/, "More holds Copy result");
+  assert.match(more, /id="copy-link"/, "More holds Copy link");
+  assert.match(more, /Offer terms/, "More holds Offer terms");
+  assert.match(outside, /Official product page/, "the official product page stays outside More");
+  assert.match(outside, /class="card-title"/, "the card name stays outside the details");
+  assert.match(outside, /class="metrics"/, "the four stat tiles stay outside the details");
+  assert.doesNotMatch(outside, /id="copy-result"/, "Copy result is not left on the summary");
+  if (/Signup ends/.test(primaryHtml)) {
+    assert.match(outside, /Signup ends/, "the signup-ends line stays on the summary");
+    assert.doesNotMatch(details, /Signup ends/, "the signup-ends line is not inside Why this card");
+  }
+
+  result.elements.monthly.value = "1500";
+  result.sandbox.window.CardFitApp.run();
+  const rerendered = result.elements.primary.innerHTML;
+  assertCollapsedToggle(rerendered, disclosureSpecs[2]);
+  assertCollapsedToggle(rerendered, disclosureSpecs[3]);
+  clickDisclosure(result.sandbox.document, result.elements, disclosureSpecs[2]);
+  clickDisclosure(result.sandbox.document, result.elements, disclosureSpecs[3]);
+}
+
+console.log("test-app.mjs: disclosure toggles collapse by default and open on click");

@@ -734,7 +734,9 @@
         <div class="metric"><b>${c.fussFreeScore}</b><span>Fuss-free score / 100</span></div>
       </div>
       ${expiry ? `<p class="muted tiny">${escapeHtml(expiry)}</p>` : ""}
-      <div class="result-actions">${officialUrl(c) ? `<a class="btn" href="${escapeAttr(officialUrl(c))}" target="_blank" rel="noopener">Official product page</a>` : ""}${termsUrl ? `<a class="btn" href="${escapeAttr(termsUrl)}" target="_blank" rel="noopener">Offer terms</a>` : ""}<button type="button" class="btn" id="copy-result">Copy result</button><button type="button" class="btn" id="copy-link">Copy link</button></div>
+      ${officialUrl(c) ? `<div class="result-actions"><a class="btn" href="${escapeAttr(officialUrl(c))}" target="_blank" rel="noopener">Official product page</a></div>` : ""}
+      <button type="button" class="disclosure-toggle" id="primary-details-toggle" aria-expanded="false" aria-controls="primary-details"><span>Why this card</span></button>
+      <div id="primary-details" hidden>
       <ul class="reasons">
         ${p.rankReasons.map((r) => `<li>${escapeHtml(r)}</li>`).join("")}
         ${c.pros.slice(0, 3).map((r) => `<li>${escapeHtml(r)}</li>`).join("")}
@@ -743,6 +745,9 @@
       ${p.notes.length ? `<div class="notes">${p.notes.map((n) => `<p>${escapeHtml(n)}</p>`).join("")}</div>` : ""}
       ${renderBreakdown(p, result)}
       <p class="muted tiny">Estimate only — excludes overseas FX markups, non-qualifying MCC codes, and promo clawbacks. Rates as of ${escapeHtml(db.meta.asOf)}.</p>
+      </div>
+      <button type="button" class="disclosure-toggle" id="primary-more-toggle" aria-expanded="false" aria-controls="primary-more"><span>More</span></button>
+      <div id="primary-more" hidden><div class="result-actions">${termsUrl ? `<a class="btn" href="${escapeAttr(termsUrl)}" target="_blank" rel="noopener">Offer terms</a>` : ""}<button type="button" class="btn" id="copy-result">Copy result</button><button type="button" class="btn" id="copy-link">Copy link</button></div></div>
     `;
     }
 
@@ -1132,6 +1137,21 @@
     renderAssumptionComparison,
     refreshIfMarketDateChanged,
   };
+
+  function bindDisclosureToggles() {
+    document.addEventListener("click", (event) => {
+      const target = event.target;
+      const button = target && typeof target.closest === "function" ? target.closest(".disclosure-toggle") : null;
+      if (!button || typeof button.getAttribute !== "function" || typeof document.getElementById !== "function") return;
+      const region = document.getElementById(button.getAttribute("aria-controls") || "");
+      if (!region) return;
+      const expanded = button.getAttribute("aria-expanded") === "true";
+      button.setAttribute("aria-expanded", expanded ? "false" : "true");
+      region.hidden = expanded;
+    });
+  }
+
+  bindDisclosureToggles();
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init);
