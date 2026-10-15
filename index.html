@@ -18,8 +18,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600&display=swap" rel="stylesheet" />
-  <link id="catalog-preload" rel="preload" href="data/cards.json?v=2026.10.15.1" as="fetch" crossorigin />
-  <link rel="stylesheet" href="css/style.css?v=2026.10.15.1" />
+  <link id="catalog-preload" rel="preload" href="data/cards.json?v=2026.10.15.5" as="fetch" crossorigin />
+  <link rel="stylesheet" href="css/style.css?v=2026.10.15.5" />
 </head>
 <body>
   <a class="skip" href="#main">Skip to calculator</a>
@@ -88,44 +88,52 @@
           </select>
         </label>
 
-        <p class="eyebrow" style="margin-top:0.5rem">Cards you already hold</p>
-        <div class="checks" id="existing-cards"></div>
+        <div class="icon-toolbar" role="toolbar" aria-label="Scenario options">
+          <button type="button" class="icon-btn disclosure-toggle" id="more-options-toggle" aria-expanded="false" aria-controls="more-options" aria-label="Cards held and preferences" data-tooltip="Cards held and preferences" title="Cards held and preferences"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="21" x2="14" y1="4" y2="4" /><line x1="10" x2="3" y1="4" y2="4" /><line x1="21" x2="12" y1="12" y2="12" /><line x1="8" x2="3" y1="12" y2="12" /><line x1="21" x2="16" y1="20" y2="20" /><line x1="12" x2="3" y1="20" y2="20" /><line x1="14" x2="14" y1="2" y2="6" /><line x1="8" x2="8" y1="10" y2="14" /><line x1="16" x2="16" y1="18" y2="22" /></svg></button>
+          <button type="button" class="icon-btn disclosure-toggle" id="saved-scenarios-toggle" aria-expanded="false" aria-controls="saved-scenarios-panel" aria-label="Saved scenarios" data-tooltip="Saved scenarios" title="Saved scenarios"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" /></svg></button>
+        </div>
+        <div id="more-options" hidden>
+          <p class="eyebrow" style="margin-top:0.5rem">Cards you already hold</p>
+          <div class="checks" id="existing-cards"></div>
 
-        <p class="eyebrow">Current or recent principal cards</p>
-        <p class="muted tiny" style="margin:0 0 0.35rem">
-          Official signup offers need no principal card now or in the last 6–12 months.
-          Check any issuer you hold or recently cancelled, including cards not listed above.
-        </p>
-        <div class="checks" id="recent-issuers"></div>
+          <p class="eyebrow">Current or recent principal cards</p>
+          <p class="muted tiny" style="margin:0 0 0.35rem">
+            Official signup offers need no principal card now or in the last 6–12 months.
+            Check any issuer you hold or recently cancelled, including cards not listed above.
+          </p>
+          <div class="checks" id="recent-issuers"></div>
 
-        <div class="toggles">
-          <label class="check">
-            <input type="checkbox" id="fussFree" checked />
-            <span>Prefer fuss-free (no min spend / categories)</span>
-          </label>
-          <label class="check">
-            <input type="checkbox" id="amexOk" />
-            <span>Merchant reliably accepts Amex</span>
-          </label>
-          <label class="check">
-            <input type="checkbox" id="optimizer" />
-            <span>Optimizer mode (score category cards aggressively)</span>
-          </label>
+          <div class="toggles">
+            <label class="check">
+              <input type="checkbox" id="fussFree" checked />
+              <span>Prefer fuss-free (no min spend / categories)</span>
+            </label>
+            <label class="check">
+              <input type="checkbox" id="amexOk" />
+              <span>Merchant reliably accepts Amex</span>
+            </label>
+            <label class="check">
+              <input type="checkbox" id="optimizer" />
+              <span>Optimizer mode (score category cards aggressively)</span>
+            </label>
+          </div>
         </div>
 
-        <p class="eyebrow" style="margin-top:0.5rem">Named scenarios</p>
-        <p class="muted tiny" style="margin:0 0 0.35rem">
-          Save spending assumptions on this device. The share link still follows the scenario on screen.
-        </p>
-        <label class="field">
-          <span>Scenario name</span>
-          <input type="text" id="scenario-name" name="scenario-name" maxlength="40" autocomplete="off" placeholder="Honeymoon" />
-        </label>
-        <button type="button" class="btn" id="save-named-scenario">Save scenario</button>
-        <p id="named-scenario-status" class="muted tiny" role="status"></p>
-        <ul id="named-scenario-list" class="named-list"></ul>
+        <div id="saved-scenarios-panel" hidden>
+          <p class="eyebrow" style="margin-top:0.5rem">Named scenarios</p>
+          <p class="muted tiny" style="margin:0 0 0.35rem">
+            Save spending assumptions on this device. The share link still follows the scenario on screen.
+          </p>
+          <label class="field">
+            <span>Scenario name</span>
+            <input type="text" id="scenario-name" name="scenario-name" maxlength="40" autocomplete="off" placeholder="Honeymoon" />
+          </label>
+          <button type="button" class="btn" id="save-named-scenario">Save scenario</button>
+          <p id="named-scenario-status" class="muted tiny" role="status"></p>
+          <ul id="named-scenario-list" class="named-list"></ul>
+        </div>
 
-        <button type="submit" class="btn">Recalculate fit</button>
+        <button type="submit" class="btn btn-recalculate">Recalculate fit</button>
       </form>
 
       <div>
@@ -137,6 +145,13 @@
           <div id="plan"></div>
         </section>
 
+        <div class="heading-with-tools" style="margin-top:1rem">
+          <h2 class="tool-heading">Compare</h2>
+          <div class="icon-toolbar" role="toolbar" aria-label="Compare">
+            <button type="button" class="icon-btn disclosure-toggle" id="compare-tools-toggle" aria-expanded="false" aria-controls="compare-tools" aria-label="Compare cards and scenarios" data-tooltip="Compare" title="Compare cards and scenarios"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3 4 7l4 4" /><path d="M4 7h16" /><path d="M16 21l4-4-4-4" /><path d="M20 17H4" /></svg></button>
+          </div>
+        </div>
+        <div id="compare-tools" hidden>
         <section style="margin-top:1rem" aria-label="Compare two cards">
           <p class="eyebrow">Compare two cards</p>
           <div class="compare-row">
@@ -172,6 +187,7 @@
           <p id="assumption-copy-status" class="muted tiny" role="status"></p>
           <textarea id="assumption-copy-fallback" rows="5" readonly hidden aria-label="Spending comparison to copy"></textarea>
         </section>
+        </div>
 
         <section id="category-planner" class="panel" style="margin-top:1rem" aria-label="OCBC 365 category planner">
           <details>
@@ -208,7 +224,13 @@
 
     <section id="method" class="panel" style="margin-top:1.5rem">
       <p class="eyebrow">Method</p>
-      <h2 style="font-family:var(--serif);font-size:1.2rem;margin:0.15rem 0 0.5rem">How scoring works</h2>
+      <div class="heading-with-tools">
+        <h2 style="font-family:var(--serif);font-size:1.2rem">How scoring works</h2>
+        <div class="icon-toolbar" role="toolbar" aria-label="Scoring details">
+          <button type="button" class="icon-btn disclosure-toggle" id="method-details-toggle" aria-expanded="false" aria-controls="method-details" aria-label="How scoring works: details" data-tooltip="Details" title="How scoring works: details"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><path d="M12 17h.01" /></svg></button>
+        </div>
+      </div>
+      <div id="method-details" hidden>
       <ul class="reasons">
         <li>Estimates cash from published flat / intro rates on your one-off + monthly spend.</li>
         <li>Adds signup cash only if the promo is active, spend clears the hurdle, and known issuer eligibility permits it.</li>
@@ -219,6 +241,7 @@
         <li>The optional month-by-month view splits base cashback, intro effects, signup cash, quarterly awards, and fees. Those lines add up to the ranked net. Non-cash gifts stay outside that total.</li>
         <li>Named scenarios stay in this browser. Comparing two of them explains rank changes and leaves the active share link on the scenario in the form.</li>
       </ul>
+      </div>
       <p class="muted tiny">
         Rates researched as of <strong id="asof-label">—</strong>.
         <span id="review-by-line">Review by <strong id="review-by-label">—</strong>.</span>
@@ -248,11 +271,11 @@
     </span>
   </footer>
 
-  <script src="https://alphaeusng.github.io/js/kofi-support.js?v=2026.07.24.10" data-auto-footer defer></script>
-  <script src="js/version.js?v=2026.10.15.1"></script>
-  <script src="js/engine.js?v=2026.10.15.1"></script>
-  <script src="js/scenario.js?v=2026.10.15.1"></script>
-  <script src="js/category-planner.js?v=2026.10.15.1"></script>
-  <script src="js/app.js?v=2026.10.15.1"></script>
+  <script src="https://alphaeusng.github.io/js/kofi-support.js?v=2026.10.15.5" data-auto-footer defer></script>
+  <script src="js/version.js?v=2026.10.15.5"></script>
+  <script src="js/engine.js?v=2026.10.15.5"></script>
+  <script src="js/scenario.js?v=2026.10.15.5"></script>
+  <script src="js/category-planner.js?v=2026.10.15.5"></script>
+  <script src="js/app.js?v=2026.10.15.5"></script>
 </body>
 </html>
