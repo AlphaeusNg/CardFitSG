@@ -373,6 +373,12 @@
     return `Signup ends ${end} SGT · ${days} day${days === 1 ? "" : "s"} left`;
   }
 
+  function setIconFeedback(btn, label) {
+    btn.setAttribute("aria-label", label);
+    btn.setAttribute("data-tooltip", label);
+    btn.setAttribute("title", label);
+  }
+
   function copyTopFit(btn) {
     if (!db) return;
     const scenario = scenarioFromForm();
@@ -381,32 +387,32 @@
     if (!p) return;
     const line = `CardFitSG top fit: ${p.card.name} · S$${fmt(p.net)} est. net over ${result.scenario.months} months. Educational only, not financial advice. ${scenarioPageUrl(scenario)}`;
     const done = () => {
-      btn.textContent = "Copied";
-      setTimeout(() => { btn.textContent = "Copy result"; }, 1600);
+      setIconFeedback(btn, "Copied");
+      setTimeout(() => { setIconFeedback(btn, "Copy result"); }, 1600);
     };
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(line).then(done).catch(() => {
-        btn.textContent = "Copy failed";
+        setIconFeedback(btn, "Copy failed");
       });
       return;
     }
-    btn.textContent = "Copy failed";
+    setIconFeedback(btn, "Copy failed");
   }
 
   function copyScenarioLink(btn) {
     if (!db) return;
     const url = scenarioPageUrl(scenarioFromForm());
     const done = () => {
-      btn.textContent = "Link copied";
-      setTimeout(() => { btn.textContent = "Copy link"; }, 1600);
+      setIconFeedback(btn, "Link copied");
+      setTimeout(() => { setIconFeedback(btn, "Copy link"); }, 1600);
     };
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(url).then(done).catch(() => {
-        btn.textContent = "Copy failed";
+        setIconFeedback(btn, "Copy failed");
       });
       return;
     }
-    btn.textContent = "Copy failed";
+    setIconFeedback(btn, "Copy failed");
   }
 
   function applyPreset(btn) {
@@ -735,7 +741,7 @@
       </div>
       ${expiry ? `<p class="muted tiny">${escapeHtml(expiry)}</p>` : ""}
       ${officialUrl(c) ? `<div class="result-actions"><a class="btn" href="${escapeAttr(officialUrl(c))}" target="_blank" rel="noopener">Official product page</a></div>` : ""}
-      <button type="button" class="disclosure-toggle" id="primary-details-toggle" aria-expanded="false" aria-controls="primary-details"><span>Why this card</span></button>
+      <button type="button" class="disclosure-toggle" id="primary-details-toggle" aria-expanded="false" aria-controls="primary-details" aria-label="Why this card" data-tooltip="Why this card" title="Why this card"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 11v6m0-10v.01" /></svg><svg class="disclosure-chevron" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></svg></button>
       <div id="primary-details" hidden>
       <ul class="reasons">
         ${p.rankReasons.map((r) => `<li>${escapeHtml(r)}</li>`).join("")}
@@ -746,8 +752,8 @@
       ${renderBreakdown(p, result)}
       <p class="muted tiny">Estimate only — excludes overseas FX markups, non-qualifying MCC codes, and promo clawbacks. Rates as of ${escapeHtml(db.meta.asOf)}.</p>
       </div>
-      <button type="button" class="disclosure-toggle" id="primary-more-toggle" aria-expanded="false" aria-controls="primary-more"><span>More</span></button>
-      <div id="primary-more" hidden><div class="result-actions">${termsUrl ? `<a class="btn" href="${escapeAttr(termsUrl)}" target="_blank" rel="noopener">Offer terms</a>` : ""}<button type="button" class="btn" id="copy-result">Copy result</button><button type="button" class="btn" id="copy-link">Copy link</button></div></div>
+      <button type="button" class="disclosure-toggle" id="primary-more-toggle" aria-expanded="false" aria-controls="primary-more" aria-label="More" data-tooltip="More" title="More"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /></svg></button>
+      <div id="primary-more" hidden><div class="result-actions">${termsUrl ? `<a class="btn" href="${escapeAttr(termsUrl)}" target="_blank" rel="noopener">Offer terms</a>` : ""}<button type="button" class="btn icon-control" id="copy-result" aria-label="Copy result" data-tooltip="Copy result" title="Copy result"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M9 9h11v12H9z M5 15H3V3h11v2" /></svg></button><button type="button" class="btn icon-control" id="copy-link" aria-label="Copy link" data-tooltip="Copy link" title="Copy link"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="m9 15 6-6 M8 16l-1 1a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0 M16 8l1-1a4 4 0 0 1 6 6l-4 4a4 4 0 0 1-6 0" /></svg></button></div></div>
     `;
     }
 
@@ -853,8 +859,8 @@
         <li>
           <span>${escapeHtml(item.name)}</span>
           <span class="named-actions">
-            <button type="button" class="preset-chip" data-use-scenario="${escapeAttr(item.id)}" aria-label="Use scenario “${escapeAttr(item.name)}”">Use</button>
-            <button type="button" class="preset-chip" data-remove-scenario="${escapeAttr(item.id)}" aria-label="Remove scenario “${escapeAttr(item.name)}”">Remove</button>
+            <button type="button" class="preset-chip icon-control" data-use-scenario="${escapeAttr(item.id)}" aria-label="Use scenario “${escapeAttr(item.name)}”" data-tooltip="Use" title="Use scenario “${escapeAttr(item.name)}”"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M5 12h14 m-6-6 6 6-6 6" /></svg></button>
+            <button type="button" class="preset-chip icon-control" data-remove-scenario="${escapeAttr(item.id)}" aria-label="Remove scenario “${escapeAttr(item.name)}”" data-tooltip="Remove" title="Remove scenario “${escapeAttr(item.name)}”"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M4 7h16 M9 7V3h6v4 M6 7l1 14h10l1-14 M10 11v6 M14 11v6" /></svg></button>
           </span>
         </li>`
       )

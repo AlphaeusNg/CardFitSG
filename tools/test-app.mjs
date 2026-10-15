@@ -1520,6 +1520,14 @@ function displayedFeeCents(html) {
   const listHtml = result.elements["named-scenario-list"].innerHTML;
   assert.match(listHtml, /aria-label="Use scenario “Honeymoon”"/, "each row names its Use control");
   assert.match(listHtml, /aria-label="Remove scenario “Honeymoon”"/, "each row names its Remove control");
+  for (const word of ["Use", "Remove"]) {
+    const button = new RegExp(`<button[^>]*data-${word.toLowerCase()}-scenario[^>]*>[\\s\\S]*?</button>`).exec(listHtml)?.[0];
+    assert(button);
+    assert(button.includes(`aria-label="${word} scenario “`));
+    assert(button.includes(`data-tooltip="${word}"`));
+    assert.match(button, /title="[^"]+"/);
+    assert.match(button, /<svg aria-hidden="true" focusable="false"/);
+  }
   const removed = saved[0];
   const kept = saved[1];
   const deletion = result.sandbox.window.CardFitApp.deleteNamedScenario(removed.id);
@@ -1801,8 +1809,10 @@ function assertCollapsedToggle(html, spec) {
   assert.match(open, /\bclass=["'][^"']*\bdisclosure-toggle\b/, `${spec.id} uses the disclosure class`);
   assert.match(open, /\baria-expanded=["']false["']/, `${spec.id} starts collapsed`);
   assert.match(open, new RegExp(`\\baria-controls=["']${spec.region}["']`), `${spec.id} controls ${spec.region}`);
-  assert.doesNotMatch(open, /\baria-label=/, `${spec.id} label is visible text`);
-  assert.equal(visibleLabel(button), spec.label, `${spec.id} shows ${spec.label}`);
+  assert.equal(/aria-label="([^"]+)"/.exec(open)?.[1], spec.label, `${spec.id} has its full accessible name`);
+  assert.match(open, /data-tooltip="[^"]+"/, `${spec.id} has a tooltip`);
+  assert.match(open, /title="[^"]+"/, `${spec.id} has a touch hint`);
+  assert.match(button, /<svg aria-hidden="true" focusable="false"/, `${spec.id} has a decorative icon`);
   const regionTag = new RegExp(`<(?:div|section)\\b[^>]*\\bid=["']${spec.region}["'][^>]*>`).exec(html);
   assert(regionTag, `${spec.region} exists`);
   assert.match(regionTag[0], /\bhidden\b/, `${spec.region} is hidden`);
@@ -1879,6 +1889,27 @@ function clickDisclosure(doc, elements, spec) {
     clickDisclosure(result.sandbox.document, result.elements, spec);
   }
 
+  for (const [id, label] of [["copy-result", "Copy result"], ["copy-link", "Copy link"]]) {
+    const button = extractButton(primaryHtml, id);
+    assert(button.includes(`aria-label="${label}"`));
+    assert(button.includes(`data-tooltip="${label}"`));
+    assert(button.includes(`title="${label}"`));
+    assert.match(button, /<svg aria-hidden="true" focusable="false"/);
+    assert.equal(visibleLabel(button), "", "icon controls have no visible word");
+    const attrs = {};
+    const target = makeElement({
+      innerHTML: "<svg></svg>",
+      setAttribute(name, value) { attrs[name] = value; },
+      closest(selector) { return selector === `#${id}` ? this : null; },
+    });
+    result.sandbox.navigator = { clipboard: { writeText: async () => {} } };
+    result.sandbox.document.dispatch("click", { target });
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(target.innerHTML, "<svg></svg>", "copy feedback preserves the icon");
+    assert(["Copied", "Link copied", "Copy failed", label].includes(attrs["aria-label"]));
+    assert.equal(attrs["data-tooltip"], attrs["aria-label"]);
+    assert.equal(attrs.title, attrs["aria-label"]);
+  }
   const details = extractById(primaryHtml, "primary-details");
   const more = extractById(primaryHtml, "primary-more");
   const outside = primaryHtml.replace(details, "").replace(more, "");

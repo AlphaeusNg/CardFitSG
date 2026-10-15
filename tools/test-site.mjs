@@ -155,8 +155,10 @@ for (const spec of disclosureSpecs) {
   assert.match(open, /\bclass=["'][^"']*\bdisclosure-toggle\b/, `${spec.id} uses the disclosure class`);
   assert.match(open, /\baria-expanded=["']false["']/, `${spec.id} starts collapsed`);
   assert.match(open, new RegExp(`\\baria-controls=["']${spec.region}["']`), `${spec.id} points at ${spec.region}`);
-  assert.doesNotMatch(open, /\baria-label=/, `${spec.id} does not hide its label in aria-label`);
-  assert.equal(visibleLabel(button[0]), spec.label, `${spec.id} shows its label`);
+  assert.equal(/aria-label="([^"]+)"/.exec(open)?.[1], spec.label, `${spec.id} has its full accessible name`);
+  assert.match(open, /data-tooltip="[^"]+"/, `${spec.id} has a tooltip`);
+  assert.match(open, /title="[^"]+"/, `${spec.id} has a touch hint`);
+  assert.match(button[0], /<svg aria-hidden="true" focusable="false"/, `${spec.id} has a decorative icon`);
   const region = new RegExp(`<(?:div|section)\\b[^>]*\\bid=["']${spec.region}["'][^>]*>`).exec(spec.source);
   assert(region, `${spec.region} exists`);
   assert.match(region[0], /\bhidden\b/, `${spec.region} is hidden until opened`);
@@ -227,11 +229,31 @@ const toggleRule = /\.disclosure-toggle\s*\{([^}]+)\}/.exec(css);
 assert(toggleRule, "disclosure toggles have a style rule");
 assert.match(toggleRule[1], /min-height:\s*32px/, "disclosure toggles meet the 32px target height");
 assert.match(toggleRule[1], /min-width:\s*32px/, "disclosure toggles meet the 32px target width");
-assert.match(css, /\.disclosure-toggle::after\s*\{[^}]*transform:\s*rotate\(/, "disclosure toggles show a chevron");
-const expandedChevron = /\.disclosure-toggle\[aria-expanded="true"\]::after\s*\{([^}]+)\}/.exec(css);
+assert.match(css, /\.disclosure-toggle \.disclosure-chevron\s*\{[^}]*transition:/, "disclosure chevrons animate");
+const expandedChevron = /\.disclosure-toggle\[aria-expanded="true"\] \.disclosure-chevron\s*\{([^}]+)\}/.exec(css);
 assert(expandedChevron, "the chevron has an expanded state");
 assert.match(expandedChevron[1], /transform:\s*rotate\(/, "the chevron rotates when aria-expanded is true");
 
 console.log(
   `test-site.mjs: ${referenceCount} local references and ${fragmentCount} fragments verified`
 );
+
+for (const label of ["Copy result", "Copy link"]) {
+  const id = label === "Copy result" ? "copy-result" : "copy-link";
+  const button = new RegExp(`<button[^>]*id="${id}"[^>]*>[\\s\\S]*?</button>`).exec(app)?.[0];
+  assert(button);
+  assert(button.includes(`aria-label="${label}"`));
+  assert(button.includes(`data-tooltip="${label}"`));
+  assert.match(button, /title="[^"]+"/);
+  assert.match(button, /<svg aria-hidden="true" focusable="false"/);
+}
+for (const word of ["Use", "Remove"]) {
+  const button = new RegExp(`<button[^>]*data-${word.toLowerCase()}-scenario[^>]*>[\\s\\S]*?</button>`).exec(app)?.[0];
+  assert(button);
+  assert(button.includes(`aria-label="${word} scenario “`));
+  assert(button.includes(`data-tooltip="${word}"`));
+  assert.match(button, /title="[^"]+"/);
+  assert.match(button, /<svg aria-hidden="true" focusable="false"/);
+}
+assert.match(css, /\[data-tooltip\]:hover::after/);
+assert.match(css, /\[data-tooltip\]:focus-visible::after/);

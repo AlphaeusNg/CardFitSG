@@ -131,7 +131,7 @@ a:hover {
 @media (prefers-reduced-motion: reduce) {
   .topbar,
   .top-fit-dock,
-  .disclosure-toggle::after { transition: none; }
+  .disclosure-toggle svg { transition: none; }
 }
 
 .brand {
@@ -386,21 +386,60 @@ select:focus {
   outline: 2px solid var(--gold-line);
   outline-offset: 2px;
 }
-.disclosure-toggle::after {
-  content: "";
-  flex: 0 0 auto;
-  width: 0.4rem;
-  height: 0.4rem;
-  margin-top: -0.12rem;
-  border-right: 2px solid currentColor;
-  border-bottom: 2px solid currentColor;
-  transform: rotate(45deg);
+.disclosure-toggle .disclosure-chevron {
+  width: 12px;
+  height: 12px;
   transition: transform 0.15s ease;
 }
-.disclosure-toggle[aria-expanded="true"]::after {
-  margin-top: 0.12rem;
-  transform: rotate(225deg);
+.disclosure-toggle[aria-expanded="true"] .disclosure-chevron { transform: rotate(180deg); }
+
+.icon-control, .disclosure-toggle {
+  position: relative;
+  min-width: 32px;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem;
 }
+.icon-control svg, .disclosure-toggle svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.icon-control:focus-visible, .disclosure-toggle:focus-visible {
+  outline: 2px solid #f5e6b0;
+  outline-offset: 3px;
+}
+[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  right: 0;
+  z-index: 10;
+  width: max-content;
+  max-width: 120px;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #f5e6b0;
+  border-radius: 4px;
+  background: #171b24;
+  color: #fff;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+  visibility: hidden;
+}
+.disclosure-toggle[data-tooltip]::after {
+  left: 0;
+  right: auto;
+}
+[data-tooltip]:hover::after, [data-tooltip]:focus-visible::after { visibility: visible; }
 
 .result-actions {
   display: flex;
