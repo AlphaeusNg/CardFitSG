@@ -1527,7 +1527,13 @@ function displayedFeeCents(html) {
     assert(button.includes(`data-tooltip="${word}"`));
     assert.match(button, /title="[^"]+"/);
     assert.match(button, /<svg aria-hidden="true" focusable="false"/);
+    assert.match(button, /\bicon-btn\b/);
+    assertOutlineIcon(button, word);
   }
+  const savedToolbars = iconToolbars(listHtml);
+  assert.equal(savedToolbars.length, 2, "each saved scenario keeps Use and Remove on one row");
+  assert.match(savedToolbars[0], /data-use-scenario=/);
+  assert.match(savedToolbars[0], /data-remove-scenario=/);
   const removed = saved[0];
   const kept = saved[1];
   const deletion = result.sandbox.window.CardFitApp.deleteNamedScenario(removed.id);
@@ -1796,6 +1802,29 @@ function visibleLabel(html) {
   return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
 
+function assertOutlineIcon(buttonHtml, id) {
+  const inner = buttonHtml.replace(/^<button\b[^>]*>/, "").replace(/<\/button>\s*$/, "");
+  assert.doesNotMatch(inner, /<img\b/i, `${id} has no image`);
+  assert.doesNotMatch(inner, /[^\u0000-\u007F]/, `${id} icon markup has no emoji or non-ASCII glyph`);
+  const opens = [...inner.matchAll(/<svg\b[^>]*>/g)].map((item) => item[0]);
+  assert.equal(opens.length, 1, `${id} has one inline icon`);
+  for (const attr of [
+    'stroke="currentColor"',
+    'fill="none"',
+    'stroke-width="2"',
+    'viewBox="0 0 24 24"',
+    'aria-hidden="true"',
+    'focusable="false"',
+  ]) {
+    assert(opens[0].includes(attr), `${id} svg has ${attr}`);
+  }
+  assert.equal(visibleLabel(inner), "", `${id} has no visible glyph`);
+}
+
+function iconToolbars(html) {
+  return [...html.matchAll(/<div\b[^>]*\bclass="[^"]*\bicon-toolbar\b[^"]*"[^>]*>[\s\S]*?<\/div>/g)].map((item) => item[0]);
+}
+
 function extractButton(html, id) {
   const match = new RegExp(`<button\\b[^>]*\\bid=["']${id}["'][^>]*>[\\s\\S]*?<\\/button>`).exec(html);
   assert(match, `${id} exists`);
@@ -1807,12 +1836,14 @@ function assertCollapsedToggle(html, spec) {
   const open = /^<button\b[^>]*>/.exec(button)?.[0] || "";
   assert.match(open, /\btype=["']button["']/, `${spec.id} is a button`);
   assert.match(open, /\bclass=["'][^"']*\bdisclosure-toggle\b/, `${spec.id} uses the disclosure class`);
+  assert.match(open, /\bclass=["'][^"']*\bicon-btn\b/, `${spec.id} uses the shared icon button class`);
   assert.match(open, /\baria-expanded=["']false["']/, `${spec.id} starts collapsed`);
   assert.match(open, new RegExp(`\\baria-controls=["']${spec.region}["']`), `${spec.id} controls ${spec.region}`);
   assert.equal(/aria-label="([^"]+)"/.exec(open)?.[1], spec.label, `${spec.id} has its full accessible name`);
   assert.match(open, /data-tooltip="[^"]+"/, `${spec.id} has a tooltip`);
   assert.match(open, /title="[^"]+"/, `${spec.id} has a touch hint`);
   assert.match(button, /<svg aria-hidden="true" focusable="false"/, `${spec.id} has a decorative icon`);
+  assertOutlineIcon(button, spec.id);
   const regionTag = new RegExp(`<(?:div|section)\\b[^>]*\\bid=["']${spec.region}["'][^>]*>`).exec(html);
   assert(regionTag, `${spec.region} exists`);
   assert.match(regionTag[0], /\bhidden\b/, `${spec.region} is hidden`);
@@ -1895,6 +1926,8 @@ function clickDisclosure(doc, elements, spec) {
     assert(button.includes(`data-tooltip="${label}"`));
     assert(button.includes(`title="${label}"`));
     assert.match(button, /<svg aria-hidden="true" focusable="false"/);
+    assert.match(button, /\bicon-btn\b/);
+    assertOutlineIcon(button, id);
     assert.equal(visibleLabel(button), "", "icon controls have no visible word");
     const attrs = {};
     const target = makeElement({
@@ -1915,13 +1948,22 @@ function clickDisclosure(doc, elements, spec) {
   const outside = primaryHtml.replace(details, "").replace(more, "");
   assert.match(details, /<ul class="reasons">/, "why-this-card holds the reason list");
   assert.match(details, /Estimate only/, "why-this-card holds the fine print");
-  assert.match(more, /id="copy-result"/, "More holds Copy result");
-  assert.match(more, /id="copy-link"/, "More holds Copy link");
+  assert.doesNotMatch(more, /id="copy-result"/, "More no longer holds Copy result");
+  assert.doesNotMatch(more, /id="copy-link"/, "More no longer holds Copy link");
   assert.match(more, /Offer terms/, "More holds Offer terms");
+  assert.match(outside, /id="copy-result"/, "Copy result stays on the top-fit toolbar");
+  assert.match(outside, /id="copy-link"/, "Copy link stays on the top-fit toolbar");
   assert.match(outside, /Official product page/, "the official product page stays outside More");
   assert.match(outside, /class="card-title"/, "the card name stays outside the details");
   assert.match(outside, /class="metrics"/, "the four stat tiles stay outside the details");
-  assert.doesNotMatch(outside, /id="copy-result"/, "Copy result is not left on the summary");
+  const topBars = iconToolbars(primaryHtml);
+  assert.equal(topBars.length, 1, "the four top-fit buttons share one toolbar");
+  for (const id of ["primary-details-toggle", "primary-more-toggle", "copy-result", "copy-link"]) {
+    assert.match(topBars[0], new RegExp(`id="${id}"`), `top-fit toolbar includes ${id}`);
+  }
+  assert(primaryHtml.indexOf("Official product page") < primaryHtml.indexOf('class="icon-toolbar"'), "the official link stays above the toolbar");
+  assert(primaryHtml.indexOf('class="icon-toolbar"') < primaryHtml.indexOf('id="primary-details"'), "why-this-card renders below the toolbar");
+  assert(primaryHtml.indexOf('class="icon-toolbar"') < primaryHtml.indexOf('id="primary-more"'), "offer terms render below the toolbar");
   if (/Signup ends/.test(primaryHtml)) {
     assert.match(outside, /Signup ends/, "the signup-ends line stays on the summary");
     assert.doesNotMatch(details, /Signup ends/, "the signup-ends line is not inside Why this card");
@@ -1937,3 +1979,42 @@ function clickDisclosure(doc, elements, spec) {
 }
 
 console.log("test-app.mjs: disclosure toggles collapse by default and open on click");
+
+{
+  const result = await boot({
+    ok: true,
+    status: 200,
+    async json() {
+      return JSON.parse(JSON.stringify(catalog));
+    },
+  });
+  const pending = [];
+  const cleared = [];
+  result.sandbox.setTimeout = (fn, delay) => {
+    const id = pending.length + 1;
+    pending.push({ id, fn, delay });
+    return id;
+  };
+  result.sandbox.clearTimeout = (id) => {
+    cleared.push(id);
+    const index = pending.findIndex((item) => item.id === id);
+    if (index >= 0) pending.splice(index, 1);
+  };
+  const appApi = result.sandbox.window.CardFitApp;
+  assert.equal(typeof appApi.showTapLabel, "function", "showTapLabel is exported");
+  const first = makeElement();
+  const second = makeElement();
+  appApi.showTapLabel(first);
+  assert.equal(first.classList.contains("show-tip"), true, "showTapLabel adds show-tip");
+  assert.equal(pending.length, 1, "showTapLabel schedules one timer");
+  assert.equal(pending[0].delay, 1500, "the tap label stays for 1500ms");
+  appApi.showTapLabel(second);
+  assert.equal(first.classList.contains("show-tip"), false, "a new tap clears the previous label");
+  assert.equal(second.classList.contains("show-tip"), true, "the latest button shows the label");
+  assert.equal(cleared.length, 1, "a new tap clears the previous timer");
+  assert.equal(pending[0].delay, 1500);
+  pending[0].fn();
+  assert.equal(second.classList.contains("show-tip"), false, "showTapLabel removes show-tip after the timeout");
+}
+
+console.log("test-app.mjs: tap labels show and then hide");

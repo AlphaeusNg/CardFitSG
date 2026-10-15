@@ -147,18 +147,43 @@ function visibleLabel(html) {
   return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
 
+function assertOutlineIcon(buttonHtml, id) {
+  const inner = buttonHtml.replace(/^<button\b[^>]*>/, "").replace(/<\/button>\s*$/, "");
+  assert.doesNotMatch(inner, /<img\b/i, `${id} has no image`);
+  assert.doesNotMatch(inner, /[^\u0000-\u007F]/, `${id} icon markup has no emoji or non-ASCII glyph`);
+  const opens = [...inner.matchAll(/<svg\b[^>]*>/g)].map((item) => item[0]);
+  assert.equal(opens.length, 1, `${id} has one inline icon`);
+  for (const attr of [
+    'stroke="currentColor"',
+    'fill="none"',
+    'stroke-width="2"',
+    'viewBox="0 0 24 24"',
+    'aria-hidden="true"',
+    'focusable="false"',
+  ]) {
+    assert(opens[0].includes(attr), `${id} svg has ${attr}`);
+  }
+  assert.equal(visibleLabel(inner), "", `${id} has no visible glyph`);
+}
+
+function iconToolbars(html) {
+  return [...html.matchAll(/<div\b[^>]*\bclass="[^"]*\bicon-toolbar\b[^"]*"[^>]*>[\s\S]*?<\/div>/g)].map((item) => item[0]);
+}
+
 for (const spec of disclosureSpecs) {
   const button = new RegExp(`<button\\b[^>]*\\bid=["']${spec.id}["'][^>]*>[\\s\\S]*?<\\/button>`).exec(spec.source);
   assert(button, `${spec.id} exists`);
   const open = /^<button\b[^>]*>/.exec(button[0])?.[0] || "";
   assert.match(open, /\btype=["']button["']/, `${spec.id} is a real button`);
   assert.match(open, /\bclass=["'][^"']*\bdisclosure-toggle\b/, `${spec.id} uses the disclosure class`);
+  assert.match(open, /\bclass=["'][^"']*\bicon-btn\b/, `${spec.id} uses the shared icon button class`);
   assert.match(open, /\baria-expanded=["']false["']/, `${spec.id} starts collapsed`);
   assert.match(open, new RegExp(`\\baria-controls=["']${spec.region}["']`), `${spec.id} points at ${spec.region}`);
   assert.equal(/aria-label="([^"]+)"/.exec(open)?.[1], spec.label, `${spec.id} has its full accessible name`);
   assert.match(open, /data-tooltip="[^"]+"/, `${spec.id} has a tooltip`);
   assert.match(open, /title="[^"]+"/, `${spec.id} has a touch hint`);
   assert.match(button[0], /<svg aria-hidden="true" focusable="false"/, `${spec.id} has a decorative icon`);
+  assertOutlineIcon(button[0], spec.id);
   const region = new RegExp(`<(?:div|section)\\b[^>]*\\bid=["']${spec.region}["'][^>]*>`).exec(spec.source);
   assert(region, `${spec.region} exists`);
   assert.match(region[0], /\bhidden\b/, `${spec.region} is hidden until opened`);
@@ -224,15 +249,74 @@ assert.match(app, /id="primary-details" hidden/, "rendered top-fit details start
 assert.match(app, /id="primary-more" hidden/, "rendered top-fit extra actions start hidden");
 assert.match(app, /Official product page[\s\S]*primary-details-toggle/, "the official link stays ahead of Why this card");
 
+const formToolbars = iconToolbars(index).filter((bar) => bar.includes('id="more-options-toggle"') || bar.includes('id="saved-scenarios-toggle"'));
+assert.equal(formToolbars.length, 1, "form toggles share one icon toolbar");
+assert.match(formToolbars[0], /id="more-options-toggle"/, "the form toolbar includes more options");
+assert.match(formToolbars[0], /id="saved-scenarios-toggle"/, "the form toolbar includes saved scenarios");
+assert.match(formToolbars[0], /role="toolbar"/, "the form toolbar exposes the toolbar role");
+assert.match(formToolbars[0], /aria-label="/, "the form toolbar has an accessible name");
+const formToolbarAt = index.indexOf(formToolbars[0]);
+assert(formToolbarAt >= 0, "the form toolbar is in the page");
+assert(formToolbarAt + formToolbars[0].length <= index.indexOf('id="more-options"'), "more options renders below the form toolbar");
+assert(formToolbarAt + formToolbars[0].length <= index.indexOf('id="saved-scenarios-panel"'), "saved scenarios render below the form toolbar");
+assert.doesNotMatch(formToolbars[0], /id="more-options"[\s>]/, "the more-options panel is not inside the toolbar");
+assert.doesNotMatch(formToolbars[0], /id="saved-scenarios-panel"/, "the saved panel is not inside the toolbar");
+
+const topToolbars = iconToolbars(app).filter((bar) => /id="(?:primary-details-toggle|primary-more-toggle|copy-result|copy-link)"/.test(bar));
+assert.equal(topToolbars.length, 1, "top-fit icon buttons share one icon toolbar");
+for (const id of ["primary-details-toggle", "primary-more-toggle", "copy-result", "copy-link"]) {
+  assert.match(topToolbars[0], new RegExp(`id="${id}"`), `top-fit toolbar includes ${id}`);
+}
+assert.match(topToolbars[0], /role="toolbar"/, "the top-fit toolbar exposes the toolbar role");
+const topToolbarAt = app.indexOf(topToolbars[0]);
+assert(topToolbarAt + topToolbars[0].length <= app.indexOf('id="primary-details"'), "why-this-card renders below the top-fit toolbar");
+assert(topToolbarAt + topToolbars[0].length <= app.indexOf('id="primary-more"'), "more actions render below the top-fit toolbar");
+assert.doesNotMatch(topToolbars[0], /id="primary-details"[\s>]/, "the details panel is not inside the toolbar");
+assert.doesNotMatch(topToolbars[0], /id="primary-more"[\s>]/, "the more panel is not inside the toolbar");
+assert.doesNotMatch(index + app, /disclosure-chevron/, "icon buttons do not add a second chevron");
+
 const css = readFileSync(resolve(root, "css/style.css"), "utf8");
-const toggleRule = /\.disclosure-toggle\s*\{([^}]+)\}/.exec(css);
-assert(toggleRule, "disclosure toggles have a style rule");
-assert.match(toggleRule[1], /min-height:\s*32px/, "disclosure toggles meet the 32px target height");
-assert.match(toggleRule[1], /min-width:\s*32px/, "disclosure toggles meet the 32px target width");
-assert.match(css, /\.disclosure-toggle \.disclosure-chevron\s*\{[^}]*transition:/, "disclosure chevrons animate");
-const expandedChevron = /\.disclosure-toggle\[aria-expanded="true"\] \.disclosure-chevron\s*\{([^}]+)\}/.exec(css);
-assert(expandedChevron, "the chevron has an expanded state");
-assert.match(expandedChevron[1], /transform:\s*rotate\(/, "the chevron rotates when aria-expanded is true");
+const rootVars = /:root\s*\{([^}]+)\}/.exec(css);
+assert(rootVars, "palette tokens live on :root");
+for (const declaration of [
+  ["--icon-btn-size", "40px"],
+  ["--icon-btn-radius", "12px"],
+  ["--icon-size", "24px"],
+  ["--icon-stroke", "2"],
+  ["--tap-target", "48px"],
+  ["--icon-gap", "8px"],
+]) {
+  assert.match(rootVars[1], new RegExp(`${declaration[0]}:\\s*${declaration[1]}\\b`), `${declaration[0]} is specified`);
+}
+const iconButtonRule = /\.icon-btn\s*\{([^}]+)\}/.exec(css);
+assert(iconButtonRule, "icon buttons share a style rule");
+assert.match(iconButtonRule[1], /width:\s*var\(--icon-btn-size\)/, "icon buttons use the 40px size token");
+assert.match(iconButtonRule[1], /height:\s*var\(--icon-btn-size\)/, "icon buttons use the 40px height token");
+assert.match(iconButtonRule[1], /border-radius:\s*var\(--icon-btn-radius\)/, "icon buttons use the radius token");
+const iconSvgRule = /\.icon-btn svg\s*\{([^}]+)\}/.exec(css);
+assert(iconSvgRule, "icon artwork has a shared size rule");
+assert.match(iconSvgRule[1], /width:\s*var\(--icon-size\)/);
+assert.match(iconSvgRule[1], /height:\s*var\(--icon-size\)/);
+assert.match(css, /\.icon-btn::before\s*\{[^}]*inset:\s*calc\(\(var\(--icon-btn-size\) - var\(--tap-target\)\) \/ 2\)/, "the hit area grows without changing the visual size");
+const toolbarRule = [...css.matchAll(/\.icon-toolbar\s*\{([^}]+)\}/g)].map((item) => item[1]).find((body) => /display:\s*flex/.test(body));
+assert(toolbarRule, "icon toolbars have a style rule");
+assert.match(toolbarRule, /flex-direction:\s*row/, "icon toolbars stay in a row");
+assert.match(toolbarRule, /flex-wrap:\s*wrap/, "icon toolbars wrap instead of stacking one control per row");
+assert.match(toolbarRule, /gap:\s*var\(--icon-gap\)/, "icon buttons use the 8px gap");
+const expandedIcon = /\.icon-btn\[aria-expanded="true"\]\s*\{([^}]+)\}/.exec(css);
+assert(expandedIcon, "an expanded icon button changes colour");
+assert.match(expandedIcon[1], /background:\s*var\(--gold-soft\)/);
+assert.match(expandedIcon[1], /box-shadow:[^;]*var\(--gold\)/);
+assert.match(expandedIcon[1], /color:\s*var\(--gold\)/);
+assert.match(css, /top:\s*calc\(100%\s*\+\s*6px\)/, "tooltips open below the button");
+assert.doesNotMatch(css, /bottom:\s*calc\(100%\s*\+\s*6px\)/, "tooltips do not cover the link above the toolbar");
+assert.match(css, /\.icon-btn\[data-tooltip\]::after\s*\{[^}]*left:\s*0/, "tooltips anchor from the left edge");
+assert.match(app, /function showTapLabel/, "tap labels have a helper");
+assert.match(app, /showTapLabel,/, "showTapLabel is exported on CardFitApp");
+assert.match(app, /pointerType === "touch"/, "touch pointers show the label");
+assert.match(app, /hover:\s*none/, "hover-none devices show the label");
+assert.match(app, /classList\.add\("show-tip"\)/, "the helper marks the button");
+assert.match(app, /,\s*1500\)/, "the tap label lasts 1500ms");
 
 console.log(
   `test-site.mjs: ${referenceCount} local references and ${fragmentCount} fragments verified`
@@ -246,6 +330,8 @@ for (const label of ["Copy result", "Copy link"]) {
   assert(button.includes(`data-tooltip="${label}"`));
   assert.match(button, /title="[^"]+"/);
   assert.match(button, /<svg aria-hidden="true" focusable="false"/);
+  assert.match(button, /\bicon-btn\b/);
+  assertOutlineIcon(button, id);
 }
 for (const word of ["Use", "Remove"]) {
   const button = new RegExp(`<button[^>]*data-${word.toLowerCase()}-scenario[^>]*>[\\s\\S]*?</button>`).exec(app)?.[0];
@@ -254,6 +340,9 @@ for (const word of ["Use", "Remove"]) {
   assert(button.includes(`data-tooltip="${word}"`));
   assert.match(button, /title="[^"]+"/);
   assert.match(button, /<svg aria-hidden="true" focusable="false"/);
+  assert.match(button, /\bicon-btn\b/);
+  assertOutlineIcon(button, word);
 }
+assert.match(app, /class="named-actions icon-toolbar"/, "Use and Remove share one toolbar row");
 assert.match(css, /\[data-tooltip\]:hover::after/);
 assert.match(css, /\[data-tooltip\]:focus-visible::after/);

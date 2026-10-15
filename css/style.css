@@ -16,6 +16,12 @@
   --sans: "Inter", system-ui, sans-serif;
   --radius: 14px;
   --shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+  --icon-btn-size: 40px;
+  --icon-btn-radius: 12px;
+  --icon-size: 24px;
+  --icon-stroke: 2;
+  --tap-target: 48px;
+  --icon-gap: 8px;
 }
 
 *,
@@ -130,8 +136,7 @@ a:hover {
 
 @media (prefers-reduced-motion: reduce) {
   .topbar,
-  .top-fit-dock,
-  .disclosure-toggle svg { transition: none; }
+  .top-fit-dock { transition: none; }
 }
 
 .brand {
@@ -351,95 +356,131 @@ select:focus {
   filter: brightness(1.08);
 }
 
-.disclosure-toggle {
-  appearance: none;
+.heading-with-tools {
   display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
-  width: fit-content;
-  max-width: 100%;
-  min-height: 32px;
-  min-width: 32px;
+  justify-content: flex-start;
+  gap: 0.65rem var(--icon-gap);
   margin: 0.35rem 0 0.75rem;
-  padding: 0.35rem 0.75rem;
-  border: 1px solid var(--gold-line);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--text);
-  font: inherit;
-  font-size: 0.82rem;
-  font-weight: 600;
-  line-height: 1.3;
-  text-align: left;
-  white-space: normal;
-  cursor: pointer;
 }
-.disclosure-toggle > span {
+.heading-with-tools h2,
+.heading-with-tools .tool-heading {
+  margin: 0;
   min-width: 0;
 }
-.disclosure-toggle:hover,
-.disclosure-toggle[aria-expanded="true"] {
-  color: #f5e6b0;
-  background: var(--gold-soft);
+.tool-heading {
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: 1.15rem;
 }
-.disclosure-toggle:focus-visible {
-  outline: 2px solid var(--gold-line);
-  outline-offset: 2px;
+.heading-with-tools .icon-toolbar {
+  margin: 0;
 }
-.disclosure-toggle .disclosure-chevron {
-  width: 12px;
-  height: 12px;
-  transition: transform 0.15s ease;
-}
-.disclosure-toggle[aria-expanded="true"] .disclosure-chevron { transform: rotate(180deg); }
 
-.icon-control, .disclosure-toggle {
+.icon-toolbar {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--icon-gap);
+  margin: 0.35rem 0 0.75rem;
+  max-width: 100%;
   position: relative;
-  min-width: 32px;
-  min-height: 32px;
+  z-index: 1;
+}
+.icon-toolbar:hover,
+.icon-toolbar:focus-within,
+.icon-toolbar:has(.show-tip) {
+  z-index: 4;
+}
+
+.icon-btn {
+  appearance: none;
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.4rem;
+  flex: 0 0 auto;
+  width: var(--icon-btn-size);
+  height: var(--icon-btn-size);
+  min-width: var(--icon-btn-size);
+  min-height: var(--icon-btn-size);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  box-shadow: inset 0 0 0 1px var(--gold-line);
+  border-radius: var(--icon-btn-radius);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
 }
-.icon-control svg, .disclosure-toggle svg {
-  width: 20px;
-  height: 20px;
+.icon-btn::before {
+  content: "";
+  position: absolute;
+  inset: calc((var(--icon-btn-size) - var(--tap-target)) / 2);
+  background: transparent;
+}
+.icon-btn svg {
+  display: block;
+  width: var(--icon-size);
+  height: var(--icon-size);
   fill: none;
   stroke: currentColor;
-  stroke-width: 2;
+  stroke-width: var(--icon-stroke);
   stroke-linecap: round;
   stroke-linejoin: round;
+  pointer-events: none;
 }
-.icon-control:focus-visible, .disclosure-toggle:focus-visible {
-  outline: 2px solid #f5e6b0;
+.icon-btn:hover {
+  background: var(--gold-soft);
+}
+.icon-btn[aria-expanded="true"] {
+  background: var(--gold-soft);
+  box-shadow: inset 0 0 0 1px var(--gold);
+  color: var(--gold);
+}
+.icon-btn:focus-visible {
+  outline: 2px solid var(--text);
   outline-offset: 3px;
 }
-[data-tooltip]::after {
+.icon-btn[data-tooltip]::after {
   content: attr(data-tooltip);
   position: absolute;
-  bottom: calc(100% + 6px);
-  right: 0;
-  z-index: 10;
+  top: calc(100% + 6px);
+  bottom: auto;
+  left: 0;
+  right: auto;
+  z-index: 6;
   width: max-content;
-  max-width: 120px;
+  max-width: min(11rem, 30vw);
   padding: 0.35rem 0.5rem;
-  border: 1px solid #f5e6b0;
+  border: 1px solid var(--gold-line);
   border-radius: 4px;
-  background: #171b24;
-  color: #fff;
+  background: var(--ink);
+  color: var(--text);
   font-size: 0.8rem;
+  font-weight: 600;
   line-height: 1.4;
+  text-align: left;
   white-space: normal;
   overflow-wrap: anywhere;
   pointer-events: none;
   visibility: hidden;
 }
-.disclosure-toggle[data-tooltip]::after {
-  left: 0;
-  right: auto;
+.named-actions > .icon-btn:last-child:not(:first-child)[data-tooltip]::after {
+  left: auto;
+  right: 0;
 }
-[data-tooltip]:hover::after, [data-tooltip]:focus-visible::after { visibility: visible; }
+.icon-btn[data-tooltip]:hover::after,
+.icon-btn[data-tooltip]:focus-visible::after,
+.icon-btn.show-tip::after,
+.icon-btn[data-tooltip].show-tip::after {
+  visibility: visible;
+}
 
 .result-actions {
   display: flex;
@@ -671,9 +712,12 @@ select:focus {
 }
 .named-actions {
   display: inline-flex;
+  flex-direction: row;
   flex-wrap: wrap;
+  align-items: center;
   max-width: 100%;
-  gap: 0.35rem;
+  gap: var(--icon-gap);
+  margin: 0;
 }
 .month-math {
   margin: 0.75rem 0 0;

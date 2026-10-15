@@ -2,6 +2,10 @@
 
 Last updated: 2026-10-15
 
+## 2026-10-15 — Unified icon set and toolbars
+
+Every control icon is one Lucide-style outline SVG. Form options and saved scenarios share a toolbar; the top fit groups why, more, copy result, and copy link in one row, with panels below. Expanded toggles change colour instead of showing a second chevron. A touch shows the tooltip under the button for 1.5 seconds. Version 2026.10.15.4.
+
 ## 2026-10-15 — Icon controls with tooltips
 
 Secondary controls now use accessible icons with hover and keyboard-focus tooltips and touch titles. Copy feedback preserves the icons. Version 2026.10.15.3.
