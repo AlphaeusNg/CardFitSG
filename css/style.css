@@ -16,12 +16,12 @@
   --sans: "Inter", system-ui, sans-serif;
   --radius: 14px;
   --shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
-  --icon-btn-size: 40px;
-  --icon-btn-radius: 12px;
-  --icon-size: 24px;
-  --icon-stroke: 2;
-  --tap-target: 48px;
-  --icon-gap: 8px;
+  --icon-btn-size: 32px;
+  --icon-btn-radius: 8px;
+  --icon-size: 18px;
+  --icon-stroke: 1.75;
+  --icon-btn-target: 44px;
+  --icon-btn-gap: 4px;
 }
 
 *,
@@ -362,7 +362,7 @@ select:focus {
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-start;
-  gap: 0.65rem var(--icon-gap);
+  gap: 0.65rem var(--icon-btn-gap);
   margin: 0.35rem 0 0.75rem;
 }
 .heading-with-tools h2,
@@ -382,9 +382,9 @@ select:focus {
 .icon-toolbar {
   display: flex;
   flex-direction: row;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: var(--icon-gap);
+  gap: var(--icon-btn-gap);
   margin: 0.35rem 0 0.75rem;
   max-width: 100%;
   position: relative;
@@ -410,10 +410,10 @@ select:focus {
   margin: 0;
   padding: 0;
   border: 0;
-  box-shadow: inset 0 0 0 1px var(--gold-line);
+  box-shadow: none;
   border-radius: var(--icon-btn-radius);
   background: transparent;
-  color: var(--text);
+  color: var(--muted);
   font: inherit;
   line-height: 1;
   cursor: pointer;
@@ -421,7 +421,7 @@ select:focus {
 .icon-btn::before {
   content: "";
   position: absolute;
-  inset: calc((var(--icon-btn-size) - var(--tap-target)) / 2);
+  inset: calc((var(--icon-btn-size) - var(--icon-btn-target)) / 2);
   background: transparent;
 }
 .icon-btn svg {
@@ -435,12 +435,14 @@ select:focus {
   stroke-linejoin: round;
   pointer-events: none;
 }
-.icon-btn:hover {
-  background: var(--gold-soft);
+.icon-btn:hover,
+.icon-btn:focus-visible {
+  background: color-mix(in srgb, var(--muted) 12%, transparent);
+  color: var(--text);
 }
 .icon-btn[aria-expanded="true"] {
   background: var(--gold-soft);
-  box-shadow: inset 0 0 0 1px var(--gold);
+  box-shadow: none;
   color: var(--gold);
 }
 .icon-btn:focus-visible {
@@ -716,7 +718,7 @@ select:focus {
   flex-wrap: wrap;
   align-items: center;
   max-width: 100%;
-  gap: var(--icon-gap);
+  gap: var(--icon-btn-gap);
   margin: 0;
 }
 .month-math {
@@ -855,3 +857,59 @@ select:focus {
 #category-planner input[type="checkbox"] { width: auto; }
 
 .layout > * { min-width: 0; }
+
+.btn.btn-recalculate {
+  background: transparent;
+  border: 1px solid var(--gold);
+  color: var(--gold);
+}
+.btn.btn-recalculate:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+.more-menu-panel {
+  padding: 0.35rem;
+  margin-bottom: 0.75rem;
+  max-width: 18rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.menu-label {
+  margin: 0.45rem 0.55rem 0.15rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  min-height: 44px;
+  padding: 0.35rem 0.5rem;
+  border: 0;
+  border-radius: var(--icon-btn-radius);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.menu-item svg {
+  width: var(--icon-size);
+  height: var(--icon-size);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: var(--icon-stroke);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.menu-item:hover, .menu-item:focus-visible {
+  background: color-mix(in srgb, var(--muted) 12%, transparent);
+}
+.menu-item:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 1px;
+}

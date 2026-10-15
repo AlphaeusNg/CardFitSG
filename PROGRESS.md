@@ -2,6 +2,10 @@
 
 Last updated: 2026-10-15
 
+## 2026-10-15 — Small ghost icon standard
+
+Applied 32px ghost controls with 18px outline icons, 44px hit areas, and touch labels. Top-fit actions show Why this card, Copy link, and More options; grouped sharing and offer actions open below. Recalculate fit uses a gold outline. Version 2026.10.15.5.
+
 ## 2026-10-15 — Unified icon set and toolbars
 
 Every control icon is one Lucide-style outline SVG. Form options and saved scenarios share a toolbar; the top fit groups why, more, copy result, and copy link in one row, with panels below. Expanded toggles change colour instead of showing a second chevron. A touch shows the tooltip under the button for 1.5 seconds. Version 2026.10.15.4.

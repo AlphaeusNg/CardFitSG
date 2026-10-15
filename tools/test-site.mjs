@@ -135,12 +135,12 @@ for (const inputId of ["oneOff", "monthly"]) {
 }
 
 const disclosureSpecs = [
-  { id: "more-options-toggle", region: "more-options", label: "More options (cards held, preferences)", source: index },
+  { id: "more-options-toggle", region: "more-options", label: "Cards held and preferences", source: index },
   { id: "saved-scenarios-toggle", region: "saved-scenarios-panel", label: "Saved scenarios", source: index },
   { id: "compare-tools-toggle", region: "compare-tools", label: "Compare cards and scenarios", source: index },
   { id: "method-details-toggle", region: "method-details", label: "How scoring works: details", source: index },
   { id: "primary-details-toggle", region: "primary-details", label: "Why this card", source: app },
-  { id: "primary-more-toggle", region: "primary-more", label: "More", source: app },
+  { id: "primary-more-toggle", region: "primary-more", label: "More options", source: app },
 ];
 
 function visibleLabel(html) {
@@ -156,14 +156,14 @@ function assertOutlineIcon(buttonHtml, id) {
   for (const attr of [
     'stroke="currentColor"',
     'fill="none"',
-    'stroke-width="2"',
+    'stroke-width="1.75"',
     'viewBox="0 0 24 24"',
     'aria-hidden="true"',
     'focusable="false"',
   ]) {
     assert(opens[0].includes(attr), `${id} svg has ${attr}`);
   }
-  assert.equal(visibleLabel(inner), "", `${id} has no visible glyph`);
+  assert.equal(visibleLabel(inner), id === "copy-result" ? "Copy result" : "", `${id} has the expected visible label`);
 }
 
 function iconToolbars(html) {
@@ -222,7 +222,7 @@ assert.match(savedPanel, /id="save-named-scenario"/, "save stays in the saved pa
 assert.match(savedPanel, /id="named-scenario-status"/, "save status stays in the saved panel");
 assert.match(savedPanel, /id="named-scenario-list"/, "saved list stays in the saved panel");
 assert.doesNotMatch(savedPanel, /Recalculate fit/, "Recalculate fit stays outside the saved panel");
-assert.match(index, /<button type="submit" class="btn">Recalculate fit<\/button>/, "Recalculate fit remains the submit control");
+assert.match(index, /<button type="submit" class="btn btn-recalculate">Recalculate fit<\/button>/, "Recalculate fit remains the submit control");
 
 const compareTools = sliceById(index, "compare-tools");
 assert.match(compareTools, /aria-label="Compare two cards"/, "card comparison is inside compare tools");
@@ -246,7 +246,7 @@ assert.match(app, /closest\(\s*["']\.disclosure-toggle["']\s*\)/, "one delegated
 assert.match(app, /setAttribute\(\s*["']aria-expanded["']/, "the handler flips aria-expanded");
 assert.match(app, /region\.hidden\s*=\s*expanded/, "the handler flips the region's hidden state");
 assert.match(app, /id="primary-details" hidden/, "rendered top-fit details start hidden");
-assert.match(app, /id="primary-more" hidden/, "rendered top-fit extra actions start hidden");
+assert.match(app, /id="primary-more" class="more-menu-panel" hidden/, "rendered top-fit extra actions start hidden");
 assert.match(app, /Official product page[\s\S]*primary-details-toggle/, "the official link stays ahead of Why this card");
 
 const formToolbars = iconToolbars(index).filter((bar) => bar.includes('id="more-options-toggle"') || bar.includes('id="saved-scenarios-toggle"'));
@@ -264,7 +264,7 @@ assert.doesNotMatch(formToolbars[0], /id="saved-scenarios-panel"/, "the saved pa
 
 const topToolbars = iconToolbars(app).filter((bar) => /id="(?:primary-details-toggle|primary-more-toggle|copy-result|copy-link)"/.test(bar));
 assert.equal(topToolbars.length, 1, "top-fit icon buttons share one icon toolbar");
-for (const id of ["primary-details-toggle", "primary-more-toggle", "copy-result", "copy-link"]) {
+for (const id of ["primary-details-toggle", "copy-link", "primary-more-toggle"]) {
   assert.match(topToolbars[0], new RegExp(`id="${id}"`), `top-fit toolbar includes ${id}`);
 }
 assert.match(topToolbars[0], /role="toolbar"/, "the top-fit toolbar exposes the toolbar role");
@@ -279,12 +279,12 @@ const css = readFileSync(resolve(root, "css/style.css"), "utf8");
 const rootVars = /:root\s*\{([^}]+)\}/.exec(css);
 assert(rootVars, "palette tokens live on :root");
 for (const declaration of [
-  ["--icon-btn-size", "40px"],
-  ["--icon-btn-radius", "12px"],
-  ["--icon-size", "24px"],
-  ["--icon-stroke", "2"],
-  ["--tap-target", "48px"],
-  ["--icon-gap", "8px"],
+  ["--icon-btn-size", "32px"],
+  ["--icon-btn-radius", "8px"],
+  ["--icon-size", "18px"],
+  ["--icon-stroke", "1.75"],
+  ["--icon-btn-target", "44px"],
+  ["--icon-btn-gap", "4px"],
 ]) {
   assert.match(rootVars[1], new RegExp(`${declaration[0]}:\\s*${declaration[1]}\\b`), `${declaration[0]} is specified`);
 }
@@ -297,16 +297,16 @@ const iconSvgRule = /\.icon-btn svg\s*\{([^}]+)\}/.exec(css);
 assert(iconSvgRule, "icon artwork has a shared size rule");
 assert.match(iconSvgRule[1], /width:\s*var\(--icon-size\)/);
 assert.match(iconSvgRule[1], /height:\s*var\(--icon-size\)/);
-assert.match(css, /\.icon-btn::before\s*\{[^}]*inset:\s*calc\(\(var\(--icon-btn-size\) - var\(--tap-target\)\) \/ 2\)/, "the hit area grows without changing the visual size");
+assert.match(css, /\.icon-btn::before\s*\{[^}]*inset:\s*calc\(\(var\(--icon-btn-size\) - var\(--icon-btn-target\)\) \/ 2\)/, "the hit area grows without changing the visual size");
 const toolbarRule = [...css.matchAll(/\.icon-toolbar\s*\{([^}]+)\}/g)].map((item) => item[1]).find((body) => /display:\s*flex/.test(body));
 assert(toolbarRule, "icon toolbars have a style rule");
 assert.match(toolbarRule, /flex-direction:\s*row/, "icon toolbars stay in a row");
-assert.match(toolbarRule, /flex-wrap:\s*wrap/, "icon toolbars wrap instead of stacking one control per row");
-assert.match(toolbarRule, /gap:\s*var\(--icon-gap\)/, "icon buttons use the 8px gap");
+assert.match(toolbarRule, /flex-wrap:\s*nowrap/, "icon toolbars keep essentials in one row");
+assert.match(toolbarRule, /gap:\s*var\(--icon-btn-gap\)/, "icon buttons use the 8px gap");
 const expandedIcon = /\.icon-btn\[aria-expanded="true"\]\s*\{([^}]+)\}/.exec(css);
 assert(expandedIcon, "an expanded icon button changes colour");
 assert.match(expandedIcon[1], /background:\s*var\(--gold-soft\)/);
-assert.match(expandedIcon[1], /box-shadow:[^;]*var\(--gold\)/);
+assert.match(expandedIcon[1], /box-shadow:\s*none/);
 assert.match(expandedIcon[1], /color:\s*var\(--gold\)/);
 assert.match(css, /top:\s*calc\(100%\s*\+\s*6px\)/, "tooltips open below the button");
 assert.doesNotMatch(css, /bottom:\s*calc\(100%\s*\+\s*6px\)/, "tooltips do not cover the link above the toolbar");
@@ -330,7 +330,7 @@ for (const label of ["Copy result", "Copy link"]) {
   assert(button.includes(`data-tooltip="${label}"`));
   assert.match(button, /title="[^"]+"/);
   assert.match(button, /<svg aria-hidden="true" focusable="false"/);
-  assert.match(button, /\bicon-btn\b/);
+  assert.match(button, /\b(?:icon-btn|menu-item)\b/);
   assertOutlineIcon(button, id);
 }
 for (const word of ["Use", "Remove"]) {
@@ -340,9 +340,24 @@ for (const word of ["Use", "Remove"]) {
   assert(button.includes(`data-tooltip="${word}"`));
   assert.match(button, /title="[^"]+"/);
   assert.match(button, /<svg aria-hidden="true" focusable="false"/);
-  assert.match(button, /\bicon-btn\b/);
+  assert.match(button, /\b(?:icon-btn|menu-item)\b/);
   assertOutlineIcon(button, word);
 }
 assert.match(app, /class="named-actions icon-toolbar"/, "Use and Remove share one toolbar row");
 assert.match(css, /\[data-tooltip\]:hover::after/);
 assert.match(css, /\[data-tooltip\]:focus-visible::after/);
+
+assert.doesNotMatch(css, /--(?:tap-target|icon-gap)\b/);
+assert.match(iconButtonRule[1], /color:\s*var\(--muted\)/);
+assert.match(iconButtonRule[1], /box-shadow:\s*none/);
+assert.match(iconSvgRule[1], /stroke-width:\s*var\(--icon-stroke\)/);
+assert.match(css, /\.btn\.btn-recalculate\s*\{[^}]*background:\s*transparent;[^}]*border:\s*1px solid var\(--gold\);[^}]*color:\s*var\(--gold\)/);
+assert.match(index, /type="submit" class="btn btn-recalculate">Recalculate fit/);
+assert.equal((topToolbars[0].match(/<button\b/g) || []).length, 3);
+assert.equal((formToolbars[0].match(/<button\b/g) || []).length, 2);
+const primaryMore = sliceById(app, "primary-more");
+assert.match(primaryMore, /id="copy-result"/);
+assert.match(primaryMore, />Share<|>Share<\//);
+assert.match(primaryMore, />Offer</);
+assert.match(app, /event.key !== "Escape"/);
+assert.match(app, /button.focus\(\)/);

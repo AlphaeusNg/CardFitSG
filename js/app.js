@@ -742,10 +742,9 @@
       ${expiry ? `<p class="muted tiny">${escapeHtml(expiry)}</p>` : ""}
       ${officialUrl(c) ? `<div class="result-actions"><a class="btn" href="${escapeAttr(officialUrl(c))}" target="_blank" rel="noopener">Official product page</a></div>` : ""}
       <div class="icon-toolbar" role="toolbar" aria-label="Top fit actions">
-        <button type="button" class="icon-btn disclosure-toggle" id="primary-details-toggle" aria-expanded="false" aria-controls="primary-details" aria-label="Why this card" data-tooltip="Why this card" title="Why this card"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></svg></button>
-        <button type="button" class="icon-btn disclosure-toggle" id="primary-more-toggle" aria-expanded="false" aria-controls="primary-more" aria-label="More" data-tooltip="More" title="More"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /></svg></button>
-        <button type="button" class="icon-btn" id="copy-result" aria-label="Copy result" data-tooltip="Copy result" title="Copy result"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></svg></button>
-        <button type="button" class="icon-btn" id="copy-link" aria-label="Copy link" data-tooltip="Copy link" title="Copy link"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17H7A5 5 0 0 1 7 7h2" /><path d="M15 7h2a5 5 0 1 1 0 10h-2" /><path d="M8 12h8" /></svg></button>
+        <button type="button" class="icon-btn disclosure-toggle" id="primary-details-toggle" aria-expanded="false" aria-controls="primary-details" aria-label="Why this card" data-tooltip="Why this card" title="Why this card"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></svg></button>
+        <button type="button" class="icon-btn" id="copy-link" aria-label="Copy link" data-tooltip="Copy link" title="Copy link"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17H7A5 5 0 0 1 7 7h2" /><path d="M15 7h2a5 5 0 1 1 0 10h-2" /><path d="M8 12h8" /></svg></button>
+        <button type="button" class="icon-btn disclosure-toggle" id="primary-more-toggle" aria-expanded="false" aria-controls="primary-more" aria-label="More options" data-tooltip="More options" title="More options"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /></svg></button>
       </div>
       <div id="primary-details" hidden>
       <ul class="reasons">
@@ -757,7 +756,13 @@
       ${renderBreakdown(p, result)}
       <p class="muted tiny">Estimate only — excludes overseas FX markups, non-qualifying MCC codes, and promo clawbacks. Rates as of ${escapeHtml(db.meta.asOf)}.</p>
       </div>
-      <div id="primary-more" hidden>${termsUrl ? `<div class="result-actions"><a class="btn" href="${escapeAttr(termsUrl)}" target="_blank" rel="noopener">Offer terms</a></div>` : ""}</div>
+      <div id="primary-more" class="more-menu-panel" hidden>
+        <section class="menu-section" aria-labelledby="primary-share-heading">
+          <h3 class="menu-label" id="primary-share-heading">Share</h3>
+          <button type="button" class="menu-item" id="copy-result" aria-label="Copy result" data-tooltip="Copy result" title="Copy result"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></svg><span>Copy result</span></button>
+        </section>
+        ${termsUrl ? `<section class="menu-section" aria-labelledby="primary-offer-heading"><h3 class="menu-label" id="primary-offer-heading">Offer</h3><a class="menu-item" href="${escapeAttr(termsUrl)}" target="_blank" rel="noopener">Offer terms</a></section>` : ""}
+      </div>
     `;
     }
 
@@ -863,8 +868,8 @@
         <li>
           <span>${escapeHtml(item.name)}</span>
           <div class="named-actions icon-toolbar" role="toolbar" aria-label="Saved scenario actions">
-            <button type="button" class="icon-btn" data-use-scenario="${escapeAttr(item.id)}" aria-label="Use scenario “${escapeAttr(item.name)}”" data-tooltip="Use" title="Use scenario “${escapeAttr(item.name)}”"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg></button>
-            <button type="button" class="icon-btn" data-remove-scenario="${escapeAttr(item.id)}" aria-label="Remove scenario “${escapeAttr(item.name)}”" data-tooltip="Remove" title="Remove scenario “${escapeAttr(item.name)}”"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /><line x1="10" x2="10" y1="11" y2="17" /><line x1="14" x2="14" y1="11" y2="17" /></svg></button>
+            <button type="button" class="icon-btn" data-use-scenario="${escapeAttr(item.id)}" aria-label="Use scenario “${escapeAttr(item.name)}”" data-tooltip="Use" title="Use scenario “${escapeAttr(item.name)}”"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg></button>
+            <button type="button" class="icon-btn" data-remove-scenario="${escapeAttr(item.id)}" aria-label="Remove scenario “${escapeAttr(item.name)}”" data-tooltip="Remove" title="Remove scenario “${escapeAttr(item.name)}”"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /><line x1="10" x2="10" y1="11" y2="17" /><line x1="14" x2="14" y1="11" y2="17" /></svg></button>
           </div>
         </li>`
       )
@@ -1200,6 +1205,16 @@
   }
 
   function bindDisclosureToggles() {
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") return;
+      const button = document.getElementById("primary-more-toggle");
+      const panel = document.getElementById("primary-more");
+      if (!button || !panel || button.getAttribute("aria-expanded") !== "true") return;
+      event.preventDefault();
+      panel.hidden = true;
+      button.setAttribute("aria-expanded", "false");
+      button.focus();
+    });
     document.addEventListener("click", (event) => {
       const target = event.target;
       const button = target && typeof target.closest === "function" ? target.closest(".disclosure-toggle") : null;

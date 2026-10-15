@@ -1527,7 +1527,7 @@ function displayedFeeCents(html) {
     assert(button.includes(`data-tooltip="${word}"`));
     assert.match(button, /title="[^"]+"/);
     assert.match(button, /<svg aria-hidden="true" focusable="false"/);
-    assert.match(button, /\bicon-btn\b/);
+    assert.match(button, /\b(?:icon-btn|menu-item)\b/);
     assertOutlineIcon(button, word);
   }
   const savedToolbars = iconToolbars(listHtml);
@@ -1790,10 +1790,10 @@ for (const outcome of ["resolve", "reject"]) {
 }
 
 const disclosureSpecs = [
-  { id: "more-options-toggle", region: "more-options", label: "More options (cards held, preferences)" },
+  { id: "more-options-toggle", region: "more-options", label: "Cards held and preferences" },
   { id: "saved-scenarios-toggle", region: "saved-scenarios-panel", label: "Saved scenarios" },
   { id: "primary-details-toggle", region: "primary-details", label: "Why this card" },
-  { id: "primary-more-toggle", region: "primary-more", label: "More" },
+  { id: "primary-more-toggle", region: "primary-more", label: "More options" },
   { id: "compare-tools-toggle", region: "compare-tools", label: "Compare cards and scenarios" },
   { id: "method-details-toggle", region: "method-details", label: "How scoring works: details" },
 ];
@@ -1811,14 +1811,14 @@ function assertOutlineIcon(buttonHtml, id) {
   for (const attr of [
     'stroke="currentColor"',
     'fill="none"',
-    'stroke-width="2"',
+    'stroke-width="1.75"',
     'viewBox="0 0 24 24"',
     'aria-hidden="true"',
     'focusable="false"',
   ]) {
     assert(opens[0].includes(attr), `${id} svg has ${attr}`);
   }
-  assert.equal(visibleLabel(inner), "", `${id} has no visible glyph`);
+  assert.equal(visibleLabel(inner), id === "copy-result" ? "Copy result" : "", `${id} has the expected visible label`);
 }
 
 function iconToolbars(html) {
@@ -1926,9 +1926,9 @@ function clickDisclosure(doc, elements, spec) {
     assert(button.includes(`data-tooltip="${label}"`));
     assert(button.includes(`title="${label}"`));
     assert.match(button, /<svg aria-hidden="true" focusable="false"/);
-    assert.match(button, /\bicon-btn\b/);
+    assert.match(button, /\b(?:icon-btn|menu-item)\b/);
     assertOutlineIcon(button, id);
-    assert.equal(visibleLabel(button), "", "icon controls have no visible word");
+    assert.equal(visibleLabel(button), id === "copy-result" ? "Copy result" : "", "controls have the expected visible label");
     const attrs = {};
     const target = makeElement({
       innerHTML: "<svg></svg>",
@@ -1943,22 +1943,36 @@ function clickDisclosure(doc, elements, spec) {
     assert.equal(attrs["data-tooltip"], attrs["aria-label"]);
     assert.equal(attrs.title, attrs["aria-label"]);
   }
+  const moreButton = result.elements["primary-more-toggle"];
+  let focusReturned = false;
+  moreButton.focus = () => { focusReturned = true; };
+  let prevented = false;
+  result.sandbox.document.dispatch("keydown", {
+    key: "Escape", preventDefault() { prevented = true; },
+  });
+  assert.equal(result.elements["primary-more"].hidden, true, "Escape closes More");
+  assert.equal(moreButton.getAttribute("aria-expanded"), "false");
+  assert.equal(focusReturned, true, "Escape returns focus to More options");
+  assert.equal(prevented, true);
   const details = extractById(primaryHtml, "primary-details");
   const more = extractById(primaryHtml, "primary-more");
   const outside = primaryHtml.replace(details, "").replace(more, "");
   assert.match(details, /<ul class="reasons">/, "why-this-card holds the reason list");
   assert.match(details, /Estimate only/, "why-this-card holds the fine print");
-  assert.doesNotMatch(more, /id="copy-result"/, "More no longer holds Copy result");
+  assert.match(more, /id="copy-result"/, "More holds Copy result");
+  assert.match(more, />Share</);
+  assert.match(more, />Offer</);
   assert.doesNotMatch(more, /id="copy-link"/, "More no longer holds Copy link");
   assert.match(more, /Offer terms/, "More holds Offer terms");
-  assert.match(outside, /id="copy-result"/, "Copy result stays on the top-fit toolbar");
+  assert.doesNotMatch(outside, /id="copy-result"/, "Copy result is inside More");
   assert.match(outside, /id="copy-link"/, "Copy link stays on the top-fit toolbar");
   assert.match(outside, /Official product page/, "the official product page stays outside More");
   assert.match(outside, /class="card-title"/, "the card name stays outside the details");
   assert.match(outside, /class="metrics"/, "the four stat tiles stay outside the details");
   const topBars = iconToolbars(primaryHtml);
-  assert.equal(topBars.length, 1, "the four top-fit buttons share one toolbar");
-  for (const id of ["primary-details-toggle", "primary-more-toggle", "copy-result", "copy-link"]) {
+  assert.equal((topBars[0].match(/<button\b/g) || []).length, 3);
+  assert.equal(topBars.length, 1, "the three top-fit buttons share one toolbar");
+  for (const id of ["primary-details-toggle", "copy-link", "primary-more-toggle"]) {
     assert.match(topBars[0], new RegExp(`id="${id}"`), `top-fit toolbar includes ${id}`);
   }
   assert(primaryHtml.indexOf("Official product page") < primaryHtml.indexOf('class="icon-toolbar"'), "the official link stays above the toolbar");
