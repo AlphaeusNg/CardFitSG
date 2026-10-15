@@ -1287,3 +1287,10 @@ matrix remains contained. Version 2026.10.14.6.
 Empty-spend, held-card, and booking lines keep the S$3,500 example, the S$0 fuss-free result, MCC and airline exclusions, merchant currency, and the dynamic-currency warning. Signup lookback stays 6–12 months. Catalog facts and dates are unchanged. Version 2026.10.15.1.
 
 Validation: site and app node gates passed. The catalog engine suite was not rerun.
+
+
+## 2026-10-16 — Keep open explanations during automatic date refresh
+
+The automatic Singapore-date rollover refresh now restores expanded top-fit explanations and offer tools, plus the focused top-fit action, after repainting updated estimates. Manual amount changes keep the existing collapsed-result behavior. The desktop and 320px planner journeys reproduce the original collapse and verify the fix without changing catalog facts, saved scenarios or URL semantics. Deployment stamp: 2026.10.16.1.
+
+Validation: all engine, planner, app, site, freshness and workflow gates passed. The expanded Chromium planner journey passed at 1280px and 320px after reproducing the collapse before the fix. JavaScript syntax and whitespace checks passed.

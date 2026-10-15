@@ -1035,8 +1035,21 @@
     if (!db) return false;
     const today = marketTodayYmd();
     if (!isYmd(today) || today === scoredMarketYmd) return false;
+    const expanded = ["primary-details-toggle", "primary-more-toggle"].filter(
+      (id) => document.getElementById(id)?.getAttribute("aria-expanded") === "true"
+    );
+    const active = document.activeElement;
+    const focusId = document.getElementById("primary")?.contains?.(active) ? active.id : "";
     renderCatalogDates();
     run();
+    for (const id of expanded) {
+      const button = document.getElementById(id);
+      const panel = document.getElementById(button?.getAttribute("aria-controls") || "");
+      if (!button || !panel) continue;
+      button.setAttribute("aria-expanded", "true");
+      panel.hidden = false;
+    }
+    if (focusId) document.getElementById(focusId)?.focus({ preventScroll: true });
     return true;
   }
 

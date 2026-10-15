@@ -42,6 +42,18 @@ try {
     await page.locator("#category-enable").uncheck();
     assert.equal(await page.locator("#category-controls").isVisible(), false);
     assert.deepEqual(errors, []);
+    // An automatic Singapore date refresh should not collapse the explanation
+    // a reader opened or drop keyboard focus when its controls are replaced.
+    await page.locator("#primary-details-toggle").click();
+    await page.locator("#primary-more-toggle").click();
+    await page.locator("#copy-result").focus();
+    await page.clock.setFixedTime(new Date("2026-10-15T04:00:00Z"));
+    assert.equal(await page.evaluate(() => window.CardFitApp.refreshIfMarketDateChanged()), true);
+    assert.equal(await page.locator("#primary-details").isVisible(), true, "automatic date refresh retains the open explanation");
+    assert.equal(await page.locator("#primary-more").isVisible(), true, "automatic date refresh retains open offer tools");
+    assert.equal(await page.locator("#primary-details-toggle").getAttribute("aria-expanded"), "true");
+    assert.equal(await page.locator("#primary-more-toggle").getAttribute("aria-expanded"), "true");
+    assert.equal(await page.locator("#copy-result").evaluate(node => node === document.activeElement), true, "automatic refresh retains keyboard focus");
     await page.close();
     console.log(`Category planner Chromium journey passed at ${width}px`);
   }
