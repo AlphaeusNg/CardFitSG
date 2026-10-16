@@ -379,6 +379,32 @@
     btn.setAttribute("title", label);
   }
 
+  let shareCopyRevision = 0;
+  const shareCopyTimers = new WeakMap();
+
+  async function copyShareText(btn, text, success, label) {
+    const revision = ++shareCopyRevision;
+    const recovery = $("#share-copy-recovery");
+    if (recovery) recovery.hidden = true;
+    try {
+      await navigator.clipboard.writeText(text);
+      if (revision !== shareCopyRevision) return;
+      setIconFeedback(btn, success);
+    } catch {
+      if (revision !== shareCopyRevision) return;
+      setIconFeedback(btn, "Copy failed");
+      const fallback = $("#share-copy-text");
+      if (fallback && recovery) {
+        fallback.value = text;
+        recovery.hidden = false;
+        fallback.focus();
+        fallback.select();
+      }
+    }
+    clearTimeout(shareCopyTimers.get(btn));
+    shareCopyTimers.set(btn, setTimeout(() => setIconFeedback(btn, label), 1600));
+  }
+
   function copyTopFit(btn) {
     if (!db) return;
     const scenario = scenarioFromForm();
@@ -386,33 +412,12 @@
     const p = result?.primary;
     if (!p) return;
     const line = `CardFitSG top fit: ${p.card.name} · S$${fmt(p.net)} est. net over ${result.scenario.months} months. Educational only, not financial advice. ${scenarioPageUrl(scenario)}`;
-    const done = () => {
-      setIconFeedback(btn, "Copied");
-      setTimeout(() => { setIconFeedback(btn, "Copy result"); }, 1600);
-    };
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(line).then(done).catch(() => {
-        setIconFeedback(btn, "Copy failed");
-      });
-      return;
-    }
-    setIconFeedback(btn, "Copy failed");
+    return copyShareText(btn, line, "Copied", "Copy result");
   }
 
   function copyScenarioLink(btn) {
     if (!db) return;
-    const url = scenarioPageUrl(scenarioFromForm());
-    const done = () => {
-      setIconFeedback(btn, "Link copied");
-      setTimeout(() => { setIconFeedback(btn, "Copy link"); }, 1600);
-    };
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(url).then(done).catch(() => {
-        setIconFeedback(btn, "Copy failed");
-      });
-      return;
-    }
-    setIconFeedback(btn, "Copy failed");
+    return copyShareText(btn, scenarioPageUrl(scenarioFromForm()), "Link copied", "Copy link");
   }
 
   function applyPreset(btn) {
@@ -699,6 +704,9 @@
   }
 
   function renderResult(result) {
+    ++shareCopyRevision;
+    const recovery = $("#share-copy-recovery");
+    if (recovery) recovery.hidden = true;
     cancelRankedPaint();
     const p = result.primary;
     const primary = $("#primary");

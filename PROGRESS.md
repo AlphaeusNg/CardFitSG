@@ -1294,3 +1294,10 @@ Validation: site and app node gates passed. The catalog engine suite was not rer
 The automatic Singapore-date rollover refresh now restores expanded top-fit explanations and offer tools, plus the focused top-fit action, after repainting updated estimates. Manual amount changes keep the existing collapsed-result behavior. The desktop and 320px planner journeys reproduce the original collapse and verify the fix without changing catalog facts, saved scenarios or URL semantics. Deployment stamp: 2026.10.16.1.
 
 Validation: all engine, planner, app, site, freshness and workflow gates passed. The expanded Chromium planner journey passed at 1280px and 320px after reproducing the collapse before the fix. JavaScript syntax and whitespace checks passed.
+
+
+## 2026-10-17 — Recover share text when clipboard access is blocked
+
+Copy result and Copy link expose selected read-only text when clipboard access fails or is unavailable. Recalculating clears old recovery content; request revisions prevent obsolete asynchronous copies from exposing stale text. Copy feedback resets per button. The recovery panel stays hidden until needed and fits 320px. Version 2026.10.17.1.
+
+Validation: All Node app/engine/site/freshness/workflow/planner gates passed. The extended Chromium planner journey passed at 1280px and 320px with denied clipboard access and unchanged financial assumptions.

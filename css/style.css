@@ -913,3 +913,6 @@ select:focus {
   outline: 2px solid var(--gold);
   outline-offset: 1px;
 }
+
+/* Manual copy recovery appears only when the browser denies clipboard access. */
+#share-copy-text { width: 100%; min-width: 0; box-sizing: border-box; resize: vertical; }

@@ -15,6 +15,24 @@ try {
     const ranking = await page.locator("#ranked").innerHTML();
     const url = page.url();
     const savedActive = await page.evaluate(() => localStorage.getItem("cardfitsg-last-scenario-v1"));
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, "clipboard", { configurable: true, value: {
+        writeText: async () => { throw new Error("clipboard denied"); },
+      } });
+    });
+    await page.locator("#copy-link").click();
+    await page.locator("#share-copy-recovery").waitFor({ state: "visible" });
+    assert.equal(await page.locator("#share-copy-text").inputValue(), url);
+    assert.equal(await page.locator("#share-copy-text").evaluate(node => node === document.activeElement), true);
+    await page.locator("#primary-more-toggle").click();
+    await page.locator("#copy-result").click();
+    assert.match(await page.locator("#share-copy-text").inputValue(), /^CardFitSG top fit:/);
+    assert.match(await page.locator("#share-copy-text").inputValue(), /not financial advice/);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.locator("#primary-more-toggle").click();
+    await page.evaluate(() => window.CardFitApp.run());
+    assert.equal(await page.locator("#share-copy-recovery").isVisible(), false, "recalculation clears old copy recovery");
+
     assert.equal(await page.locator("#category-enable").isChecked(), false);
     assert.equal(await page.locator("#category-controls").isVisible(), false);
     await page.locator("#category-planner > details > summary").click();

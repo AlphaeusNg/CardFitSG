@@ -21,7 +21,7 @@ For category spending, open **Plan OCBC 365 category cashback** below the compar
 
 Research and next priorities: [Feature roadmap](docs/FEATURE_ROADMAP.md).
 
-Last scenario restores locally. Copyable URLs restore spend, flags, held cards, and recent issuers. No account, no server.
+Last scenario restores locally. Copyable URLs restore spend, flags, held cards, and recent issuers. If clipboard access is blocked, Copy link and Copy result show selectable text for manual copying. No account, no server.
 
 Working in this repo? See **[AGENTS.md](AGENTS.md)** for the scoring engine, catalog update rules, and tests.
 
