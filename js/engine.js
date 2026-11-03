@@ -54,6 +54,7 @@
 
   // Fields a dated rateSchedule entry may replace. Signup offers, fees, network,
   // and scores stay on the card; only published earn terms switch by date.
+  // Signup cash has its own narrowly scoped cashRewardSchedule.
   const RATE_SCHEDULE_FIELDS = Object.freeze([
     "flatRate",
     "categoryRates",
@@ -69,23 +70,29 @@
   /**
    * Card terms in force on a Singapore market day. Entries in card.rateSchedule
    * apply cumulatively, in ascending effectiveFrom order, once asOfYmd reaches
-   * them. Before the first entry (or without a schedule) the original card
-   * object is returned unchanged.
+   * them. A signup.cashRewardSchedule separately changes only welcome cash.
+   * Before any scheduled change the original card object is returned unchanged.
    */
   function cardAsOf(card, asOfYmd) {
-    if (!card || !Array.isArray(card.rateSchedule) || card.rateSchedule.length === 0) return card;
+    if (!card) return card;
     if (!parseYmd(asOfYmd)) return card;
-    const due = card.rateSchedule
+    const due = (Array.isArray(card.rateSchedule) ? card.rateSchedule : [])
       .filter((entry) => entry && typeof entry === "object" && parseYmd(entry.effectiveFrom))
       .filter((entry) => entry.effectiveFrom <= asOfYmd)
       .sort((a, b) => (a.effectiveFrom < b.effectiveFrom ? -1 : a.effectiveFrom > b.effectiveFrom ? 1 : 0));
-    if (due.length === 0) return card;
+    const awards = (Array.isArray(card.signup?.cashRewardSchedule) ? card.signup.cashRewardSchedule : [])
+      .filter(entry => entry && parseYmd(entry.effectiveFrom) && entry.effectiveFrom <= asOfYmd)
+      .sort((a, b) => a.effectiveFrom.localeCompare(b.effectiveFrom));
+    if (due.length === 0 && awards.length === 0) return card;
     const resolved = { ...card };
     for (const entry of due) {
       for (const key of RATE_SCHEDULE_FIELDS) {
         if (Object.prototype.hasOwnProperty.call(entry, key)) resolved[key] = entry[key];
       }
       resolved.ratesEffectiveFrom = entry.effectiveFrom;
+    }
+    if (awards.length) {
+      resolved.signup = { ...card.signup, cashReward: awards[awards.length - 1].cashReward };
     }
     return resolved;
   }
@@ -378,6 +385,32 @@
             );
           }
           requireNumber(card.signup.cashReward, `${signupPath}.cashReward`);
+          if (card.signup.cashRewardSchedule != null) {
+            const schedule = card.signup.cashRewardSchedule;
+            const schedulePath = `${signupPath}.cashRewardSchedule`;
+            if (!Array.isArray(schedule) || !schedule.length) {
+              errors.push(`${schedulePath} must be a non-empty array`);
+            } else {
+              let previous = null;
+              schedule.forEach((entry, index) => {
+                const entryPath = `${schedulePath}[${index}]`;
+                if (!isRecord(entry)) {
+                  errors.push(`${entryPath} must be an object`);
+                  return;
+                }
+                if (!parseYmd(entry.effectiveFrom)) {
+                  errors.push(`${entryPath}.effectiveFrom must be a valid YYYY-MM-DD date`);
+                } else {
+                  if (previous && entry.effectiveFrom <= previous) errors.push(`${entryPath}.effectiveFrom must be later than the previous entry`);
+                  if (card.signup.activeThrough && entry.effectiveFrom > card.signup.activeThrough) errors.push(`${entryPath}.effectiveFrom must not follow the offer end`);
+                  previous = entry.effectiveFrom;
+                }
+                requireNumber(entry.cashReward, `${entryPath}.cashReward`);
+                Object.keys(entry).filter(key => !['effectiveFrom', 'cashReward'].includes(key))
+                  .forEach(key => errors.push(`${entryPath}.${key} cannot change in a cash reward schedule`));
+              });
+            }
+          }
           if (Object.prototype.hasOwnProperty.call(card.signup, "minSpendPerMonth") ||
               Object.prototype.hasOwnProperty.call(card.signup, "spendMonths")) {
             requireNumber(card.signup.minSpendPerMonth, `${signupPath}.minSpendPerMonth`, { min: 1 });

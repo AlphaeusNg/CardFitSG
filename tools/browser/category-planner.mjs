@@ -72,6 +72,14 @@ try {
     assert.equal(await page.locator("#primary-details-toggle").getAttribute("aria-expanded"), "true");
     assert.equal(await page.locator("#primary-more-toggle").getAttribute("aria-expanded"), "true");
     assert.equal(await page.locator("#copy-result").evaluate(node => node === document.activeElement), true, "automatic refresh retains keyboard focus");
+    await page.clock.setFixedTime(new Date("2026-11-04T04:00:00Z"));
+    await page.goto((process.env.CARDFIT_URL || "http://127.0.0.1:8097/") + "?oneOff=800&monthly=0&months=12&fuss=0&opt=1&amex=1");
+    await page.locator("#primary .card-title").waitFor();
+    assert.equal(await page.locator("#primary .card-title").textContent(), "OCBC 365");
+    assert.equal(await page.locator("#primary .metrics .metric").nth(2).locator("b").textContent(), "S$365");
+    assert.equal(await page.locator("#asof-label").textContent(), "2026-11-04");
+    assert.equal(await page.locator("#catalog-review-banner").isVisible(), false, "renewed catalog has no overdue banner");
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     await page.close();
     console.log(`Category planner Chromium journey passed at ${width}px`);
   }

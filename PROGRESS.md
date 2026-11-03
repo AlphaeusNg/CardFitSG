@@ -1301,3 +1301,23 @@ Validation: all engine, planner, app, site, freshness and workflow gates passed.
 Copy result and Copy link expose selected read-only text when clipboard access fails or is unavailable. Recalculating clears old recovery content; request revisions prevent obsolete asynchronous copies from exposing stale text. Copy feedback resets per button. The recovery panel stays hidden until needed and fits 320px. Version 2026.10.17.1.
 
 Validation: All Node app/engine/site/freshness/workflow/planner gates passed. The extended Chromium planner journey passed at 1280px and 320px with denied clipboard access and unchanged financial assumptions.
+
+## 2026-11-04 — Review November issuer terms and date welcome cash
+
+Reverified the six official issuer pages and relevant terms; source evidence and
+model limitations are recorded in docs/CATALOG_REVIEW_2026-11-04.md. Renewed the
+UOB Absolute November gift window, keeping its separate qualifying spend periods
+and non-cash treatment. OCBC 365's welcome cash becomes S$365 for November and
+December applications while October remains S$300. A narrowly validated signup
+cash schedule resolves independently of earn-rate schedules and keeps existing
+issuer exclusions, spend requirements and expiry. Clarified OCBC application
+channels, approval deadline and cancellation clawback in catalog notes. Catalog
+asOf is 2026-11-04; next review is 2026-11-27. Web version 2026.11.04.1.
+
+Validation: 300 engine assertions, app startup/storage/render/rollover checks,
+19 freshness and 14 workflow assertions, live freshness, site, category-planner,
+per-file syntax and whitespace gates passed. The app regression verifies the
+October-to-November welcome award on Singapore date rollover. Chromium journeys
+passed at 1280px and 320px, including the current S$365 rendered welcome metric,
+review date, no overdue banner and no page overflow. Historical September banner
+fixtures explicitly omit the later welcome schedule.

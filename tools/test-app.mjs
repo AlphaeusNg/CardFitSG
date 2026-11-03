@@ -1039,6 +1039,7 @@ function sep30Catalog() {
   fixture.meta.reviewBy = "2026-09-29";
   for (const card of fixture.cards) {
     if (card.signup?.activeThrough) card.signup.activeThrough = "2026-09-30";
+    if (card.signup) delete card.signup.cashRewardSchedule;
   }
   return fixture;
 }
@@ -1735,6 +1736,20 @@ function displayedFeeCents(html) {
     assert.equal(written, false, "invalid JSON shapes cannot be overwritten by a save");
     assert.equal(store.deleteNamed(invalid, "n1").reason, "storage");
   }
+}
+
+// Welcome award boundaries reach the displayed recommendation, including rollover.
+{
+  const clock = { ymd: "2026-10-31" };
+  const result = await boot({ ok: true, status: 200, async json() { return structuredClone(catalog); } }, {
+    search: "?oneOff=800&monthly=0&months=12&fuss=0&opt=1&amex=1",
+    todayYmd: () => clock.ymd,
+  });
+  const award = () => result.recommendations.at(-1).ranked.find(row => row.card.id === "ocbc-365").signupCash;
+  assert.equal(award(), 300, "October applications retain S$300 through the app");
+  clock.ymd = "2026-11-01";
+  assert.equal(result.sandbox.window.CardFitApp.refreshIfMarketDateChanged(), true);
+  assert.equal(award(), 365, "Singapore midnight refresh applies November S$365 welcome award");
 }
 
 console.log("test-app.mjs: startup, event, persistence, scenario-boundary, spend-cap, compare, ranked-rate, two-phase render, preset, dock, share-link, reviewBy, soft-signup-ending, dated-rate-switch, month-math, assumptions, midnight, and render assertions passed");

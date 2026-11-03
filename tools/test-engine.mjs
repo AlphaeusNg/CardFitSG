@@ -115,11 +115,11 @@ console.log("CardFitSG engine tests\n");
   );
 }
 
-// Official issuer audit snapshot (2026-10-06)
+// Official issuer audit snapshot (2026-11-04)
 {
   const byId = Object.fromEntries(db.cards.map((card) => [card.id, card]));
-  assert(db.meta.asOf === "2026-10-06", "catalog audit date is current");
-  assert(db.meta.reviewBy === "2026-10-30", "catalog review precedes the earliest offer end");
+  assert(db.meta.asOf === "2026-11-04", "catalog audit date is current");
+  assert(db.meta.reviewBy === "2026-11-27", "catalog review precedes the earliest offer end");
   assert(
     db.meta.sources.length === 6 && db.meta.sources.every((source) => /ocbc\.com|uob\.com\.sg|americanexpress\.com|sc\.com/.test(source)),
     "catalog cites one official issuer page per card"
@@ -141,8 +141,8 @@ console.log("CardFitSG engine tests\n");
   assert(
     byId["uob-absolute"].signup.giftValueEst === 600 &&
       byId["uob-absolute"].signup.cashReward === 0 &&
-      byId["uob-absolute"].signup.activeThrough === "2026-10-31",
-    "Absolute October 2026 non-cash gift is current and stays out of the ranked net"
+      byId["uob-absolute"].signup.activeThrough === "2026-11-30",
+    "Absolute November 2026 non-cash gift is current and stays out of the ranked net"
   );
   assert(
     byId["uob-absolute"].signup.newToIssuerMonths === 6 &&
@@ -184,7 +184,7 @@ console.log("CardFitSG engine tests\n");
     "OCBC 365 discloses the 0.5% advertising-instalment marketing rate"
   );
   assert(byId["ocbc-365"].feeWaiverYears === 2, "OCBC 365 has a two-year fee waiver");
-  assert(byId["ocbc-365"].signup.cashReward === 300, "OCBC 365 October–December 2026 cash reward is represented");
+  assert(byId["ocbc-365"].signup.cashReward === 300, "OCBC 365 October base welcome cash is retained");
   assert(byId["ocbc-365"].signup.activeThrough === "2026-12-31", "OCBC 365 signup window is current");
   assert(
     byId["uob-one"].signup.cashReward === 0 &&
@@ -1152,7 +1152,7 @@ function assertReconciled(score, msg) {
     assert(row && row.signupCash === 0, `ranked ${id} carries S$0 signup cash`);
   }
   const ocbc365 = E.scoreCard(db.cards.find((c) => c.id === "ocbc-365"), { ...big, oneOff: 800, monthly: 0 });
-  assert(ocbc365.signupCash === 300, "eligible OCBC 365 spend earns the live S$300 welcome cash");
+  assert(ocbc365.signupCash === 365, "eligible OCBC 365 spend earns the live S$365 welcome cash");
   for (const card of db.cards.filter((c) => c.signup?.activeThrough)) {
     const [y, m, d] = card.signup.activeThrough.split("-").map(Number);
     const after = new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
@@ -1235,8 +1235,8 @@ function assertReconciled(score, msg) {
     "2026-11-01 resolves the new OCBC 365 rates and single tier"
   );
   assert(
-    nov1.signup === listed.signup && nov1.annualFee === listed.annualFee && nov1.id === listed.id,
-    "dated rate switch leaves signup, fees and identity untouched"
+    nov1.signup.cashReward === 365 && nov1.signup.minSpend === listed.signup.minSpend && nov1.annualFee === listed.annualFee && nov1.id === listed.id,
+    "dated terms resolve welcome cash while keeping eligibility, fees and identity"
   );
   assert(listed.categoryRates.dining === 0.05 && listed.earnCap === 80, "resolving a date never mutates the catalog card");
   assert(E.cardAsOf(listed, "2027-03-31").categoryRates.watsons === 0.03, "Watsons stays 3% through 31 March 2027");
@@ -1304,6 +1304,26 @@ function assertReconciled(score, msg) {
   assert(!withSchedule((rs) => { rs[0].earnCapTiers[0].cap = -1; }).valid, "schedule cap tiers are validated");
   assert(!withSchedule((rs) => { rs[0].categoryRates.dining = 6; }).valid, "schedule rates are validated");
   assert(!withSchedule((rs) => { rs.splice(0, rs.length, { effectiveFrom: "2026-11-01", termsUrl: rs[0].termsUrl }); }).valid, "schedule entries must change at least one rate field");
+}
+
+// November welcome award uses application-date boundaries independently of earn rates.
+{
+  const card = db.cards.find(card => card.id === "ocbc-365");
+  const scenario = { oneOff: 800, monthly: 0, months: 12, existingIssuers: [] };
+  for (const [asOf, expected] of [["2026-10-31", 300], ["2026-11-01", 365], ["2026-12-31", 365], ["2027-01-01", 0]]) {
+    assert(E.scoreCard(card, { ...scenario, asOf }).signupCash === expected, `OCBC welcome award on ${asOf} is S$${expected}`);
+  }
+  assert(E.scoreCard(card, { ...scenario, asOf: "2026-11-04", existingIssuers: ["OCBC"] }).signupCash === 0, "November upsizing retains issuer exclusions");
+  assert(card.signup.cashReward === 300, "dated welcome awards never mutate the catalog");
+  const awardOnly = structuredClone(card);
+  delete awardOnly.rateSchedule;
+  assert(E.cardAsOf(awardOnly, "2026-11-04").signup.cashReward === 365, "welcome cash resolves without any earn-rate schedule");
+  const invalidSchedules = [[], {}, [null], [{ effectiveFrom: "2026-11-31", cashReward: 365 }], [{ effectiveFrom: "2026-11-01", cashReward: -1 }], [{ effectiveFrom: "2027-01-01", cashReward: 365 }], [{ effectiveFrom: "2026-11-01", cashReward: 365, minSpend: 0 }], [{ effectiveFrom: "2026-11-02", cashReward: 365 }, { effectiveFrom: "2026-11-01", cashReward: 365 }]];
+  for (const schedule of invalidSchedules) {
+    const invalid = structuredClone(db);
+    invalid.cards.find(card => card.id === "ocbc-365").signup.cashRewardSchedule = schedule;
+    assert(!E.validateCatalog(invalid).valid, `malformed welcome schedule rejected: ${JSON.stringify(schedule)}`);
+  }
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);
