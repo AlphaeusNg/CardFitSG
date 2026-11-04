@@ -1961,6 +1961,15 @@ function clickDisclosure(doc, elements, spec) {
   const moreButton = result.elements["primary-more-toggle"];
   let focusReturned = false;
   moreButton.focus = () => { focusReturned = true; };
+  for (const options of [{ isComposing: true }, { keyCode: 229 }, { ctrlKey: true }, { metaKey: true }, { altKey: true }, { defaultPrevented: true }]) {
+    let consumed = false;
+    result.sandbox.document.dispatch("keydown", {
+      key: "Escape", ...options, preventDefault() { consumed = true; },
+    });
+    assert.equal(result.elements["primary-more"].hidden, false, "composition and browser shortcuts keep More open");
+    assert.equal(focusReturned, false, "ignored Escape preserves input focus");
+    assert.equal(consumed, false, "ignored Escape is not consumed");
+  }
   let prevented = false;
   result.sandbox.document.dispatch("keydown", {
     key: "Escape", preventDefault() { prevented = true; },

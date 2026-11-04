@@ -25,6 +25,18 @@ try {
     assert.equal(await page.locator("#share-copy-text").inputValue(), url);
     assert.equal(await page.locator("#share-copy-text").evaluate(node => node === document.activeElement), true);
     await page.locator("#primary-more-toggle").click();
+    for (const options of [{ isComposing: true }, { keyCode: 229 }, { ctrlKey: true }, { metaKey: true }, { altKey: true }, { consumed: true }]) {
+      await page.locator("#primary-more-toggle").evaluate((node, options) => {
+        const event = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true, ...options });
+        if (options.consumed) event.preventDefault();
+        node.dispatchEvent(event);
+      }, options);
+      assert.equal(await page.locator("#primary-more").isVisible(), true, "composed and consumed Escape keep offer tools open");
+    }
+    await page.locator("#primary-more-toggle").press("Escape");
+    assert.equal(await page.locator("#primary-more").isVisible(), false);
+    assert.equal(await page.locator("#primary-more-toggle").evaluate(node => node === document.activeElement), true);
+    await page.locator("#primary-more-toggle").click();
     await page.locator("#copy-result").click();
     assert.match(await page.locator("#share-copy-text").inputValue(), /^CardFitSG top fit:/);
     assert.match(await page.locator("#share-copy-text").inputValue(), /not financial advice/);

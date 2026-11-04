@@ -1321,3 +1321,9 @@ October-to-November welcome award on Singapore date rollover. Chromium journeys
 passed at 1280px and 320px, including the current S$365 rendered welcome metric,
 review date, no overdue banner and no page overflow. Historical September banner
 fixtures explicitly omit the later welcome schedule.
+
+## 2026-11-05 — Preserve composed Escape in offer tools
+
+More options stays open for input-method composition, legacy key-code 229, consumed Escape and Ctrl/Meta/Alt chords. Ordinary Escape still dismisses the tools and returns focus to More options. Version 2026.11.05.1; issuer facts and ranking arithmetic remain unchanged.
+
+Validation: the added app regression fails against the original handler and passes with the guard. All app, 300 engine, 19 freshness, site, category-planner and 14 workflow gates passed. Chromium journeys at 1280px and 320px verify ignored keys, ordinary Escape/focus, planner arithmetic, rollover, clipboard recovery and no horizontal overflow. Per-file JavaScript syntax and whitespace checks passed.

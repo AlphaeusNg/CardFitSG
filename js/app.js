@@ -1227,6 +1227,7 @@
 
   function bindDisclosureToggles() {
     document.addEventListener("keydown", (event) => {
+      if (event.defaultPrevented || event.isComposing || event.keyCode === 229 || event.ctrlKey || event.metaKey || event.altKey) return;
       if (event.key !== "Escape") return;
       const button = document.getElementById("primary-more-toggle");
       const panel = document.getElementById("primary-more");
