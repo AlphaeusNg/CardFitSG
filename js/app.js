@@ -331,7 +331,7 @@
     const monthly = parseFiniteAmount(saved.monthly);
     if (oneOff !== null && $("#oneOff")) $("#oneOff").value = oneOff;
     if (monthly !== null && $("#monthly")) $("#monthly").value = monthly;
-    if (Number.isFinite(saved.months) && $("#months")) $("#months").value = String(saved.months);
+    if ([6, 12, 24].includes(saved.months) && $("#months")) $("#months").value = String(saved.months);
     if ($("#goal")) {
       if (saved.intent === "long_term") $("#goal").value = "long_term";
       else if (saved.intent === "keep") $("#goal").value = "keep";

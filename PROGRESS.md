@@ -1341,3 +1341,17 @@ All app, 300 engine, 19 freshness, site, category-planner and 14 workflow gates
 passed. Extended Chromium journeys passed at 1280px and 320px, including denied
 comparison copying followed by a successful retry, existing rollover/planner
 checks and no page overflow. Per-file syntax and whitespace checks passed.
+
+
+## 2026-11-05 — Ignore unsupported saved spending horizons
+
+Restoring the last or a named scenario now applies a horizon only when it is
+6, 12 or 24 months. Corrupt stored values previously assigned an unsupported
+select value, leaving the browser's horizon blank. Valid saved spend and other
+preferences still restore. Version and asset stamps: 2026.11.05.3.
+
+Validation: the new app cases for zero, negative, fractional, unsupported and
+string horizons fail before the fix. App, 300 engine, 19 freshness, site,
+category-planner, 14 workflow and current catalog checks passed. Chromium
+journeys passed at 1280px and 320px; per-file syntax and whitespace checks
+passed. Catalog facts and ranking arithmetic are unchanged.

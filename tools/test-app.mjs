@@ -669,6 +669,16 @@ async function boot(
   );
 }
 
+for (const months of [0, -6, 18, 36, 12.5, "24"]) {
+  const result = await boot(
+    { ok: true, status: 200, async json() { return structuredClone(catalog); } },
+    { savedScenario: JSON.stringify({ oneOff: 900, months }) }
+  );
+  assert.equal(result.elements.months.value, "12", `unsupported saved horizon ${months} keeps the default`);
+  assert.equal(result.scenarios.at(-1).months, 12, "ranking uses a supported horizon");
+  assert.equal(result.elements.oneOff.value, "900", "valid saved spend still restores");
+}
+
 {
   const saved = JSON.stringify({
     oneOff: 900,
