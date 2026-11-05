@@ -12,6 +12,13 @@ try {
     await page.goto(process.env.CARDFIT_URL || "http://127.0.0.1:8097/");
     await page.locator("#primary .card-title").waitFor();
     await page.locator("#ranked .rank-card").first().waitFor();
+    await page.locator("#saved-scenarios-toggle").click();
+    await page.locator("#scenario-name").fill("Keyboard scenario");
+    await page.locator("#scenario-name").press("Enter");
+    assert.match(await page.locator("#named-scenario-status").textContent(), /Saved/);
+    assert.equal(await page.locator("#scenario-name").evaluate(node => node === document.activeElement), true);
+    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("cardfitsg-named-scenarios-v1"))[0].name), "Keyboard scenario");
+    await page.locator("#saved-scenarios-toggle").click();
     const ranking = await page.locator("#ranked").innerHTML();
     const url = page.url();
     const savedActive = await page.evaluate(() => localStorage.getItem("cardfitsg-last-scenario-v1"));

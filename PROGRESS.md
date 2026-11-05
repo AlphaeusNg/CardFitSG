@@ -1355,3 +1355,17 @@ string horizons fail before the fix. App, 300 engine, 19 freshness, site,
 category-planner, 14 workflow and current catalog checks passed. Chromium
 journeys passed at 1280px and 320px; per-file syntax and whitespace checks
 passed. Catalog facts and ranking arithmetic are unchanged.
+
+## 2026-11-06 — Save a named scenario with Enter
+
+Enter in the scenario-name field saves the current assumptions and keeps focus
+in the field. Composition, consumed events, shortcut chords and repeated keys
+do not trigger saving. Existing Save scenario behavior and storage-failure
+feedback are reused. Version and asset stamps: 2026.11.06.1.
+
+Validation: the new app regression failed before the handler was added. App,
+300 engine, 19 freshness, site, category-planner, 14 workflow and current catalog
+gates passed. Chromium journeys passed at 1280px and 320px, including Enter
+saving, retained focus, planner arithmetic, rollover and clipboard recovery.
+Per-file JavaScript syntax and whitespace checks passed. Catalog facts and
+ranking arithmetic are unchanged.

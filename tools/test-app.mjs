@@ -2072,3 +2072,20 @@ console.log("test-app.mjs: disclosure toggles collapse by default and open on cl
 }
 
 console.log("test-app.mjs: tap labels show and then hide");
+
+
+{
+  const result = await boot({ ok: true, status: 200, async json() { return JSON.parse(JSON.stringify(catalog)); } });
+  const input = result.elements["scenario-name"];
+  input.value = "Keyboard scenario";
+  for (const options of [{ isComposing: true }, { keyCode: 229 }, { ctrlKey: true }, { metaKey: true }, { altKey: true }, { defaultPrevented: true }, { repeat: true }]) {
+    let prevented = false;
+    input.dispatch("keydown", { key: "Enter", ...options, preventDefault() { prevented = true; } });
+    assert.equal(prevented, false, "composition and shortcut Enter remain available");
+    assert.equal(result.sandbox.window.CardFitApp.namedScenarios().length, 0);
+  }
+  let prevented = false;
+  input.dispatch("keydown", { key: "Enter", preventDefault() { prevented = true; } });
+  assert.equal(prevented, true, "saving consumes Enter before the calculator form submits");
+  assert.equal(result.sandbox.window.CardFitApp.namedScenarios()[0].name, "Keyboard scenario");
+}

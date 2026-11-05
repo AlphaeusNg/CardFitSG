@@ -233,6 +233,12 @@
     $("#save-named-scenario")?.addEventListener("click", () => {
       saveNamedScenario($("#scenario-name")?.value);
     });
+    $("#scenario-name")?.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" || event.defaultPrevented || event.isComposing ||
+          event.keyCode === 229 || event.ctrlKey || event.metaKey || event.altKey || event.repeat) return;
+      event.preventDefault();
+      saveNamedScenario($("#scenario-name").value);
+    });
     document.addEventListener("click", (event) => {
       const copyResult = event.target && event.target.closest && event.target.closest("#copy-result");
       if (copyResult) {
