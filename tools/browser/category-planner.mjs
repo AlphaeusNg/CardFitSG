@@ -45,6 +45,25 @@ try {
     await page.evaluate(() => window.CardFitApp.run());
     assert.equal(await page.locator("#share-copy-recovery").isVisible(), false, "recalculation clears old copy recovery");
 
+    await page.locator("#saved-scenarios-toggle").click();
+    await page.locator("#scenario-name").fill("Baseline");
+    await page.locator("#save-named-scenario").click();
+    await page.locator("#scenario-name").fill("Alternative");
+    await page.locator("#save-named-scenario").click();
+    await page.locator("#compare-tools-toggle").click();
+    const savedIds = await page.evaluate(() => CardFitApp.namedScenarios().map(item => item.id));
+    await page.locator("#assumption-a").selectOption(savedIds[0]);
+    await page.locator("#assumption-b").selectOption(savedIds[1]);
+    await page.locator("#copy-assumptions").click();
+    assert.equal(await page.locator("#assumption-copy-fallback").isVisible(), true);
+    await page.evaluate(() => { navigator.clipboard.writeText = async () => {}; });
+    await page.locator("#copy-assumptions").click();
+    assert.equal(await page.locator("#assumption-copy-status").textContent(), "Comparison copied.");
+    assert.equal(await page.locator("#assumption-copy-fallback").isVisible(), false);
+    assert.equal(await page.locator("#assumption-copy-fallback").inputValue(), "");
+    await page.locator("#saved-scenarios-toggle").click();
+    await page.locator("#compare-tools-toggle").click();
+
     assert.equal(await page.locator("#category-enable").isChecked(), false);
     assert.equal(await page.locator("#category-controls").isVisible(), false);
     await page.locator("#category-planner > details > summary").click();

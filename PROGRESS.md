@@ -1327,3 +1327,17 @@ fixtures explicitly omit the later welcome schedule.
 More options stays open for input-method composition, legacy key-code 229, consumed Escape and Ctrl/Meta/Alt chords. Ordinary Escape still dismisses the tools and returns focus to More options. Version 2026.11.05.1; issuer facts and ranking arithmetic remain unchanged.
 
 Validation: the added app regression fails against the original handler and passes with the guard. All app, 300 engine, 19 freshness, site, category-planner and 14 workflow gates passed. Chromium journeys at 1280px and 320px verify ignored keys, ordinary Escape/focus, planner arithmetic, rollover, clipboard recovery and no horizontal overflow. Per-file JavaScript syntax and whitespace checks passed.
+
+## 2026-11-05 — Clear manual comparison recovery when copying again
+
+A new Copy comparison attempt clears the previous manual recovery text and
+feedback. A successful clipboard retry leaves the recovery field hidden and
+empty; denied attempts still expose selectable text. Revision guards continue
+to discard outdated clipboard results. Version 2026.11.05.2. Catalog facts and
+ranking arithmetic remain unchanged.
+
+Validation: the added retry regression failed against the previous handler.
+All app, 300 engine, 19 freshness, site, category-planner and 14 workflow gates
+passed. Extended Chromium journeys passed at 1280px and 320px, including denied
+comparison copying followed by a successful retry, existing rollover/planner
+checks and no page overflow. Per-file syntax and whitespace checks passed.

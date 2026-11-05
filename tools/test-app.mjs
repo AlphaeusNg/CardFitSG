@@ -1513,6 +1513,12 @@ function displayedFeeCents(html) {
   assert.equal(result.elements["assumption-copy-fallback"].value, copied);
   assert.equal(result.elements["assumption-copy-fallback"].hidden, false);
   assert.equal(result.elements["assumption-copy-fallback"].selected, true);
+  result.sandbox.navigator.clipboard.writeText = async () => {};
+  result.elements["copy-assumptions"].dispatch("click");
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(result.elements["assumption-copy-status"].textContent, "Comparison copied.");
+  assert.equal(result.elements["assumption-copy-fallback"].hidden, true, "successful retry hides manual recovery");
+  assert.equal(result.elements["assumption-copy-fallback"].value, "", "successful retry clears old recovery text");
   result.elements["assumption-b"].value = saved[0].id;
   result.sandbox.window.CardFitApp.renderAssumptionComparison();
   assert.equal(result.elements["copy-assumptions"].disabled, true);

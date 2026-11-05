@@ -934,13 +934,15 @@
     const revision = ++assumptionCopyRevision;
     const text = assumptionComparisonText;
     const status = $("#assumption-copy-status");
+    const fallback = $("#assumption-copy-fallback");
+    if (fallback) { fallback.hidden = true; fallback.value = ""; }
+    if (status) status.textContent = "";
     try {
       await navigator.clipboard.writeText(text);
       if (revision !== assumptionCopyRevision) return;
       if (status) status.textContent = "Comparison copied.";
     } catch {
       if (revision !== assumptionCopyRevision) return;
-      const fallback = $("#assumption-copy-fallback");
       if (fallback) {
         fallback.value = text;
         fallback.hidden = false;
